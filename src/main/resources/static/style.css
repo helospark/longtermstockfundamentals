@@ -1,0 +1,21 @@
+.chartDiv {
+  width:98%;
+  display:grid;
+  grid-template-columns: 20px 1fr;
+}
+
+.ui-slider .ui-slider-handle {
+    cursor: default;
+    height: 0.65em;
+    position: absolute;
+    width: 0.65em;
+    z-index: 2;
+}
+
+.pressed {
+  background-color: #a7a7a7;
+}
+
+.ui-slider-vertical {
+  width: 0.2em;
+}

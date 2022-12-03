@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+<link rel="stylesheet" href="../style.css">
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<body>
+
+<span id="stock" th:text="${stock}"></span>
+
+<div id="charts">
+
+</div>
+
+<script>
+var stock = document.getElementById("stock").innerText;
+
+function createCheckbox(label) {
+  var checkbox = document.createElement("input");
+  checkbox.type="checkbox";
+  checkbox.innerHtml=label;
+  
+
+  return label;
+}
+
+function createChart(urlPath, title, chartOptions) {
+  var canvas =document.createElement("canvas");
+  canvas.style='width:100%;max-height:400px'
+  
+  var underChartBar = document.createElement("div");
+  underChartBar.style="width:100%";
+  
+  var chartDiv = document.createElement("div");
+  chartDiv.className="chartDiv";
+  
+  var element = document.getElementById("charts");
+  element.appendChild(chartDiv);
+  element.appendChild(underChartBar);
+
+  var xValues = [];
+  var yValues = [];
+  type = chartOptions.type !== undefined ? chartOptions.type : 'line';
+  suggestedMin = chartOptions.suggestedMin !== undefined ? chartOptions.suggestedMin : undefined;
+  var unit = chartOptions.unit !== undefined ? " " + chartOptions.unit : "";
+  
+  var chart = new Chart(canvas, {
+    type: type,
+    data: {
+      labels: xValues,
+      datasets: [{
+        fill: true,
+        pointRadius: 2,
+        borderColor: "rgba(0,0,255,0.5)",
+        backgroundColor: "rgba(0,0,255,0.5)",
+        data: yValues,
+        pointHitRadius: 300,
+        label: "data"
+      }]
+    }, 
+    options: {
+      responsive: true,
+
+       label: {
+         display: false
+       },
+      plugins: {
+        title: {
+          display: true,
+          text: title
+        },
+        legend: {
+          display: false
+        },
+        tooltip: {
+            callbacks: {
+                label: (item) =>
+                    `${item.dataset.label}: ${item.formattedValue}${unit}`,
+            },
+        },
+      },
+      scales: {
+        x: {
+          display: true,
+        },
+        y: {
+          display: true,
+          type: 'linear',
+          min: chartOptions.suggestedMin,
+          max: chartOptions.suggestedMax
+        }
+      },
+    },
+  });
+  
+  
+  var button=document.createElement("button");
+  button.innerHTML = "Logarithmic";
+  button.onclick=function() {
+      isCurrentlyLinear = chart.options.scales.y.type == 'linear';
+      value = (isCurrentlyLinear ? 'logarithmic' : 'linear')
+      if (isCurrentlyLinear) {
+        button.classList.add("pressed");
+      }else {
+        button.classList.remove("pressed");
+      }
+      chart.options.scales.y.type = value;
+      chart.update();
+  }
+  var startAtZeroButton=document.createElement("button");
+  startAtZeroButton.innerHTML = "Zero based";
+  startAtZeroButton.onclick=function() {
+      isCurrentlyEnabled = (chart.options.scales.y.originalMin !== undefined);
+      console.log(isCurrentlyEnabled);
+      if (isCurrentlyEnabled) {
+        startAtZeroButton.classList.remove("pressed");
+      } else {
+        startAtZeroButton.classList.add("pressed");
+      }
+      if (isCurrentlyEnabled) {
+        chart.options.scales.y.min = chart.options.scales.y.originalMin;
+        chart.options.scales.y.max = chart.options.scales.y.originalMax;
+        chart.options.scales.y.originalMin = undefined;
+        chart.options.scales.y.originalMax = undefined;
+      } else {
+        chart.options.scales.y.originalMin = chart.options.scales.y.min;
+        chart.options.scales.y.originalMax = chart.options.scales.y.max;
+        if (chart.options.scales.y.min > 0) {
+           chart.options.scales.y.min = 0;
+        }
+        if (chart.options.scales.y.max < 0) {
+          chart.options.scales.y.max = 0;
+        }
+      }
+
+      chart.update();
+  }
+  
+  underChartBar.appendChild(button);
+  underChartBar.appendChild(startAtZeroButton);
+
+
+  var sliderDiv=document.createElement("div");
+  sliderDiv.style="height:300px;position:relative; top: 30px;";
+  var slider = $(sliderDiv).slider({
+      range: true,
+      orientation: "vertical",
+      min: 0,
+      max: 500,
+      values: [ 0, 500 ],
+      slide: function( event, ui ) {
+          var start = ui.values[0],
+          end = ui.values[1];
+
+          chart.options.scales.y.min = start;
+          chart.options.scales.y.max = end;
+          chart.update();
+      }
+    });
+    $(slider).on("slide", function() {
+      var selection = $(this).slider("value");
+      console.log(selection);
+    });
+    chartDiv.appendChild(sliderDiv);
+  chartDiv.appendChild(canvas);
+  
+  
+  let url = 'http://localhost:8080/' + stock + urlPath;
+  
+  fetch(url)
+          .then(res => res.json())
+          .then(out => {
+                      for (index = 0; index < out.length; index++) {
+                          xValues[out.length - index - 1] = out[index].date;
+                          yValues[out.length - index - 1] = out[index].value;
+                      }
+                      max = Math.max.apply(Math, yValues);
+                      min = Math.min.apply(Math, yValues);
+                  
+                      minValueToSet = chartOptions.suggestedMin !== undefined ? chartOptions.suggestedMin : min;
+                      maxValueToSet = chartOptions.suggestedMax !== undefined ? chartOptions.suggestedMax : max;
+                      
+                      minValueToSet = minValueToSet < min ? min : minValueToSet;
+                      maxValueToSet = maxValueToSet > max ? max : maxValueToSet;
+                      
+                      if (minValueToSet >= maxValueToSet) {
+                         minValueToSet = maxValueToSet + 1.0;
+                      }
+                  
+                      if (!isNaN(minValueToSet)) {
+                        slider.slider("option", "min", min);
+                        slider.slider('values', 0, minValueToSet);
+                        chart.options.scales.y.min = minValueToSet;
+                      }
+                      if (!isNaN(maxValueToSet)) {
+                        slider.slider("option", "max", max);
+                        slider.slider('values', 1, maxValueToSet);
+                        chart.options.scales.y.max = maxValueToSet;
+                      }
+                      chart.update();
+          })
+          .catch(err => { throw err });
+}
+
+function createSeparator(title) {
+  var hrElement =document.createElement("hr");
+  var hone = document.createElement("h1");
+  
+  hone.innerHTML = title;
+  
+  var element = document.getElementById("charts");
+  
+  children=Array.from(element.children);
+  
+  if (children.length > 1) {
+    element.appendChild(hrElement);
+  }
+  element.appendChild(hone);
+  
+}
+
+createSeparator("Income");
+createChart("/financials/revenue", "Revenue", {});
+createChart("/financials/eps", "EPS", {});
+
+createChart("/financials/fcf", "FCF", {});
+createChart("/financials/pfcf", "FCF per share", {});
+
+
+createSeparator("Margins", {})
+createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit: '%'});
+createChart("/financials/operating_margin", "Operating margin", {suggestedMin: -10, unit: '%'});
+createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%'});
+
+
+createSeparator("Price ratios")
+createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50});
+createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100});
+createChart("/financials/past_pe_to_growth_ratio", "Past PEG ratio", {suggestedMin: -2, suggestedMax: 5});
+createChart("/financials/ev_over_ebitda", "EV over ebitda", {});
+
+createChart("/financials/pfcf_ratio", "PFCF ratio", {suggestedMin: -2, suggestedMax: 50});
+createChart("/financials/p2g_ratio", "Price to Book ratio", {suggestedMin: 0, suggestedMax: 15});
+createChart("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5});
+
+
+createSeparator("Debt information")
+
+createChart("/financials/cash_flow_to_debt", "Cash flow to debt", {});
+createChart("/financials/short_term_coverage_ratio", "Short term coverage ratio", {});
+createChart("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {});
+createChart("/financials/altmanz", "Altman Z score", {});
+createChart("/financials/interest_expense", "Interest expense", {});
+createChart("/financials/interest_rate", "Interest rate", {});
+
+
+
+createSeparator("Assets")
+createChart("/financials/current_assets", "Current assets", {});
+createChart("/financials/cash", "Cash and cash equivalents", {});
+createChart("/financials/current_liabilities", "Current liabilities", {});
+
+createChart("/financials/non_current_assets", "Non current assets", {});
+createChart("/financials/long_term_debt", "Long term debt", {});
+
+
+createSeparator("Return ratios")
+createChart("/financials/roic", "Return on invested capital", {});
+createChart("/financials/return_on_assets", "Return on assets", {});
+createChart("/financials/return_on_capital", "Return on capital", {});
+createChart("/financials/return_on_equity", "Return on equity", {});
+
+
+
+
+createSeparator("Other")
+createChart("/financials/share_count", "Share count", {});
+createChart("/financials/tax_rate", "Tax rate", {});
+createChart("/financials/stock_compensation", "Stock compensation", {});
+createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2});
+createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0});
+createChart("/financials/capex_to_revenue", "CAPEX to revenue", {});
+createChart("/financials/cash_per_share", "Cash per share", {});
+
+
+createSeparator("Dividend")
+createChart("/financials/dividend_yield", "Dividend yield", {unit: '%', suggestedMin: -2, suggestedMax: 50});
+createChart("/financials/dividend_payout_ratio", "Dividend payout ratio", {unit: '%', suggestedMin: -2, suggestedMax: 150});
+createChart("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150});
+createChart("/financials/dividend_paid", "Dividend paid", {});
+createChart("/financials/dividend_yield_per_current_price", "Dividend yield for invest price", {unit: '%', suggestedMin: -2, suggestedMax: 200});
+
+
+
+createSeparator("Growth")
+createChart("/financials/eps_growth_rate", "EPS growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS growth 7 year intervals annual", {type: 'bar', unit: '%'});
+
+createChart("/financials/fcf_growth_rate", "FCF growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF growth 7 year intervals annual", {type: 'bar', unit: '%'});
+
+createChart("/financials/revenue_growth_rate", "Revenue growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/share_count_growth_rate", "Share count growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type: 'bar', unit: '%'});
+
+
+
+createSeparator("DCF")
+createChart("/financials/eps_dcf", "EPS DCF", {});
+createChart("/financials/fcf_dcf", "FCF DCF", {});
+createChart("/financials/dividend_dcf", "Dividend DCF", {});
+createChart("/financials/graham_number", "Graham number", {});
+createChart("/financials/revenue_projection", "Revenue projection stock price", {});
+
+
+
+createSeparator("Price")
+createChart("/financials/price", "Price", {});
+createChart("/financials/price_growth_rate", "Price growth", {type: 'bar'});
+
+</script>
+
+</body>
+</html>
