@@ -34,20 +34,24 @@ public class GrowthCalculator {
         return fcfPerShare;
     }
 
-    public static Optional<Double> getGrowthInInterval(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+    public static Optional<Double> getGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusMonths((int) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusMonths((int) (offsetYear * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex < 0 ||
-                newIndex > financials.size() || oldIndex == -1) {
+                newIndex > financials.size() || newIndex == -1) {
             return Optional.empty();
         }
 
         double now = minEpsOf(financials, newIndex, newIndex);
         double then = maxEpsOf(financials, oldIndex, oldIndex);
 
-        int distance = years - offset;
+        double distance = year - offsetYear;
         double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
 
         return Optional.of(resultPercent);
     }
@@ -142,6 +146,11 @@ public class GrowthCalculator {
         double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
 
         return Optional.of(resultPercent);
+    }
+
+    public static double calculateGrowth(double now, double then, int distance) {
+        return (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+
     }
 
 }

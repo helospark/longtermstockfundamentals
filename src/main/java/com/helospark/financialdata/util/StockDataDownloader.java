@@ -64,6 +64,8 @@ public class StockDataDownloader {
     private static void downloadUsefulInfo() {
         //https: //financialmodelingprep.com/api/v4/treasury?from=2021-06-30&to=2021-09-30&apikey=API_KEY
         downloadUrlIfNeeded("info/tresury_rates.json", "/v4/treasury", Map.of("from", "1990-01-01", "to", LocalDate.now().toString()));
+        // https://financialmodelingprep.com/api/v3/historical-price-full/%5EGSPC?serietype=line&apikey=API_KEY
+        downloadUrlIfNeeded("info/s&p500_price.json", "/v3/historical-price-full/%5EGSPC", Map.of("serietype", "line"));
     }
 
     private static void downloadFxRates() {
@@ -107,11 +109,7 @@ public class StockDataDownloader {
     }
 
     private static void downloadStockData(String symbol) {
-        if (symbol.contains("^")) {
-            System.out.println("Skipping " + symbol);
-            return;
-        }
-
+        symbol = symbol.replace("^", "%5E");
         Map<String, String> queryMap = new HashMap<>(Map.of("limit", asString(NUM_QUARTER)));
 
         queryMap.put("period", "quarter");

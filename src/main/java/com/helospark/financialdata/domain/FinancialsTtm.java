@@ -17,7 +17,6 @@ public class FinancialsTtm implements DateAware, Serializable {
 
     public RemoteRatio remoteRatio;
     public KeyMetrics keyMetrics;
-    public Profile profile;
 
     @Override
     public LocalDate getDate() {

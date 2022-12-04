@@ -162,7 +162,6 @@ public class DataLoader {
             currentTtm.incomeStatement = incomeStatements.get(i);
             currentTtm.cashFlowTtm = calculateTtm(cashFlows, cashFlowIndex, new CashFlow());
             currentTtm.incomeStatementTtm = calculateTtm(incomeStatements, i, new IncomeStatement());
-            currentTtm.profile = profile;
 
             price = convertCurrencyIfNeeded(price, currentTtm, profile);
             currentTtm.price = price;
@@ -180,11 +179,11 @@ public class DataLoader {
             return new CompanyFinancials();
         }
         if (result.isEmpty()) {
-            return new CompanyFinancials(0.0, result);
+            return new CompanyFinancials(0.0, result, profile);
         }
 
         double price = prices.isEmpty() ? 0 : prices.get(0).close;
-        return new CompanyFinancials(convertCurrencyIfNeeded(price, result.get(0), profile), result);
+        return new CompanyFinancials(convertCurrencyIfNeeded(price, result.get(0), profile), result, profile);
     }
 
     private static double convertCurrencyIfNeeded(double price, FinancialsTtm currentTtm, Profile profile) {
@@ -249,6 +248,10 @@ public class DataLoader {
 
     private static List<HistoricalPriceElement> readHistoricalFile(String symbol, String fileName) {
         File dataFile = new File(BASE_FOLDER + "/fundamentals/" + symbol + "/" + fileName);
+        return loadHistoricalFile(dataFile);
+    }
+
+    public static List<HistoricalPriceElement> loadHistoricalFile(File dataFile) {
         if (!dataFile.exists()) {
             // System.out.println("File not found " + dataFile);
             return List.of();

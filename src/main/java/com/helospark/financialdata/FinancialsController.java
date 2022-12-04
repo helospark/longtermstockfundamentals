@@ -22,6 +22,7 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.RevenueProjector;
+import com.helospark.financialdata.service.TrailingPegCalculator;
 
 @RestController
 @RequestMapping("/{stock}/financials")
@@ -70,30 +71,16 @@ public class FinancialsController {
     }
 
     @GetMapping("/past_pe_to_growth_ratio")
-    public List<SimpleDataElement> getReversePegMargin(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getTrailingPegMargin(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
-        double growthRate = getPastGrowthRate(company);
-        return getIncomeData(stock, financialsTtm -> {
-            double eps = financialsTtm.incomeStatementTtm.eps;
-            if (eps == 0.0) {
-                eps = 0.001;
-            }
-            return ((financialsTtm.price / eps) / growthRate);
-        });
-    }
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm financialsTtm = company.financials.get(i);
+            Optional<Double> value = TrailingPegCalculator.calculateTrailingPeg(company, i);
 
-    private double getPastGrowthRate(CompanyFinancials company) {
-        double growthRate = 1.0;
-        for (int i = 0; i <= 10; ++i) {
-            Optional<Double> growthInYear = GrowthCalculator.getGrowthInInterval(company.financials, i, 0);
-            if (growthInYear.isPresent()) {
-                growthRate = growthInYear.get();
-            }
+            result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value.orElse(null)));
         }
-        if (growthRate == 0.0) {
-            growthRate = 0.001;
-        }
-        return growthRate;
+        return result;
     }
 
     @GetMapping("/pfcf_ratio")
@@ -161,7 +148,7 @@ public class FinancialsController {
     public List<SimpleDataElement> getInterestRate(@PathVariable("stock") String stock) {
         return getIncomeData(stock, financialsTtm -> {
             if (financialsTtm.balanceSheet.totalDebt > 0 && financialsTtm.incomeStatementTtm.interestExpense > 0) {
-                return (double) financialsTtm.incomeStatementTtm.interestExpense / financialsTtm.balanceSheet.totalDebt * 100.0;
+                return toPercent((double) financialsTtm.incomeStatementTtm.interestExpense / financialsTtm.balanceSheet.totalDebt);
             } else {
                 return null;
             }

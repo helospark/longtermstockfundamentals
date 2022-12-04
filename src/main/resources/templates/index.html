@@ -198,6 +198,7 @@ function createChart(urlPath, title, chartOptions) {
                         slider.slider('values', 1, maxValueToSet);
                         chart.options.scales.y.max = maxValueToSet;
                       }
+                      startAtZeroButton.onclick();
                       chart.update();
           })
           .catch(err => { throw err });
@@ -228,7 +229,7 @@ createChart("/financials/fcf", "FCF", {});
 createChart("/financials/pfcf", "FCF per share", {});
 
 
-createSeparator("Margins", {})
+createSeparator("Margins")
 createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit: '%'});
 createChart("/financials/operating_margin", "Operating margin", {suggestedMin: -10, unit: '%'});
 createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%'});
@@ -252,7 +253,7 @@ createChart("/financials/short_term_coverage_ratio", "Short term coverage ratio"
 createChart("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {});
 createChart("/financials/altmanz", "Altman Z score", {});
 createChart("/financials/interest_expense", "Interest expense", {});
-createChart("/financials/interest_rate", "Interest rate", {});
+createChart("/financials/interest_rate", "Interest rate", {unit: '%'});
 
 
 
@@ -266,10 +267,10 @@ createChart("/financials/long_term_debt", "Long term debt", {});
 
 
 createSeparator("Return ratios")
-createChart("/financials/roic", "Return on invested capital", {});
-createChart("/financials/return_on_assets", "Return on assets", {});
-createChart("/financials/return_on_capital", "Return on capital", {});
-createChart("/financials/return_on_equity", "Return on equity", {});
+createChart("/financials/roic", "Return on invested capital", {unit: '%'});
+createChart("/financials/return_on_assets", "Return on assets", {unit: '%'});
+createChart("/financials/return_on_capital", "Return on capital", {unit: '%'});
+createChart("/financials/return_on_equity", "Return on equity", {unit: '%'});
 
 
 
