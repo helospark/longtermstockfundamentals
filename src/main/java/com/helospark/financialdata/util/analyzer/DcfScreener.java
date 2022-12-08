@@ -1,7 +1,7 @@
 package com.helospark.financialdata.util.analyzer;
 
 import static com.helospark.financialdata.service.AltmanZCalculator.calculateAltmanZScore;
-import static com.helospark.financialdata.service.DcfCalculator.doDcfAnalysis;
+import static com.helospark.financialdata.service.DcfCalculator.doStockDcfAnalysis;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isStableGrowth;
 import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
@@ -14,6 +14,8 @@ import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.service.DataLoader;
 
 public class DcfScreener implements StockScreeners {
+    static double UPSIDE_CUTOFF = 95;
+    static double PROFITABLE_YEAR = 5;
 
     @Override
     public void analyze(Set<String> symbols) {
@@ -45,18 +47,18 @@ public class DcfScreener implements StockScreeners {
                 double preCovidGrowth = preCovidYearAvgGrowth.get();
                 double fiveYearGrowth = fiveYearAvgGrowth.get();
 
-                double dcf = doDcfAnalysis(financials.get(0).incomeStatementTtm.eps, min(growth, preCovidGrowth));
+                double dcf = doStockDcfAnalysis(financials.get(0).incomeStatementTtm.eps, min(growth, preCovidGrowth));
 
                 long fcf = financials.get(0).cashFlowTtm.freeCashFlow;
                 double fcfPerShare = (double) fcf / financials.get(0).incomeStatementTtm.weightedAverageShsOut;
-                double dcfFcf = doDcfAnalysis(fcfPerShare, min(growth, preCovidGrowth));
+                double dcfFcf = doStockDcfAnalysis(fcfPerShare, min(growth, preCovidGrowth));
 
                 double currentPe = company.latestPrice / financials.get(0).incomeStatementTtm.eps;
 
                 double upside = (dcf / company.latestPrice - 1.0) * 100;
                 double fcfUpside = (dcfFcf / company.latestPrice - 1.0) * 100;
 
-                if (upside > 25.0 && fcfUpside > 25.0) {
+                if (upside > UPSIDE_CUTOFF && fcfUpside > UPSIDE_CUTOFF) {
                     double twoYearGrowth = threeYearAvgGrowth.get();
                     System.out.printf("%s\t(%.2f, %.2f, %.2f, %.2f)\t\t%.2f\t%.2f\t%.2f%%\t\t%.2f%%\n", symbol, growth, fiveYearGrowth, twoYearGrowth, preCovidGrowth, dcf, currentPe, upside,
                             fcfUpside);

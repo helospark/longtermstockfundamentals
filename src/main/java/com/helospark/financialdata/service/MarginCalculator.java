@@ -2,17 +2,17 @@ package com.helospark.financialdata.service;
 
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import com.helospark.financialdata.CommonConfig;
 import com.helospark.financialdata.domain.FinancialsTtm;
 
 public class MarginCalculator {
 
     public static Optional<Double> getNetMarginGrowthRate(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusYears(years));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusYears(offset));
 
         if (oldIndex >= financials.size() || oldIndex == -1) {
             return Optional.empty();

@@ -2,17 +2,17 @@ package com.helospark.financialdata.service;
 
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import com.helospark.financialdata.CommonConfig;
 import com.helospark.financialdata.domain.FinancialsTtm;
 
 public class GrowthCalculator {
 
-    public static Optional<Double> getFcfGrowthInInterval(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+    public static Optional<Double> getFcfGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1) {
             return Optional.empty();
@@ -21,7 +21,7 @@ public class GrowthCalculator {
         double now = getFcfPerShare(financials.get(newIndex));
         double then = getFcfPerShare(financials.get(oldIndex));
 
-        int distance = years - offset;
+        double distance = years - offset;
         double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
 
         return Optional.of(resultPercent);
@@ -35,8 +35,8 @@ public class GrowthCalculator {
     }
 
     public static Optional<Double> getGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusMonths((int) (year * 12.0)));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusMonths((int) (offsetYear * 12.0)));
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (offsetYear * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex < 0 ||
                 newIndex > financials.size() || newIndex == -1) {
@@ -78,9 +78,9 @@ public class GrowthCalculator {
         return min;
     }
 
-    public static Optional<Double> getRevenueGrowthInInterval(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+    public static Optional<Double> getRevenueGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1 || financials.get(oldIndex).incomeStatementTtm.revenue <= 0 ||
                 newIndex >= financials.size() || newIndex == -1) {
@@ -95,9 +95,9 @@ public class GrowthCalculator {
         return Optional.of(resultPercent);
     }
 
-    public static Optional<Double> getPriceGrowthInInterval(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+    public static Optional<Double> getPriceGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1) {
             return Optional.empty();
@@ -106,15 +106,15 @@ public class GrowthCalculator {
         double now = financials.get(newIndex).price;
         double then = financials.get(oldIndex).price;
 
-        int distance = years - offset;
+        double distance = years - offset;
         double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
 
         return Optional.of(resultPercent);
     }
 
-    public static Optional<Double> getShareCountGrowthInInterval(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+    public static Optional<Double> getShareCountGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1) {
             return Optional.empty();
@@ -123,15 +123,15 @@ public class GrowthCalculator {
         double now = financials.get(newIndex).incomeStatementTtm.weightedAverageShsOut;
         double then = financials.get(oldIndex).incomeStatementTtm.weightedAverageShsOut;
 
-        int distance = years - offset;
+        double distance = years - offset;
         double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
 
         return Optional.of(resultPercent);
     }
 
-    public static Optional<Double> getDividendGrowthInInterval(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+    public static Optional<Double> getDividendGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1) {
             return Optional.empty();
@@ -142,14 +142,18 @@ public class GrowthCalculator {
         double now = (double) -nowFinancialTtm.cashFlowTtm.dividendsPaid / nowFinancialTtm.incomeStatementTtm.weightedAverageShsOut;
         double then = (double) -thenFinancialTtm.cashFlowTtm.dividendsPaid / thenFinancialTtm.incomeStatementTtm.weightedAverageShsOut;
 
-        int distance = years - offset;
+        double distance = years - offset;
         double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
 
-        return Optional.of(resultPercent);
+        if (Double.isFinite(resultPercent)) {
+            return Optional.of(resultPercent);
+        } else {
+            return Optional.empty();
+        }
     }
 
-    public static double calculateGrowth(double now, double then, int distance) {
-        return (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+    public static double calculateGrowth(double now, double then, double yearsAgo) {
+        return (Math.pow(now / then, 1.0 / (yearsAgo)) - 1.0) * 100.0;
 
     }
 

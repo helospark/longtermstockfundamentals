@@ -14,10 +14,16 @@ import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
 
 public class LowTrailingPegScreenerBacktest implements StockScreeners {
+    static double PEG_CUTOFF = 1.1;
+    static double PE_CUTOFF = 21;
+    static int PROFITABLE_YEAR = 5;
 
     @Override
     public void analyze(Set<String> symbols) {
-        for (int yearsAgo = 0; yearsAgo <= 28; ++yearsAgo) {
+        double totalMoney = 0;
+        int totalCount = 0;
+        for (int index = 0; index <= 28 * 4; ++index) {
+            double yearsAgo = index / 4.0;
             double growthSum = 0.0;
             int count = 0;
             System.out.println("symbol\t(Growth1, Growth2, Growth3)\t\tDCF\tPE\tUpside%\tfcfUpside%");
@@ -29,18 +35,18 @@ public class LowTrailingPegScreenerBacktest implements StockScreeners {
                     continue;
                 }
 
-                int latestElement = yearsAgo * 4;
+                int latestElement = index;
 
                 if (financials.size() > latestElement + 1) {
 
-                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo * 4);
-                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo * 4 + 1);
-                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo * 4 + 2);
+                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
+                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
+                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
 
                     double latestPriceThen = financials.get(latestElement).price;
 
-                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, 4 + yearsAgo, yearsAgo);
-                    boolean stableGrowth = isStableGrowth(financials, 4 + yearsAgo, yearsAgo);
+                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, PROFITABLE_YEAR + yearsAgo, yearsAgo);
+                    boolean stableGrowth = isStableGrowth(financials, PROFITABLE_YEAR + yearsAgo, yearsAgo);
                     double altmanZ = financials.size() > latestElement ? calculateAltmanZScore(financials.get(latestElement), latestPriceThen) : 0.0;
                     //                    System.out.println(latestPriceThen + " " + continouslyProfitable + " " + stableGrowth + " " + altmanZ);
 
@@ -52,7 +58,7 @@ public class LowTrailingPegScreenerBacktest implements StockScreeners {
 
                         double currentPe = latestPriceThen / financials.get(latestElement).incomeStatementTtm.eps;
 
-                        if (trailingPeg.get() < 1.1 && trailingPeg2.get() < 1.1 && trailingPeg3.get() < 1.1 && currentPe > 20) {
+                        if (trailingPeg.get() < PEG_CUTOFF && trailingPeg2.get() < PEG_CUTOFF && trailingPeg3.get() < PEG_CUTOFF && currentPe > PE_CUTOFF) {
 
                             int i = -1;
                             /*
@@ -68,7 +74,9 @@ public class LowTrailingPegScreenerBacktest implements StockScreeners {
                             double sellPrice = i > -1 ? company.financials.get(i).price : company.latestPrice;
                             double growthRatio = sellPrice / latestPriceThen;
                             growthSum += (growthRatio * 1000.0);
+                            totalMoney += (growthRatio * 1000.0);
                             ++count;
+                            ++totalCount;
 
                             double growthTillSell = (growthRatio - 1.0) * 100.0;
 
@@ -83,9 +91,11 @@ public class LowTrailingPegScreenerBacktest implements StockScreeners {
             double increase = (growthSum / (count * 1000) - 1.0);
             double annual = Math.pow(growthSum / (count * 1000), (1.0 / yearsAgo)) - 1.0;
             System.out.println("Have " + (growthSum) + " from " + (count * 1000) + " (" + (increase * 100.0) + "%, " + (annual * 100.0) + "%) invested sp500=" + benchmark + "\t"
-                    + LocalDate.now().minusYears(yearsAgo).getYear());
+                    + LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString());
             System.out.println();
+
         }
+        System.out.println("total=" + totalMoney + " from " + (totalCount * 1000.0));
     }
 
 }

@@ -11,18 +11,21 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
+import com.google.common.util.concurrent.Striped;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
@@ -41,11 +44,12 @@ import com.helospark.financialdata.domain.TresuryRate;
 
 public class DataLoader {
     private static final String CACHE_SAVE_FILE = "/tmp/cache.ser";
-    static Object loadObject = new Object();
+    private static Striped<Lock> duplicateLoadLocks = Striped.lock(1000);
+
     static ObjectMapper objectMapper = new ObjectMapper();
 
-    static Map<String, CompanyFinancials> cache = new HashMap<>();
-    static Map<String, FxRatesResponse> fxCache = new HashMap<>();
+    static Map<String, CompanyFinancials> cache = new ConcurrentHashMap<>();
+    static Map<String, FxRatesResponse> fxCache = new ConcurrentHashMap<>();
     static List<TresuryRate> tresuryRateCache;
 
     static {
@@ -72,40 +76,46 @@ public class DataLoader {
         if (cachedResult != null) {
             return cachedResult;
         }
-        return loadData(symbol);
+        Lock lock = duplicateLoadLocks.get(symbol);
+        try {
+            lock.tryLock(10, TimeUnit.SECONDS);
+            return loadData(symbol);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            lock.unlock();
+        }
     }
 
     private static CompanyFinancials loadData(String symbol) {
-        synchronized (loadObject) {
-            CompanyFinancials cachedResult = cache.get(symbol);
-            if (cachedResult != null) {
-                return cachedResult;
-            }
-
-            //            System.out.println("Loading " + symbol);
-
-            List<BalanceSheet> balanceSheet = readFinancialFile(symbol, "balance-sheet.json", BalanceSheet.class);
-            List<IncomeStatement> incomeStatement = readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
-            List<CashFlow> cashFlow = readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
-            List<RemoteRatio> remoteRatios = readFinancialFile(symbol, "ratios.json", RemoteRatio.class);
-            List<HistoricalPriceElement> historicalPrice = readHistoricalFile(symbol, "historical-price.json");
-            List<EnterpriseValue> enterpriseValues = readFinancialFile(symbol, "enterprise-values.json", EnterpriseValue.class);
-            List<KeyMetrics> keyMetrics = readFinancialFile(symbol, "key-metrics.json", KeyMetrics.class);
-            List<Profile> profiles = readFinancialFile(symbol, "profile.json", Profile.class);
-
-            Profile profile;
-            if (profiles.isEmpty()) {
-                profile = new Profile();
-            } else {
-                profile = profiles.get(0);
-            }
-
-            CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, remoteRatios, enterpriseValues, historicalPrice, keyMetrics, profile);
-
-            cache.put(symbol, result);
-
-            return result;
+        CompanyFinancials cachedResult = cache.get(symbol);
+        if (cachedResult != null) {
+            return cachedResult;
         }
+
+        //        System.out.println("Loading " + symbol);
+
+        List<BalanceSheet> balanceSheet = readFinancialFile(symbol, "balance-sheet.json", BalanceSheet.class);
+        List<IncomeStatement> incomeStatement = readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
+        List<CashFlow> cashFlow = readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
+        List<RemoteRatio> remoteRatios = readFinancialFile(symbol, "ratios.json", RemoteRatio.class);
+        List<HistoricalPriceElement> historicalPrice = readHistoricalFile(symbol, "historical-price.json");
+        List<EnterpriseValue> enterpriseValues = readFinancialFile(symbol, "enterprise-values.json", EnterpriseValue.class);
+        List<KeyMetrics> keyMetrics = readFinancialFile(symbol, "key-metrics.json", KeyMetrics.class);
+        List<Profile> profiles = readFinancialFile(symbol, "profile.json", Profile.class);
+
+        Profile profile;
+        if (profiles.isEmpty()) {
+            profile = new Profile();
+        } else {
+            profile = profiles.get(0);
+        }
+
+        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, remoteRatios, enterpriseValues, historicalPrice, keyMetrics, profile);
+
+        cache.put(symbol, result);
+
+        return result;
     }
 
     private static CompanyFinancials createToTtm(String symbol, List<BalanceSheet> balanceSheets, List<IncomeStatement> incomeStatements, List<CashFlow> cashFlows, List<RemoteRatio> remoteRatios,

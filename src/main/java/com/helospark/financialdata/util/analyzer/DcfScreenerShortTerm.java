@@ -1,7 +1,7 @@
 package com.helospark.financialdata.util.analyzer;
 
 import static com.helospark.financialdata.service.AltmanZCalculator.calculateAltmanZScore;
-import static com.helospark.financialdata.service.DcfCalculator.doDcfAnalysis;
+import static com.helospark.financialdata.service.DcfCalculator.doStockDcfAnalysis;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isStableGrowth;
 import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
@@ -43,11 +43,11 @@ public class DcfScreenerShortTerm implements StockScreeners {
                 double growth = fiveYearAvgGrowth.get();
                 double preCovidGrowth = preCovidYearAvgGrowth.get();
 
-                double dcf = doDcfAnalysis(financials.get(0).incomeStatementTtm.eps, min(growth, preCovidGrowth));
+                double dcf = doStockDcfAnalysis(financials.get(0).incomeStatementTtm.eps, min(growth, preCovidGrowth));
 
                 long fcf = financials.get(0).cashFlowTtm.freeCashFlow;
                 double fcfPerShare = (double) fcf / financials.get(0).incomeStatementTtm.weightedAverageShsOut;
-                double dcfFcf = doDcfAnalysis(fcfPerShare, min(growth, preCovidGrowth));
+                double dcfFcf = doStockDcfAnalysis(fcfPerShare, min(growth, preCovidGrowth));
 
                 double currentPe = company.latestPrice / financials.get(0).incomeStatementTtm.eps;
 

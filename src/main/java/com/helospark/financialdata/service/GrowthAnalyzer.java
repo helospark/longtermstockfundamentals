@@ -1,8 +1,8 @@
 package com.helospark.financialdata.service;
 
+import static com.helospark.financialdata.CommonConfig.NOW;
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import com.helospark.financialdata.domain.FinancialsTtm;
@@ -10,7 +10,7 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 public class GrowthAnalyzer {
 
     public static boolean isLargeGrowthEveryYear(List<FinancialsTtm> financials, int year, double growth) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(year));
+        int oldIndex = findIndexWithOrBeforeDate(financials, NOW.minusYears(year));
 
         if (oldIndex >= financials.size() || oldIndex == -1) {
             return false;
@@ -28,10 +28,10 @@ public class GrowthAnalyzer {
         return true;
     }
 
-    public static boolean isStableGrowth(List<FinancialsTtm> financials, int year, int offset) {
+    public static boolean isStableGrowth(List<FinancialsTtm> financials, double year, double offset) {
         int querterSmooth = 16;
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(year));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+        int oldIndex = findIndexWithOrBeforeDate(financials, NOW.minusMonths((long) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, NOW.minusMonths((long) (offset * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1 || newIndex == -1 || newIndex >= financials.size() || newIndex > oldIndex) {
             return false;
@@ -51,8 +51,8 @@ public class GrowthAnalyzer {
 
     public static boolean isStableGrowth(List<FinancialsTtm> financials, int year, int offset, double avgGrowthRate) {
         int querterSmooth = 16;
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(year));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+        int oldIndex = findIndexWithOrBeforeDate(financials, NOW.minusYears(year));
+        int newIndex = findIndexWithOrBeforeDate(financials, NOW.minusYears(offset));
 
         if (oldIndex >= financials.size() || oldIndex == -1 || newIndex == -1 || newIndex >= financials.size() || newIndex > oldIndex) {
             return false;
@@ -70,9 +70,9 @@ public class GrowthAnalyzer {
         return true;
     }
 
-    public static boolean isProfitableEveryYearSince(List<FinancialsTtm> financials, int year, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(year));
-        int newIndex = findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(offset));
+    public static boolean isProfitableEveryYearSince(List<FinancialsTtm> financials, double year, double offset) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, NOW.minusMonths((long) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, NOW.minusMonths((long) (offset * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1 || newIndex == -1 || newIndex >= financials.size() || newIndex > oldIndex) {
             return false;

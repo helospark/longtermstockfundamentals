@@ -15,8 +15,8 @@ public class StandardAndPoorPerformanceProvider {
         prices = DataLoader.loadHistoricalFile(new File(CommonConfig.BASE_FOLDER + "/info/s&p500_price.json"));
     }
 
-    public static double getGrowth(int yearsAgo) {
-        int oldIndex = Helpers.findIndexWithOrBeforeDate(prices, LocalDate.now().minusYears(yearsAgo));
+    public static double getGrowth(double yearsAgo) {
+        int oldIndex = Helpers.findIndexWithOrBeforeDate(prices, CommonConfig.NOW.minusMonths((long) (yearsAgo * 12.0)));
         if (oldIndex >= prices.size() || oldIndex == -1) {
             oldIndex = prices.size() - 1;
         }
@@ -25,5 +25,14 @@ public class StandardAndPoorPerformanceProvider {
         HistoricalPriceElement oldPrice = prices.get(oldIndex);
 
         return GrowthCalculator.calculateGrowth(latestPrice.close, oldPrice.close, yearsAgo);
+    }
+
+    public static double getLatestPrice() {
+        return prices.get(0).close;
+    }
+
+    public static double getPriceAt(LocalDate date) {
+        int oldIndex = Helpers.findIndexWithOrBeforeDate(prices, date);
+        return prices.get(oldIndex).close;
     }
 }
