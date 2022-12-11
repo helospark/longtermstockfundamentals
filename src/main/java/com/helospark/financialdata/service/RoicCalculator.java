@@ -21,11 +21,25 @@ public class RoicCalculator {
 
         List<Double> roics = new ArrayList<>();
         for (int i = oldIndex; i < oldIndex + (5 * 4) && i < financials.size(); ++i) {
-            double roic = financials.get(i).keyMetrics.roic;
+            var financialsTtm = financials.get(i);
+            double roic = calculateRoic(financialsTtm);
             roics.add(roic);
         }
         Collections.sort(roics);
         return Optional.of(roics.get(roics.size() / 2));
+    }
+
+    public static double calculateRoic(FinancialsTtm financialsTtm) {
+        double ebit = financialsTtm.incomeStatementTtm.ebitda + financialsTtm.incomeStatementTtm.depreciationAndAmortization;
+        return ebit / (financialsTtm.balanceSheet.totalAssets - financialsTtm.balanceSheet.totalCurrentLiabilities);
+    }
+
+    public static double calculateROA(FinancialsTtm financialsTtm) {
+        return ((double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.balanceSheet.totalAssets);
+    }
+
+    public static double calculateROTA(FinancialsTtm financialsTtm) {
+        return (financialsTtm.incomeStatementTtm.netIncome / financialsTtm.keyMetrics.tangibleAssetValue);
     }
 
 }

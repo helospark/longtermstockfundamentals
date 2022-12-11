@@ -21,7 +21,7 @@ import com.helospark.financialdata.service.AltmanZCalculator;
 import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
-import com.helospark.financialdata.util.analyzer.parameter.IncrementStepStrategy;
+import com.helospark.financialdata.util.analyzer.parameter.LimitedRandomStrategy;
 import com.helospark.financialdata.util.analyzer.parameter.Parameter;
 import com.helospark.financialdata.util.analyzer.parameter.TestParameterProvider;
 
@@ -31,9 +31,9 @@ public class CompounderScreenerBacktest2 {
     public void analyze(Set<String> symbols) {
         long start = System.currentTimeMillis();
         TestParameterProvider param = new TestParameterProvider();
-        param.registerParameter(new Parameter("epsSd", 2.0, new IncrementStepStrategy(2.0, 10.0, 1.0)));
-        param.registerParameter(new Parameter("revSd", 6.0, new IncrementStepStrategy(6.0, 10.0, 1.0)));
-        param.registerParameter(new Parameter("peg", 0.8, new IncrementStepStrategy(0.8, 1.7, 0.2)));
+        param.registerParameter(new Parameter("epsSd", 2.0, new LimitedRandomStrategy(10, 1.0, 10.0)));
+        param.registerParameter(new Parameter("revSd", 6.0, new LimitedRandomStrategy(10, 4.0, 30.0)));
+        param.registerParameter(new Parameter("fcfSd", 30.0, new LimitedRandomStrategy(10, 4.0, 45.0)));
         boolean finished = false;
 
         List<TestParameterProvider> providerList = new ArrayList<>();
@@ -92,42 +92,43 @@ public class CompounderScreenerBacktest2 {
                     }
                     double latestPriceThen = financials.get(index).price;
 
-                    int py = (int) param.getValue("py").doubleValue();
-                    Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, py + yearsAgo, yearsAgo);
-                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, py + yearsAgo, yearsAgo);
-                    Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo);
-                    Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo);
-                    //                    Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, yearsAgo);
+                    Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, 8 + yearsAgo, yearsAgo);
+                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, 8 + yearsAgo, yearsAgo);
                     double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
 
-                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
-                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
-                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
+                    if (tenYearAvgGrowth.isPresent() && continouslyProfitable) {
+                        Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
+                        Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
+                        Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
 
-                    if (tenYearAvgGrowth.isPresent() && continouslyProfitable && epsDeviation.isPresent() && revenueDeviation.isPresent()) {
-                        //                Double peRatio = financials.get(0).remoteRatio.priceEarningsRatio;
-                        //                        double currentPe = company.latestPrice / financials.get(0).incomeStatementTtm.eps;
-                        double growth = tenYearAvgGrowth.get();
-                        Double epsStandardDeviation = epsDeviation.get();
-                        Double pegCutoff = param.getValue("peg");
-                        if (growth >= 12.0 && epsStandardDeviation < param.getValue("epsSd") &&
-                                revenueDeviation.get() < param.getValue("revSd") && altmanZ > 2.2 &&
-                                trailingPeg.orElse(0.0) < pegCutoff && trailingPeg2.orElse(0.0) < pegCutoff && trailingPeg3.orElse(0.0) < pegCutoff) {
-                            double sellPrice = company.latestPrice;
-                            double growthRatio = sellPrice / latestPriceThen;
-                            double benchmarkIncrease = INVEST_PER_STOCK
-                                    * (StandardAndPoorPerformanceProvider.getLatestPrice() / StandardAndPoorPerformanceProvider.getPriceAt(financials.get(index).getDate()));
-                            double valueGrowth = growthRatio * INVEST_PER_STOCK;
+                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo, 8);
+                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo, 8);
+                        Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, yearsAgo, 8);
+                        if (epsDeviation.isPresent() && revenueDeviation.isPresent() && fcfDeviation.isPresent()) {
+                            double growth = tenYearAvgGrowth.get();
+                            Double epsStandardDeviation = epsDeviation.get();
+                            Double pegCutoff = 1.1;
+                            if (growth >= 10.0 && epsStandardDeviation < param.getValue("epsSd") &&
+                                    revenueDeviation.get() < param.getValue("revSd") &&
+                                    revenueDeviation.get() < param.getValue("fcfSd") &&
+                                    altmanZ > 2.2 &&
+                                    trailingPeg.orElse(0.0) < pegCutoff && trailingPeg2.orElse(0.0) < pegCutoff && trailingPeg3.orElse(0.0) < pegCutoff) {
+                                double sellPrice = company.latestPrice;
+                                double growthRatio = sellPrice / latestPriceThen;
+                                double benchmarkIncrease = INVEST_PER_STOCK
+                                        * (StandardAndPoorPerformanceProvider.getLatestPrice() / StandardAndPoorPerformanceProvider.getPriceAt(financials.get(index).getDate()));
+                                double valueGrowth = growthRatio * INVEST_PER_STOCK;
 
-                            growthSum += valueGrowth;
-                            benchmarkSum += benchmarkIncrease;
-                            yearGrowth += valueGrowth;
-                            yearBenchmarkGrowth += benchmarkIncrease;
-                            ++count;
+                                growthSum += valueGrowth;
+                                benchmarkSum += benchmarkIncrease;
+                                yearGrowth += valueGrowth;
+                                yearBenchmarkGrowth += benchmarkIncrease;
+                                ++count;
 
-                            //                            System.out.printf("%s\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f%% (%.1f -> %.1f)\n", symbol, growth, currentPe, epsStandardDeviation, revenueDeviation.orElse(NaN),
-                            //                                    fcfDeviation.orElse(NaN), ((growthRatio - 1.0) * 100.0), latestPriceThen, sellPrice);
+                                //                            System.out.printf("%s\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f%% (%.1f -> %.1f)\n", symbol, growth, currentPe, epsStandardDeviation, revenueDeviation.orElse(NaN),
+                                //                                    fcfDeviation.orElse(NaN), ((growthRatio - 1.0) * 100.0), latestPriceThen, sellPrice);
 
+                            }
                         }
                     }
                 }

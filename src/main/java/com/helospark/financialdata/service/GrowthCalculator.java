@@ -22,7 +22,7 @@ public class GrowthCalculator {
         double then = getFcfPerShare(financials.get(oldIndex));
 
         double distance = years - offset;
-        double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+        double resultPercent = calculatePercentChange(now, then, distance);
 
         return Optional.of(resultPercent);
     }
@@ -47,7 +47,7 @@ public class GrowthCalculator {
         double then = maxEpsOf(financials, oldIndex, oldIndex);
 
         double distance = year - offsetYear;
-        double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+        double resultPercent = calculatePercentChange(now, then, distance);
 
         if (!Double.isFinite(resultPercent)) {
             return Optional.empty();
@@ -107,7 +107,7 @@ public class GrowthCalculator {
         double then = financials.get(oldIndex).price;
 
         double distance = years - offset;
-        double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+        double resultPercent = calculatePercentChange(now, then, distance);
 
         return Optional.of(resultPercent);
     }
@@ -124,7 +124,7 @@ public class GrowthCalculator {
         double then = financials.get(oldIndex).incomeStatementTtm.weightedAverageShsOut;
 
         double distance = years - offset;
-        double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+        double resultPercent = calculatePercentChange(now, then, distance);
 
         return Optional.of(resultPercent);
     }
@@ -143,7 +143,7 @@ public class GrowthCalculator {
         double then = (double) -thenFinancialTtm.cashFlowTtm.dividendsPaid / thenFinancialTtm.incomeStatementTtm.weightedAverageShsOut;
 
         double distance = years - offset;
-        double resultPercent = (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+        double resultPercent = calculatePercentChange(now, then, distance);
 
         if (Double.isFinite(resultPercent)) {
             return Optional.of(resultPercent);
@@ -153,8 +153,19 @@ public class GrowthCalculator {
     }
 
     public static double calculateGrowth(double now, double then, double yearsAgo) {
-        return (Math.pow(now / then, 1.0 / (yearsAgo)) - 1.0) * 100.0;
+        return calculatePercentChange(now, then, yearsAgo);
+    }
 
+    private static double calculatePercentChange(double now, double then, double distance) {
+        if (now < 0.0 && then < 0.0) {
+            return (Math.pow(then / now, 1.0 / distance) - 1.0) * 100.0;
+        } else if (now > 0.0 && then > 0.0) {
+            return (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
+        } else if (now > 0.0 && then < 0.0) {
+            return (Math.pow(-then / now, 1.0 / distance) - 2.0) * 100.0;
+        } else {
+            return (Math.pow(-now / then, 1.0 / distance)) * 100.0;
+        }
     }
 
 }

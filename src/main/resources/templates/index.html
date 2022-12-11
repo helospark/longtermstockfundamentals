@@ -7,14 +7,70 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 <body>
 
-<span id="stock" th:text="${stock}"></span>
+<h2><span id="stock" th:text="${stock}"></span><span id="stock-name"></span></h2> <a href="#" id="show-description-link">Show description</a>
+<div id="stock-description" class="hidden-element"></div>
+
 
 <div id="charts">
 
 </div>
 
+<h2>Checks</h2>
+<div id="flags">
+
+</div>
+
 <script>
 var stock = document.getElementById("stock").innerText;
+
+function populateProfile() {
+  let url = 'http://localhost:8080/' + stock + "/financials/profile";
+  
+  fetch(url)
+          .then(res => res.json())
+          .then(out => {
+            document.getElementById("stock-name").innerText = " - " + out.companyName + " (" + out.industry + ", " + out.sector + ")";
+            document.getElementById("stock-description").innerHTML = out.description.replaceAll(/\. ([A-Z])/gm, "\.<br\/>$1");
+            $("#show-description-link").click(function() {
+              $("#stock-description").toggleClass("hidden-element");
+            });
+          })
+          .catch(err => { throw err });
+}
+
+function addFlags() {
+  let url = 'http://localhost:8080/' + stock + "/financials/flags";
+  var flagsDiv = document.getElementById("flags");
+  fetch(url)
+          .then(res => res.json())
+          .then(out => {
+              for (elementIndex in out) {
+                value = out[elementIndex];
+                if (value.type == "RED") {
+                    flagsDiv.innerHTML += "&#128308; " + value.text + "<br/>";
+                } else if (value.type == "GREEN") {
+                    flagsDiv.innerHTML += "&#128994; " + value.text + "<br/>";
+                } else if (value.type == "STAR") {
+                    flagsDiv.innerHTML += "&#11088; " + value.text + "<br/>";
+                } else if (value.type == "YELLOW") {
+                    flagsDiv.innerHTML += "&#128992; " + value.text + "<br/>";
+                }
+              }
+          })
+          .catch(err => { throw err });
+}
+
+var constColorPalette = [
+  "rgba(0,0,255,0.3)",
+  "rgba(255,0,0,0.3)",
+  "rgba(0,255,0,0.3)",
+];
+var constColorPaletteLine = [
+  "rgba(0,0,255,0.8)",
+  "rgba(255,0,0,0.8)",
+  "rgba(0,255,0,0.8)",
+];
+
 
 function createCheckbox(label) {
   var checkbox = document.createElement("input");
@@ -44,6 +100,15 @@ function createChart(urlPath, title, chartOptions) {
   type = chartOptions.type !== undefined ? chartOptions.type : 'line';
   suggestedMin = chartOptions.suggestedMin !== undefined ? chartOptions.suggestedMin : undefined;
   var unit = chartOptions.unit !== undefined ? " " + chartOptions.unit : "";
+  var label = chartOptions.label === undefined ? "data" : chartOptions.label;
+  var legendDisplay = chartOptions.additionalCharts === undefined ? false : true;
+  
+  var colorPaletteLine = constColorPaletteLine;
+  var colorPalette = constColorPalette;
+  
+  if (type == "bar") {
+    colorPalette = ["rgba(0,0,255,0.6)"];
+  }
   
   var chart = new Chart(canvas, {
     type: type,
@@ -52,11 +117,11 @@ function createChart(urlPath, title, chartOptions) {
       datasets: [{
         fill: true,
         pointRadius: 2,
-        borderColor: "rgba(0,0,255,0.5)",
-        backgroundColor: "rgba(0,0,255,0.5)",
+        borderColor: colorPaletteLine[0],
+        backgroundColor: colorPalette[0],
         data: yValues,
         pointHitRadius: 300,
-        label: "data"
+        label: label
       }]
     }, 
     options: {
@@ -71,7 +136,7 @@ function createChart(urlPath, title, chartOptions) {
           text: title
         },
         legend: {
-          display: false
+          display: legendDisplay
         },
         tooltip: {
             callbacks: {
@@ -97,6 +162,7 @@ function createChart(urlPath, title, chartOptions) {
   
   var button=document.createElement("button");
   button.innerHTML = "Logarithmic";
+  button.className="floatleft";
   button.onclick=function() {
       isCurrentlyLinear = chart.options.scales.y.type == 'linear';
       value = (isCurrentlyLinear ? 'logarithmic' : 'linear')
@@ -110,9 +176,9 @@ function createChart(urlPath, title, chartOptions) {
   }
   var startAtZeroButton=document.createElement("button");
   startAtZeroButton.innerHTML = "Zero based";
+  startAtZeroButton.className="floatleft";
   startAtZeroButton.onclick=function() {
       isCurrentlyEnabled = (chart.options.scales.y.originalMin !== undefined);
-      console.log(isCurrentlyEnabled);
       if (isCurrentlyEnabled) {
         startAtZeroButton.classList.remove("pressed");
       } else {
@@ -136,9 +202,46 @@ function createChart(urlPath, title, chartOptions) {
 
       chart.update();
   }
-  
   underChartBar.appendChild(button);
   underChartBar.appendChild(startAtZeroButton);
+
+  if (chartOptions.slider !== undefined) {
+    var sliderDiv = document.createElement("div")
+    var optionSlider = document.createElement("input");
+    optionSlider.id=chartOptions.slider.id;
+    optionSlider.min = chartOptions.slider.min;
+    optionSlider.max = chartOptions.slider.max;
+    optionSlider.value = chartOptions.slider.default;
+    optionSlider.type="range";
+    
+    optionSlider.oninput = function() {
+    
+      let paramedUrl = 'http://localhost:8080/' + stock + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
+  
+      fetch(paramedUrl)
+          .then(res => res.json())
+          .then(out => {
+                      for (index = 0; index < out.length; index++) {
+                          xValues[out.length - index - 1] = out[index].date;
+                          yValues[out.length - index - 1] = out[index].value;
+                      }
+                      chart.update();
+          })
+          .catch(err => { throw err });
+    }
+    
+    var sliderLabel = document.createElement("label");
+    sliderLabel.htmlFor=chartOptions.slider.id;
+    sliderLabel.innerText=chartOptions.slider.parameterName;
+    
+    sliderDiv.appendChild(sliderLabel);
+    sliderDiv.appendChild(optionSlider);
+    
+    underChartBar.appendChild(sliderDiv);
+  }
+  
+  $(underChartBar.lastChild).removeClass("floatleft");
+  
 
 
   var sliderDiv=document.createElement("div");
@@ -160,7 +263,6 @@ function createChart(urlPath, title, chartOptions) {
     });
     $(slider).on("slide", function() {
       var selection = $(this).slider("value");
-      console.log(selection);
     });
     chartDiv.appendChild(sliderDiv);
   chartDiv.appendChild(canvas);
@@ -200,8 +302,70 @@ function createChart(urlPath, title, chartOptions) {
                       }
                       startAtZeroButton.onclick();
                       chart.update();
+          }).then(out => {
+                   if (chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts.length > 0) {
+                   for (elementIndex in chartOptions.additionalCharts) {
+                      var element = chartOptions.additionalCharts[elementIndex];
+                      addAdditionalChart(element);
+                   }
+                }
           })
           .catch(err => { throw err });
+    
+    
+    function addAdditionalChart(element) {
+          localUri  = 'http://localhost:8080/' + stock + element.url;
+          fetch(localUri)
+            .then(res => res.json())
+            .then(out => {
+                        var newXValues = [];
+                        var newYValues = [];
+                        for (index = 0; index < out.length; index++) {
+                            newXValues[out.length - index - 1] = out[index].date;
+                            newYValues[out.length - index - 1] = out[index].value;
+                        }
+                        max = Math.max.apply(Math, newYValues);
+                        min = Math.min.apply(Math, newYValues);
+                    
+                        minValueToSet = min;
+                        maxValueToSet = max;
+                    
+                        if (chart.options.scales.y.min < minValueToSet) {
+                           minValueToSet = chart.options.scales.y.min;
+                        }
+                        if (chart.options.scales.y.max > maxValueToSet) {
+                           maxValueToSet = chart.options.scales.y.max;
+                        }
+
+                        
+                        if (minValueToSet >= maxValueToSet) {
+                           minValueToSet = maxValueToSet + 1.0;
+                        }
+                        chart.data.datasets.unshift({
+                          pointRadius: 2,
+                          borderColor: colorPaletteLine[chart.data.datasets.length % colorPalette.length],
+                          backgroundColor: colorPalette[chart.data.datasets.length % colorPalette.length],
+                          data: newYValues,
+                          pointHitRadius: 300,
+                          label: element.label
+                        });
+                    
+                        if (!isNaN(minValueToSet)) {
+                          slider.slider("option", "min", min);
+                          slider.slider('values', 0, minValueToSet);
+                          chart.options.scales.y.min = minValueToSet;
+                        }
+                        if (!isNaN(maxValueToSet)) {
+                          slider.slider("option", "max", max);
+                          slider.slider('values', 1, maxValueToSet);
+                          chart.options.scales.y.max = maxValueToSet;
+                        }
+                        chart.update();
+            })
+            .catch(err => { throw err });
+    }
+    
+
 }
 
 function createSeparator(title) {
@@ -221,24 +385,36 @@ function createSeparator(title) {
   
 }
 
-createSeparator("Income");
-createChart("/financials/revenue", "Revenue", {});
-createChart("/financials/eps", "EPS", {});
+populateProfile();
 
-createChart("/financials/fcf", "FCF", {});
+createSeparator("Income");
+createChart("/financials/revenue", "Revenue", {label: "Revenue"});
+createChart("/financials/net_income", "Net income", {label: "Net income", additionalCharts: [
+  {
+    "url": "/financials/fcf",
+    "label": "FCF"
+  },
+]});
+
+
+createChart("/financials/eps", "EPS", {});
 createChart("/financials/pfcf", "FCF per share", {});
 
 
 createSeparator("Margins")
-createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit: '%'});
-createChart("/financials/operating_margin", "Operating margin", {suggestedMin: -10, unit: '%'});
+createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit: '%', label: "Gross margin", additionalCharts: [
+  {
+    "url": "/financials/operating_margin",
+    "label": "Operating margin"
+  }
+]});
 createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%'});
 
 
 createSeparator("Price ratios")
 createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50});
 createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100});
-createChart("/financials/past_pe_to_growth_ratio", "Past PEG ratio", {suggestedMin: -2, suggestedMax: 5});
+createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {suggestedMin: -2, suggestedMax: 5});
 createChart("/financials/ev_over_ebitda", "EV over ebitda", {});
 
 createChart("/financials/pfcf_ratio", "PFCF ratio", {suggestedMin: -2, suggestedMax: 50});
@@ -258,20 +434,28 @@ createChart("/financials/interest_rate", "Interest rate", {unit: '%'});
 
 
 createSeparator("Assets")
-createChart("/financials/current_assets", "Current assets", {});
+createChart("/financials/current_assets", "Current assets vs liabilities", {label: "Current assets", additionalCharts: [
+  {
+    "url": "/financials/current_liabilities",
+    "label": "Current liabilities"
+  }
+]});
+createChart("/financials/total_assets", "Total assets vs liabilities", {label: "Total assets", additionalCharts: [
+  {
+    "url": "/financials/total_liabilities",
+    "label": "Total liabilities"
+  }
+]});
 createChart("/financials/cash", "Cash and cash equivalents", {});
-createChart("/financials/current_liabilities", "Current liabilities", {});
 
-createChart("/financials/non_current_assets", "Non current assets", {});
-createChart("/financials/long_term_debt", "Long term debt", {});
+//createChart("/financials/non_current_assets", "Non current assets", {});
+//createChart("/financials/long_term_debt", "Long term debt", {});
 
 
 createSeparator("Return ratios")
 createChart("/financials/roic", "Return on invested capital", {unit: '%'});
 createChart("/financials/return_on_assets", "Return on assets", {unit: '%'});
-createChart("/financials/return_on_capital", "Return on capital", {unit: '%'});
-createChart("/financials/return_on_equity", "Return on equity", {unit: '%'});
-
+createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%'});
 
 
 
@@ -281,7 +465,10 @@ createChart("/financials/tax_rate", "Tax rate", {});
 createChart("/financials/stock_compensation", "Stock compensation", {});
 createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2});
 createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0});
+createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0});
 createChart("/financials/capex_to_revenue", "CAPEX to revenue", {});
+createChart("/financials/pietrosky_score", "Pietrosky score", {});
+
 
 
 createSeparator("Dividend")
@@ -295,10 +482,28 @@ createChart("/financials/dividend_yield_per_current_price", "Dividend yield for 
 
 createSeparator("Growth")
 createChart("/financials/eps_growth_rate", "EPS growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS growth 7 year intervals annual", {type: 'bar', unit: '%'});
+createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS growth x year intervals annual", {
+  type: 'bar',
+  unit: '%',
+  slider: {
+    id: "eps_growth_year_slider",
+    parameterName: "year",
+    min: 2,
+    max: 10,
+    default: 7
+}});
 
 createChart("/financials/fcf_growth_rate", "FCF growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF growth 7 year intervals annual", {type: 'bar', unit: '%'});
+createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF growth 7 year intervals annual", {
+  type: 'bar',
+  unit: '%',
+  slider: {
+    id: "fcf_growth_year_slider",
+    parameterName: "year",
+    min: 2,
+    max: 10,
+    default: 7
+}});
 
 createChart("/financials/revenue_growth_rate", "Revenue growth annual", {type: 'bar', unit: '%'});
 createChart("/financials/share_count_growth_rate", "Share count growth annual", {type: 'bar', unit: '%'});
@@ -313,12 +518,19 @@ createChart("/financials/dividend_dcf", "Dividend DCF", {});
 createChart("/financials/cash_per_share", "Cash per share", {});
 createChart("/financials/graham_number", "Graham number", {});
 createChart("/financials/revenue_projection", "Revenue projection stock price", {});
-createChart("/financials/composite_fair_value", "Composite fair value", {});
+createChart("/financials/expected_return", "Expected return", {unit: '%'});
 
 
 createSeparator("Price")
-createChart("/financials/price", "Price", {});
+createChart("/financials/price", "Price", {label: "price", additionalCharts: [
+  {
+    "url": "/financials/composite_fair_value",
+    "label": "Composite fair value"
+  }
+]});
 createChart("/financials/price_growth_rate", "Price growth", {type: 'bar'});
+
+addFlags();
 
 </script>
 

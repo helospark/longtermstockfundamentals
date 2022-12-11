@@ -19,3 +19,15 @@
 .ui-slider-vertical {
   width: 0.2em;
 }
+
+.hidden-element {
+  display:none;
+}
+
+.floatleft {
+  float:left;
+}
+
+#flags {
+  margin-top: 20px;
+}

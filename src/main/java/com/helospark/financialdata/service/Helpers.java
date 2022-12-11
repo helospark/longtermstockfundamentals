@@ -22,7 +22,7 @@ public class Helpers {
     public static int findIndexWithOrBeforeDate(List<? extends DateAware> cashFlows, LocalDate date) {
         for (int i = 0; i < cashFlows.size(); ++i) {
             LocalDate cashFlowDate = cashFlows.get(i).getDate();
-            if (ChronoUnit.DAYS.between(date, cashFlowDate) < 20) {
+            if (Math.abs(ChronoUnit.DAYS.between(date, cashFlowDate)) < 20) {
                 return i;
             } else if (cashFlowDate.compareTo(date) < 0) {
                 return i;

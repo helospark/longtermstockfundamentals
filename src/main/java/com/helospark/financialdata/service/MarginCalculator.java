@@ -10,26 +10,42 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 
 public class MarginCalculator {
 
-    public static Optional<Double> getNetMarginGrowthRate(List<FinancialsTtm> financials, int years, int offset) {
-        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusYears(years));
-        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusYears(offset));
+    public static Optional<Double> getNetMarginGrowthRate(List<FinancialsTtm> financials, double years, double newYear) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (newYear * 12.0)));
 
         if (oldIndex >= financials.size() || oldIndex == -1) {
             return Optional.empty();
         }
 
-        double now = getNetMargin(financials.get(newIndex)) + 1.0;
-        double then = getNetMargin(financials.get(oldIndex)) + 1.0;
-        double change = ((now) / (then));
+        double now = getAvgNetMargin(financials, newIndex);
+        double then = getAvgNetMargin(financials, oldIndex);
 
-        int distance = years - offset;
-        double resultPercent = (Math.pow(change, 1.0 / distance) - 1.0) * 100.0;
+        double distance = years - newYear;
+        double resultPercent = GrowthCalculator.calculateGrowth(now, then, distance);
 
-        return Optional.of(resultPercent * 100.0);
+        return Optional.of(resultPercent);
     }
 
-    private static double getNetMargin(FinancialsTtm financials) {
-        return (double) financials.incomeStatementTtm.netIncome / financials.incomeStatementTtm.revenue;
+    public static Optional<Double> getGrossMargin(List<FinancialsTtm> financials, double years) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+
+        if (oldIndex == -1) {
+            return Optional.empty();
+        }
+
+        return Optional.of(financials.get(oldIndex).incomeStatementTtm.grossProfitRatio * 100.0);
+    }
+
+    private static double getAvgNetMargin(List<FinancialsTtm> financials, int oldIndex) {
+        double sum = 0.0;
+        int count = 0;
+        for (int i = oldIndex; i < oldIndex + 4 && i < financials.size(); ++i) {
+            double margin = (double) financials.get(i).incomeStatementTtm.netIncome / financials.get(i).incomeStatementTtm.revenue;
+            sum += margin;
+            ++count;
+        }
+        return sum / count;
     }
 
 }

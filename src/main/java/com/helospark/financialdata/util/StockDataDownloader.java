@@ -66,6 +66,10 @@ public class StockDataDownloader {
         downloadUrlIfNeeded("info/tresury_rates.json", "/v4/treasury", Map.of("from", "1990-01-01", "to", LocalDate.now().toString()));
         // https://financialmodelingprep.com/api/v3/historical-price-full/%5EGSPC?serietype=line&apikey=API_KEY
         downloadUrlIfNeeded("info/s&p500_price.json", "/v3/historical-price-full/%5EGSPC", Map.of("serietype", "line"));
+        // https://financialmodelingprep.com/api/v3/historical/sp500_constituent?apikey=API_KEY
+        downloadUrlIfNeeded("info/s&p500_historical_constituent.json", "/v3/historical/sp500_constituent", Map.of());
+        // https://financialmodelingprep.com/api/v3/historical/dowjones_constituent?apikey=API_KEY
+        downloadUrlIfNeeded("info/dowjones_constituent_historical_constituent.json", "/v3/historical/dowjones_constituent", Map.of());
     }
 
     private static void downloadFxRates() {

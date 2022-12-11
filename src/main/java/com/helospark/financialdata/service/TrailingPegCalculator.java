@@ -17,7 +17,7 @@ public class TrailingPegCalculator {
         FinancialsTtm financialsTtm = company.financials.get(i);
         double growthRate = getPastGrowthRate(company, i);
         double eps = financialsTtm.incomeStatementTtm.eps;
-        if (eps == 0.0) {
+        if (eps <= 0.0) {
             return Optional.empty();
         }
         double value = ((financialsTtm.price / eps) / growthRate);
@@ -32,7 +32,7 @@ public class TrailingPegCalculator {
         return Optional.of(value);
     }
 
-    private static double getPastGrowthRate(CompanyFinancials company, int offset) {
+    public static double getPastGrowthRate(CompanyFinancials company, int offset) {
         double offsetYear = offset / 4.0;
         double growthRate = 0.0;
         List<Double> growthRates = new ArrayList<>();

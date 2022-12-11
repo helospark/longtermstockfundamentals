@@ -2,31 +2,19 @@ package com.helospark.financialdata.util.analyzer;
 
 import static com.helospark.financialdata.service.DataLoader.readFinancials;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
-import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
-import static java.lang.Double.NaN;
+import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Set;
 
+import com.helospark.financialdata.CommonConfig;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.service.AltmanZCalculator;
-import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
+import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
-import com.helospark.financialdata.service.TrailingPegCalculator;
 
-public class CompounderScreenerBacktest {
-    //    static double PEG_CUTOFF = 1.1;
-    //    static double EPS_SD = 18.0;
-    //    static double REV_SD = 7.0;
-    //    static double GROWTH = 12.0;
-
-    static double EPS_SD = 20.0;
-    static double FCF_SD = 30.0;
-    static double REV_SD = 20.0;
-    static double GROWTH = 12.0;
-    static double PEG_CUTOFF = 1.8;
-    static int PROF_YEAR = 6;
+public class CompoundDcfScreenerBacktest {
 
     public void analyze(Set<String> symbols) {
         double growthSum = 0.0;
@@ -48,24 +36,27 @@ public class CompounderScreenerBacktest {
                 }
                 double latestPriceThen = financials.get(index).price;
 
-                Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, PROF_YEAR + yearsAgo, yearsAgo);
-                boolean continouslyProfitable = isProfitableEveryYearSince(financials, PROF_YEAR + yearsAgo, yearsAgo);
-                Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo);
-                Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo);
-                Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, yearsAgo);
+                boolean continouslyProfitable = isProfitableEveryYearSince(financials, 8.0 + yearsAgo, yearsAgo);
+                double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), company.latestPrice);
 
-                if (tenYearAvgGrowth.isPresent() && continouslyProfitable && epsDeviation.isPresent() && revenueDeviation.isPresent() &&
-                        fcfDeviation.isPresent()) {
-                    double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
-                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
-                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
-                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
+                if (altmanZ > 2.0 && continouslyProfitable) {
+                    int numberOfDcfMatch = 0;
+                    double avg = 0.0;
+                    Optional<Double> firstDcf = DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, yearsAgo);
+                    for (int i = 0; i < 15; ++i) {
+                        double yearOffset = i / 4.0;
+                        Optional<Double> dcf = DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, yearsAgo + yearOffset);
+                        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) ((yearsAgo + yearOffset) * 12.0)));
+                        if (dcf.isPresent() && dcf.get() > financials.get(oldIndex).price) {
+                            ++numberOfDcfMatch;
+                            avg += dcf.get();
+                        }
+                    }
 
-                    double currentPe = latestPriceThen / financials.get(index).incomeStatementTtm.eps;
-                    double growth = tenYearAvgGrowth.get();
-                    Double epsStandardDeviation = epsDeviation.get();
-                    if (growth >= GROWTH && epsDeviation.get() < EPS_SD && fcfDeviation.get() < FCF_SD && revenueDeviation.get() < REV_SD && altmanZ > 2.2 &&
-                            trailingPeg.orElse(0.0) < PEG_CUTOFF && trailingPeg2.orElse(0.0) < PEG_CUTOFF && trailingPeg3.orElse(0.0) < PEG_CUTOFF) {
+                    avg /= numberOfDcfMatch;
+                    double dcfUpside = (avg / latestPriceThen - 1.0) * 100.0;
+
+                    if (numberOfDcfMatch >= 13 && dcfUpside > 200) {
                         double sellPrice = company.latestPrice;
                         double growthRatio = sellPrice / latestPriceThen;
                         double benchmarkIncrease = (StandardAndPoorPerformanceProvider.getLatestPrice() / StandardAndPoorPerformanceProvider.getPriceAt(financials.get(index).getDate()));
@@ -76,8 +67,9 @@ public class CompounderScreenerBacktest {
                         benchmarkSum += benchmarkIncrease * 1000.0;
                         ++yearCount;
 
-                        System.out.printf("%s\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f%% (%.1f -> %.1f)\t%s | %s\n", symbol, growth, currentPe, epsStandardDeviation, revenueDeviation.orElse(NaN),
-                                fcfDeviation.orElse(NaN), ((growthRatio - 1.0) * 100.0), latestPriceThen, sellPrice, company.profile.companyName, company.profile.industry);
+                        System.out.printf("%s\t%.2f\t%.1f%% (%.1f -> %.1f)\t%s | %s\n", symbol, dcfUpside, ((growthRatio - 1.0) * 100.0), latestPriceThen, sellPrice,
+                                company.profile.companyName,
+                                company.profile.industry);
 
                     }
                 }

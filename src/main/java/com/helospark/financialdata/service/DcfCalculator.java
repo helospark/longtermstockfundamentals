@@ -3,6 +3,7 @@ package com.helospark.financialdata.service;
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -83,6 +84,9 @@ public class DcfCalculator {
                     endMultiplier = 0.7;
                 }
             }
+            if (pastGrowth.get() > 100) {
+                pastGrowth = Optional.of(100.0);
+            }
             result += doStockDcfAnalysisWithGrowth(financial.incomeStatementTtm.eps, pastGrowth.get() * startMultiplier, pastGrowth.get() * endMultiplier);
         }
         Optional<Double> dividendGrowth = getDcfGrowth(financials, offsetYear, i -> GrowthCalculator.getDividendGrowthInInterval(financials, offsetYear + i, offsetYear));
@@ -91,12 +95,21 @@ public class DcfCalculator {
             double startMultiplier = 0.9;
             double endMultiplier = 0.75;
             Double dividendGrowth2 = dividendGrowth.get();
-            if (dividendGrowth2 > 10.0) {
-                dividendGrowth2 = 10.0;
+            if (dividendGrowth2 > 20.0) {
+                dividendGrowth2 = 20.0;
+            }
+            if (dividendGrowth2 < 0.0) {
+                dividendGrowth2 = 0.0;
             }
 
             double divPerShare = calculateDividendPerShare(financial);
             result += doCashFlowDcfAnalysisWithGrowth(divPerShare, dividendGrowth2 * startMultiplier, dividendGrowth2 * endMultiplier);
+        }
+        if (result < 0.0) {
+            return Optional.of(0.0);
+        }
+        if (result > financial.price * 10) {
+            result = financial.price * 10;
         }
         return Optional.of(result);
     }
@@ -111,13 +124,24 @@ public class DcfCalculator {
 
     private static Optional<Double> getDcfGrowth(List<FinancialsTtm> financials, double offsetYear, Function<Integer, Optional<Double>> growthFunc) {
         List<Double> values = new ArrayList<>();
-        for (int i = 10; i >= 5; --i) {
+        for (int i = 10; i >= 3; --i) {
             Optional<Double> growthInInterval = growthFunc.apply(i);
             if (growthInInterval.isPresent()) {
                 values.add(growthInInterval.get());
             }
         }
-        return values.isEmpty() ? Optional.empty() : Optional.of(values.get(values.size() / 2));
+        Collections.sort(values);
+        return values.isEmpty() ? getShortTermGrowth(financials, offsetYear, growthFunc) : Optional.of(values.get(values.size() / 2));
+    }
+
+    private static Optional<Double> getShortTermGrowth(List<FinancialsTtm> financials, double offsetYear, Function<Integer, Optional<Double>> growthFunc) {
+        for (int i = 2; i >= 1; --i) {
+            Optional<Double> growthInInterval = growthFunc.apply(i);
+            if (growthInInterval.isPresent()) {
+                return growthInInterval.map(a -> a * 0.7);
+            }
+        }
+        return Optional.empty();
     }
 
 }

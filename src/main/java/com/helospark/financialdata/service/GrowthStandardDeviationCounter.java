@@ -10,20 +10,32 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 public class GrowthStandardDeviationCounter {
 
     public static Optional<Double> calculateEpsGrowthDeviation(List<FinancialsTtm> financials, double offset) {
-        return calculateGrowthDeviationInternal(financials, offset, stepYear -> GrowthCalculator.getGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+        return calculateGrowthDeviationInternal(financials, offset, 23, stepYear -> GrowthCalculator.getGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
     public static Optional<Double> calculateRevenueGrowthDeviation(List<FinancialsTtm> financials, double offset) {
-        return calculateGrowthDeviationInternal(financials, offset, stepYear -> GrowthCalculator.getRevenueGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+        return calculateGrowthDeviationInternal(financials, offset, 23, stepYear -> GrowthCalculator.getRevenueGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
     public static Optional<Double> calculateFcfGrowthDeviation(List<FinancialsTtm> financials, double offset) {
-        return calculateGrowthDeviationInternal(financials, offset, stepYear -> GrowthCalculator.getFcfGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+        return calculateGrowthDeviationInternal(financials, offset, 23, stepYear -> GrowthCalculator.getFcfGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
-    private static Optional<Double> calculateGrowthDeviationInternal(List<FinancialsTtm> financials, double offset, Function<Double, Optional<Double>> growthFunc) {
+    public static Optional<Double> calculateEpsGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {
+        return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+    }
+
+    public static Optional<Double> calculateRevenueGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {
+        return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getRevenueGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+    }
+
+    public static Optional<Double> calculateFcfGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {
+        return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getFcfGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+    }
+
+    private static Optional<Double> calculateGrowthDeviationInternal(List<FinancialsTtm> financials, double offset, int years, Function<Double, Optional<Double>> growthFunc) {
         List<Double> result = new ArrayList<>();
-        for (int i = 0; i < 23 * 4; ++i) {
+        for (int i = 0; i < years * 4; ++i) {
             double stepYear = (i / 4.0);
             Optional<Double> growth = growthFunc.apply(stepYear);
             if (growth.isPresent() && Double.isFinite(growth.get())) {

@@ -9,6 +9,7 @@ import java.util.Set;
 
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.service.AltmanZCalculator;
+import com.helospark.financialdata.service.GrowthCorrelationCalculator;
 import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
@@ -59,7 +60,10 @@ public class HighRoicScreenerBacktest {
                         benchmarkSum += benchmarkIncrease * 1000.0;
                         ++yearCount;
 
-                        System.out.printf("%s\t%.2f\t%.2f\t%.1f%% (%.1f -> %.1f)\t%s | %s\n", symbol, roic.get(), trailingPeg.get(), ((growthRatio - 1.0) * 100.0), latestPriceThen, sellPrice,
+                        Double correlation = GrowthCorrelationCalculator.calculateEpsFcfCorrelation(company.financials, yearsAgo, yearCount + 5.0).orElse(Double.NaN);
+
+                        System.out.printf("%s\t%.2f\t%.2f\t%.2f\t%.1f%% (%.1f -> %.1f)\t%s | %s\n", symbol, roic.get(), trailingPeg.get(), correlation, ((growthRatio - 1.0) * 100.0), latestPriceThen,
+                                sellPrice,
                                 company.profile.companyName,
                                 company.profile.industry);
 
