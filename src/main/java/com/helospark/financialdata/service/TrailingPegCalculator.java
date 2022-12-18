@@ -37,7 +37,7 @@ public class TrailingPegCalculator {
         double growthRate = 0.0;
         List<Double> growthRates = new ArrayList<>();
         for (int i = 7; i > 0; --i) {
-            Optional<Double> growthInYear = GrowthCalculator.getGrowthInInterval(company.financials, i + offsetYear, offsetYear);
+            Optional<Double> growthInYear = GrowthCalculator.getEpsGrowthInInterval(company.financials, i + offsetYear, offsetYear);
             if (growthInYear.isPresent() && !growthInYear.get().isNaN() && !growthInYear.get().isInfinite()) {
                 growthRates.add(growthInYear.get());
             }

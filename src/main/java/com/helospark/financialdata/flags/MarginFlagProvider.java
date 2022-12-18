@@ -2,6 +2,7 @@ package com.helospark.financialdata.flags;
 
 import static java.lang.String.format;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,16 +12,18 @@ import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
+import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.MarginCalculator;
 
 @Component
 public class MarginFlagProvider implements FlagProvider {
 
     @Override
-    public void addFlags(CompanyFinancials company, List<FlagInformation> flags) {
+    public void addFlags(CompanyFinancials company, List<FlagInformation> flags, double offset) {
         List<FinancialsTtm> financials = company.financials;
-        if (financials.size() > 0) {
-            Optional<Double> netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(financials, 5.0, 0.0);
+        int index = Helpers.findIndexWithOrBeforeDate(financials, LocalDate.now().minusMonths((long) (12.0 * offset)));
+        if (index != -1) {
+            Optional<Double> netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(financials, offset + 5.0, offset);
 
             if (netMarginGrowth.isPresent()) {
                 if (netMarginGrowth.get() < -2.0) {
@@ -30,7 +33,7 @@ public class MarginFlagProvider implements FlagProvider {
                 }
             }
 
-            Optional<Double> grossMargin = MarginCalculator.getGrossMargin(financials, 0.0);
+            Optional<Double> grossMargin = MarginCalculator.getGrossMargin(financials, offset);
 
             if (grossMargin.isPresent() && grossMargin.get() < 0.0) {
                 flags.add(new FlagInformation(FlagType.RED, format("Gross margin is negative (%.2f%%)", grossMargin.get())));

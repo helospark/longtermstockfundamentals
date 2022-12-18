@@ -22,13 +22,26 @@ public class Helpers {
     public static int findIndexWithOrBeforeDate(List<? extends DateAware> cashFlows, LocalDate date) {
         for (int i = 0; i < cashFlows.size(); ++i) {
             LocalDate cashFlowDate = cashFlows.get(i).getDate();
-            if (Math.abs(ChronoUnit.DAYS.between(date, cashFlowDate)) < 20) {
+            if (daysBetween(date, cashFlowDate) < 20) {
                 return i;
             } else if (cashFlowDate.compareTo(date) < 0) {
                 return i;
             }
         }
         return -1;
+    }
+
+    public static long daysBetween(LocalDate date1, LocalDate date2) {
+        return Math.abs(ChronoUnit.DAYS.between(date1, date2));
+    }
+
+    public static int findIndexWithOrBeforeDateSafe(List<? extends DateAware> cashFlows, LocalDate date) {
+        int value = findIndexWithOrBeforeDate(cashFlows, date);
+        if (value == -1) {
+            return cashFlows.size() - 1;
+        } else {
+            return value;
+        }
     }
 
     static class CacheKey {

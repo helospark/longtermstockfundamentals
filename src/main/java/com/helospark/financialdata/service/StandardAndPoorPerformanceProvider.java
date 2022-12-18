@@ -9,7 +9,7 @@ import com.helospark.financialdata.CommonConfig;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 
 public class StandardAndPoorPerformanceProvider {
-    static List<HistoricalPriceElement> prices = new ArrayList<>();
+    public static List<HistoricalPriceElement> prices = new ArrayList<>();
 
     static {
         prices = DataLoader.loadHistoricalFile(new File(CommonConfig.BASE_FOLDER + "/info/s&p500_price.json"));

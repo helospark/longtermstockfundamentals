@@ -1,13 +1,10 @@
 package com.helospark.financialdata.util.analyzer;
 
 import static com.helospark.financialdata.service.DataLoader.readFinancials;
-import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
-import static com.helospark.financialdata.service.GrowthCalculator.getEpsGrowthInInterval;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -17,23 +14,24 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import com.helospark.financialdata.domain.CompanyFinancials;
-import com.helospark.financialdata.service.AltmanZCalculator;
-import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
+import com.helospark.financialdata.domain.FlagInformation;
+import com.helospark.financialdata.domain.FlagType;
+import com.helospark.financialdata.service.FlagsProviderService;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
-import com.helospark.financialdata.service.TrailingPegCalculator;
-import com.helospark.financialdata.util.analyzer.parameter.LimitedRandomStrategy;
+import com.helospark.financialdata.util.analyzer.parameter.IncrementStepStrategy;
 import com.helospark.financialdata.util.analyzer.parameter.Parameter;
 import com.helospark.financialdata.util.analyzer.parameter.TestParameterProvider;
 
-public class CompounderScreenerBacktest2 {
+public class FlagsScreenerBacktest2 {
     private static final double INVEST_PER_STOCK = 1000.0;
 
     public void analyze(Set<String> symbols) {
         long start = System.currentTimeMillis();
         TestParameterProvider param = new TestParameterProvider();
-        param.registerParameter(new Parameter("epsSd", 2.0, new LimitedRandomStrategy(10, 1.0, 10.0)));
-        param.registerParameter(new Parameter("revSd", 6.0, new LimitedRandomStrategy(10, 4.0, 30.0)));
-        param.registerParameter(new Parameter("fcfSd", 30.0, new LimitedRandomStrategy(10, 4.0, 45.0)));
+        param.registerParameter(new Parameter("red", 1.0, new IncrementStepStrategy(0, 7.0, 1.0)));
+        param.registerParameter(new Parameter("green", 1.0, new IncrementStepStrategy(0, 7.0, 1.0)));
+        param.registerParameter(new Parameter("star", 1.0, new IncrementStepStrategy(0, 5.0, 1.0)));
+        param.registerParameter(new Parameter("yellow", 1.0, new IncrementStepStrategy(0, 7.0, 1.0)));
         boolean finished = false;
 
         List<TestParameterProvider> providerList = new ArrayList<>();
@@ -92,43 +90,42 @@ public class CompounderScreenerBacktest2 {
                     }
                     double latestPriceThen = financials.get(index).price;
 
-                    Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, 8 + yearsAgo, yearsAgo);
-                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, 8 + yearsAgo, yearsAgo);
-                    double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
+                    List<FlagInformation> flags = FlagsProviderService.giveFlags(company, yearsAgo);
 
-                    if (tenYearAvgGrowth.isPresent() && continouslyProfitable) {
-                        Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
-                        Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
-                        Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
+                    int numRed = 0;
+                    int numYellow = 0;
+                    int numGreen = 0;
+                    int numStar = 0;
+                    for (var element : flags) {
+                        if (element.type == FlagType.RED) {
+                            ++numRed;
+                        } else if (element.type == FlagType.YELLOW) {
+                            ++numYellow;
+                        } else if (element.type == FlagType.GREEN) {
+                            ++numGreen;
+                        } else if (element.type == FlagType.STAR) {
+                            ++numStar;
+                        }
+                    }
 
-                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo, 8);
-                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo, 8);
-                        Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, yearsAgo, 8);
-                        if (epsDeviation.isPresent() && revenueDeviation.isPresent() && fcfDeviation.isPresent()) {
-                            double growth = tenYearAvgGrowth.get();
-                            Double epsStandardDeviation = epsDeviation.get();
-                            Double pegCutoff = 1.1;
-                            if (growth >= 10.0 && epsStandardDeviation < param.getValue("epsSd") &&
-                                    revenueDeviation.get() < param.getValue("revSd") &&
-                                    revenueDeviation.get() < param.getValue("fcfSd") &&
-                                    altmanZ > 2.2 &&
-                                    trailingPeg.orElse(0.0) < pegCutoff && trailingPeg2.orElse(0.0) < pegCutoff && trailingPeg3.orElse(0.0) < pegCutoff) {
-                                double sellPrice = company.latestPrice;
-                                double growthRatio = sellPrice / latestPriceThen;
-                                double benchmarkIncrease = INVEST_PER_STOCK
-                                        * (StandardAndPoorPerformanceProvider.getLatestPrice() / StandardAndPoorPerformanceProvider.getPriceAt(financials.get(index).getDate()));
-                                double valueGrowth = growthRatio * INVEST_PER_STOCK;
+                    int redLimit = (int) Math.round(param.getValue("red"));
+                    int greenLimit = (int) Math.round(param.getValue("green"));
+                    int starLimit = (int) Math.round(param.getValue("star"));
+                    int yellowLimit = (int) Math.round(param.getValue("yellow"));
 
-                                growthSum += valueGrowth;
-                                benchmarkSum += benchmarkIncrease;
-                                yearGrowth += valueGrowth;
-                                yearBenchmarkGrowth += benchmarkIncrease;
-                                ++count;
+                    if (numStar >= starLimit && numGreen >= greenLimit && numYellow <= yellowLimit && numRed <= redLimit) {
+                        double sellPrice = company.latestPrice;
+                        double growthRatio = sellPrice / latestPriceThen;
+                        double benchmarkIncrease = INVEST_PER_STOCK
+                                * (StandardAndPoorPerformanceProvider.getLatestPrice() / StandardAndPoorPerformanceProvider.getPriceAt(financials.get(index).getDate()));
+                        double valueGrowth = growthRatio * INVEST_PER_STOCK;
 
-                                //                            System.out.printf("%s\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f%% (%.1f -> %.1f)\n", symbol, growth, currentPe, epsStandardDeviation, revenueDeviation.orElse(NaN),
-                                //                                    fcfDeviation.orElse(NaN), ((growthRatio - 1.0) * 100.0), latestPriceThen, sellPrice);
-
-                            }
+                        if (Double.isFinite(valueGrowth)) {
+                            growthSum += valueGrowth;
+                            benchmarkSum += benchmarkIncrease;
+                            yearGrowth += valueGrowth;
+                            yearBenchmarkGrowth += benchmarkIncrease;
+                            ++count;
                         }
                     }
                 }

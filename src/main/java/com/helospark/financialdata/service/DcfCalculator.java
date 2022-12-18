@@ -68,7 +68,7 @@ public class DcfCalculator {
         }
         FinancialsTtm financial = financials.get(oldIndex);
 
-        Optional<Double> pastGrowth = getDcfGrowth(financials, offsetYear, i -> GrowthCalculator.getGrowthInInterval(financials, offsetYear + i, offsetYear));
+        Optional<Double> pastGrowth = getDcfGrowth(financials, offsetYear, i -> GrowthCalculator.getEpsGrowthInInterval(financials, offsetYear + i, offsetYear));
 
         double result = 0.0;
 

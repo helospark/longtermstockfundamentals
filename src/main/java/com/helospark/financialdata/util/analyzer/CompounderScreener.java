@@ -2,7 +2,7 @@ package com.helospark.financialdata.util.analyzer;
 
 import static com.helospark.financialdata.service.DataLoader.readFinancials;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
-import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
+import static com.helospark.financialdata.service.GrowthCalculator.getEpsGrowthInInterval;
 import static java.lang.Double.NaN;
 
 import java.util.Optional;
@@ -30,7 +30,7 @@ public class CompounderScreener {
                 continue;
             }
 
-            Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, 8, 0);
+            Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, 8, 0);
             boolean continouslyProfitable = isProfitableEveryYearSince(financials, 8, 0);
             Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 0.0, 8);
             Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 0.0, 8);

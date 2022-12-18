@@ -7,6 +7,6 @@ import com.helospark.financialdata.domain.FlagInformation;
 
 public interface FlagProvider {
 
-    public void addFlags(CompanyFinancials company, List<FlagInformation> flags);
+    public void addFlags(CompanyFinancials company, List<FlagInformation> flags, double offset);
 
 }

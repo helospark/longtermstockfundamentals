@@ -10,17 +10,17 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.helospark.financialdata.CommonConfig;
-import com.helospark.financialdata.domain.CpiData;
+import com.helospark.financialdata.domain.DataValuePairData;
 
 @Service
 public class CpiAdjustor {
-    List<CpiData> cpiData = new ArrayList<>();
+    static List<DataValuePairData> cpiData = new ArrayList<>();
 
-    public CpiAdjustor() {
-        cpiData = DataLoader.readListOfClassFromFile(new File(CommonConfig.BASE_FOLDER + "/info/cpi.json"), CpiData.class);
+    static {
+        cpiData = DataLoader.readListOfClassFromFile(new File(CommonConfig.BASE_FOLDER + "/info/CPI.json"), DataValuePairData.class);
     }
 
-    public double adjustForInflationToOldDate(double value, LocalDate oldDate, LocalDate newDate) {
+    public static double adjustForInflationToOldDate(double value, LocalDate oldDate, LocalDate newDate) {
         int oldIndex = findIndexWithOrBeforeDate(cpiData, oldDate);
         int newIndex = findIndexWithOrBeforeDate(cpiData, newDate);
 

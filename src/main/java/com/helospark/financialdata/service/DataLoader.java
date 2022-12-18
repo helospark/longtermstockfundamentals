@@ -3,12 +3,13 @@ package com.helospark.financialdata.service;
 import static com.helospark.financialdata.CommonConfig.BASE_FOLDER;
 import static com.helospark.financialdata.CommonConfig.FX_BASE_FOLDER;
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
+import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDateSafe;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -29,7 +30,6 @@ import com.google.common.util.concurrent.Striped;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
-import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.EnterpriseValue;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FxRatesResponse;
@@ -41,6 +41,7 @@ import com.helospark.financialdata.domain.NoTtmNeeded;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.RemoteRatio;
 import com.helospark.financialdata.domain.TresuryRate;
+import com.helospark.financialdata.service.exchanges.Exchanges;
 
 public class DataLoader {
     private static final String CACHE_SAVE_FILE = "/tmp/cache.ser";
@@ -153,9 +154,9 @@ public class DataLoader {
             LocalDate balanceSheetDate = balanceSheets.get(balanceSheetIndex).date;
             LocalDate cashFlowDate = cashFlows.get(cashFlowIndex).date;
 
-            if (ChronoUnit.DAYS.between(balanceSheetDate, cashFlowDate) > 100 ||
-                    ChronoUnit.DAYS.between(balanceSheetDate, incomeStatementDate) > 100 ||
-                    ChronoUnit.DAYS.between(cashFlowDate, incomeStatementDate) > 100) {
+            if (Helpers.daysBetween(balanceSheetDate, cashFlowDate) > 100 ||
+                    Helpers.daysBetween(balanceSheetDate, incomeStatementDate) > 100 ||
+                    Helpers.daysBetween(cashFlowDate, incomeStatementDate) > 100) {
                 //System.out.println("[WARN] Inconsistent data " + symbol + " " + incomeStatementDate + " " + cashFlowDate + " " + balanceSheetDate);
                 if (incomeStatementDate.compareTo(LocalDate.of(2010, 1, 1)) > 0) {
                     ++dataQualityIssue;
@@ -279,18 +280,6 @@ public class DataLoader {
         }
     }
 
-    private static int findIndexWithOrBeforeDateSafe(List<? extends DateAware> cashFlows, LocalDate date) {
-        for (int i = 0; i < cashFlows.size(); ++i) {
-            LocalDate cashFlowDate = cashFlows.get(i).getDate();
-            if (ChronoUnit.DAYS.between(date, cashFlowDate) < 20) {
-                return i;
-            } else if (cashFlowDate.compareTo(date.minusDays(20)) < 0) {
-                return i;
-            }
-        }
-        return cashFlows.size() - 1;
-    }
-
     public static Set<String> provideAllSymbolsWithPostfix(String postfix) {
         return Arrays.stream(new File(BASE_FOLDER + "/fundamentals").listFiles())
                 .filter(a -> a.isDirectory())
@@ -322,13 +311,14 @@ public class DataLoader {
     }
 
     public static Set<String> provideSymbolsFromNasdaqNyse() {
-        Set<String> nasdaqSymbols = readSymbolsFromCsv("info/nasdaq.csv");
-        Set<String> nyseSymbols = readSymbolsFromCsv("info/nyse.csv");
+        return provideSymbolsIn(Set.of(Exchanges.NASDAQ, Exchanges.NYSE));
+    }
 
-        Set<String> symbols = new HashSet<>();
-        symbols.addAll(nyseSymbols);
-        symbols.addAll(nasdaqSymbols);
-        return symbols;
+    public static Set<String> provideUsSymbols() {
+        return provideAllSymbols()
+                .stream()
+                .filter(a -> !a.contains("."))
+                .collect(Collectors.toSet());
     }
 
     public static Set<String> provideAllSymbols() {
@@ -403,9 +393,9 @@ public class DataLoader {
         long minDays = Integer.MAX_VALUE;
         for (var entry : fxRatesResponse.rates.entrySet()) {
             LocalDate entryDate = LocalDate.parse(entry.getKey());
-            if (entry.getValue().containsKey(toCurrency) && (result == null || ChronoUnit.DAYS.between(entryDate, date) < minDays)) {
+            if (entry.getValue().containsKey(toCurrency) && (result == null || Helpers.daysBetween(entryDate, date) < minDays)) {
                 result = entry.getValue();
-                minDays = ChronoUnit.DAYS.between(entryDate, date);
+                minDays = Helpers.daysBetween(entryDate, date);
             }
         }
         return result;
@@ -421,4 +411,18 @@ public class DataLoader {
         }
     }
 
+    public static Set<String> provideSymbolsIn(Set<Exchanges> exchanges) {
+        Set<String> result = new HashSet<>();
+
+        for (var exchange : exchanges) {
+            File file = new File(BASE_FOLDER + "/info/exchanges/" + exchange.name());
+            try (FileInputStream fis = new FileInputStream(file)) {
+                var lines = new String(fis.readAllBytes()).split("\n");
+                Arrays.stream(lines).forEach(a -> result.add(a));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return result;
+    }
 }

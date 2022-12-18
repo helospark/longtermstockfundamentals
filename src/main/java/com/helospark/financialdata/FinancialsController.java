@@ -26,6 +26,7 @@ import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
+import com.helospark.financialdata.service.FedRateProvider;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.RevenueProjector;
@@ -35,8 +36,6 @@ import com.helospark.financialdata.service.TrailingPegCalculator;
 @RestController
 @RequestMapping("/{stock}/financials")
 public class FinancialsController {
-    @Autowired
-    CapeCalculator capeCalculator;
     @Autowired
     List<FlagProvider> flagProviers;
 
@@ -73,17 +72,17 @@ public class FinancialsController {
 
     @GetMapping("/operating_margin")
     public List<SimpleDataElement> getOperativeMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.remoteRatio.operatingProfitMargin));
+        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.operatingIncome / financialsTtm.incomeStatementTtm.revenue));
     }
 
     @GetMapping("/gross_margin")
     public List<SimpleDataElement> getGrossMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.remoteRatio.grossProfitMargin));
+        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.grossProfit / financialsTtm.incomeStatementTtm.revenue));
     }
 
     @GetMapping("/net_margin")
     public List<SimpleDataElement> getNetMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.remoteRatio.netProfitMargin));
+        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.revenue));
     }
 
     @GetMapping("/pe_ratio")
@@ -129,9 +128,14 @@ public class FinancialsController {
         return result;
     }
 
-    @GetMapping("/pfcf_ratio")
-    public List<SimpleDataElement> getFcfMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+    @GetMapping("/fcf_yield")
+    public List<SimpleDataElement> getFreeCashFlowYield(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> toPercent(((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut) / financialsTtm.price));
+    }
+
+    @GetMapping("/eps_yield")
+    public List<SimpleDataElement> getEpsYield(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.incomeStatementTtm.eps / financialsTtm.price));
     }
 
     @GetMapping("/p2g_ratio")
@@ -139,9 +143,14 @@ public class FinancialsController {
         return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.priceToBookRatio);
     }
 
+    @GetMapping("/fed_rate")
+    public List<SimpleDataElement> getFedRate(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> FedRateProvider.getFedFundsRate(financialsTtm.getDate()));
+    }
+
     @GetMapping("/tax_rate")
     public List<SimpleDataElement> getTaxRate(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.effectiveTaxRate);
+        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.remoteRatio.effectiveTaxRate));
     }
 
     @GetMapping("/quick_ratio")
@@ -151,7 +160,8 @@ public class FinancialsController {
 
     @GetMapping("/short_term_coverage_ratio")
     public List<SimpleDataElement> getShortTermCoverageRatio(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.shortTermCoverageRatios);
+        return getIncomeData(stock,
+                financialsTtm -> toPercent(financialsTtm.balanceSheet.shortTermDebt > 0.0 ? (double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.balanceSheet.shortTermDebt : null));
     }
 
     @GetMapping("/short_term_assets_to_total_debt")
@@ -162,27 +172,18 @@ public class FinancialsController {
 
     @GetMapping("/return_on_assets")
     public List<SimpleDataElement> getReturnOnAssets(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> RoicCalculator.calculateROA(financialsTtm));
+        return getIncomeData(stock, financialsTtm -> toPercent(RoicCalculator.calculateROA(financialsTtm)));
     }
 
     @GetMapping("/return_on_tangible_assets")
     public List<SimpleDataElement> getReturnOnTangibleAssets(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> RoicCalculator.calculateROTA(financialsTtm));
-    }
-
-    @GetMapping("/return_on_capital")
-    public List<SimpleDataElement> getReturnOnCapital(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.returnOnCapitalEmployed);
-    }
-
-    @GetMapping("/return_on_equity")
-    public List<SimpleDataElement> getReturnOnEquity(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.returnOnEquity);
+        return getIncomeData(stock, financialsTtm -> toPercent(RoicCalculator.calculateROTA(financialsTtm)));
     }
 
     @GetMapping("/cash_flow_to_debt")
     public List<SimpleDataElement> getCashFlowToDebt(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.cashFlowToDebtRatio);
+        return getIncomeData(stock,
+                financialsTtm -> toPercent(financialsTtm.balanceSheet.shortTermDebt > 0.0 ? (double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.balanceSheet.totalDebt : 0));
     }
 
     @GetMapping("/share_count")
@@ -203,6 +204,18 @@ public class FinancialsController {
             } else {
                 return null;
             }
+        });
+    }
+
+    @GetMapping("/interest_coverage")
+    public List<SimpleDataElement> getInterestCoverage(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> {
+            Double coverage = null;
+            if (financialsTtm.incomeStatementTtm.interestExpense > 0) {
+                double ebit = RoicCalculator.calculateEbit(financialsTtm);
+                coverage = (ebit / financialsTtm.incomeStatementTtm.interestExpense);
+            }
+            return coverage;
         });
     }
 
@@ -332,13 +345,13 @@ public class FinancialsController {
         int year = i / 4;
         List<Double> growthRateList = new ArrayList<>();
         for (int offset = 10; offset > 3; --offset) {
-            Optional<Double> growthInYear = GrowthCalculator.getGrowthInInterval(company.financials, offset + year, year);
+            Optional<Double> growthInYear = GrowthCalculator.getEpsGrowthInInterval(company.financials, offset + year, year);
             if (growthInYear.isPresent() && !growthInYear.get().isNaN()) {
                 growthRateList.add(growthInYear.get());
             }
         }
         for (int offset = 7; offset >= 3; --offset) {
-            Optional<Double> growthInYear = GrowthCalculator.getGrowthInInterval(company.financials, offset + year + 3, 3);
+            Optional<Double> growthInYear = GrowthCalculator.getEpsGrowthInInterval(company.financials, offset + year + 3, 3);
             if (growthInYear.isPresent() && !growthInYear.get().isNaN()) {
                 growthRateList.add(growthInYear.get());
             }
@@ -471,7 +484,7 @@ public class FinancialsController {
 
     @GetMapping("/dividend_payout_ratio")
     public List<SimpleDataElement> getPayoutRatio(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.remoteRatio.dividendPayoutRatio));
+        return getIncomeData(stock, financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.netIncome));
     }
 
     @GetMapping("/dividend_payout_ratio_with_fcf")
@@ -500,7 +513,7 @@ public class FinancialsController {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 1; i < 30 * 4; ++i) {
-            Optional<Double> growth = GrowthCalculator.getGrowthInInterval(company.financials, i / 4.0, 0);
+            Optional<Double> growth = GrowthCalculator.getEpsGrowthInInterval(company.financials, i / 4.0, 0);
             result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (i * 4.0)).toString(), growth.orElse(0.0)));
         }
 
@@ -529,7 +542,7 @@ public class FinancialsController {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < 23 * 4; ++i) {
             double yearsAgo = i / 4.0;
-            Optional<Double> growth = GrowthCalculator.getGrowthInInterval(company.financials, yearsAgo + year, yearsAgo);
+            Optional<Double> growth = GrowthCalculator.getEpsGrowthInInterval(company.financials, yearsAgo + year, yearsAgo);
             result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
         }
 
@@ -553,7 +566,7 @@ public class FinancialsController {
     public List<SimpleDataElement> getPietroskyScore(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < 30 * 4; ++i) {
+        for (int i = 0; i < 30 * 4; ++i) {
             double yearsAgo = i / 4.0;
             Optional<Integer> growth = PietroskyScoreCalculator.calculatePietroskyScore(company, yearsAgo);
             result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), (double) growth.orElse(0)));
@@ -620,7 +633,7 @@ public class FinancialsController {
         CompanyFinancials company = DataLoader.readFinancials(stock);
 
         for (var element : flagProviers) {
-            element.addFlags(company, result);
+            element.addFlags(company, result, 0.0);
         }
 
         Collections.sort(result, (a, b) -> a.type.compareTo(b.type));
@@ -634,7 +647,7 @@ public class FinancialsController {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
-            Double growth = capeCalculator.calculateCapeRatioQ(company.financials, i, 6);
+            Double growth = CapeCalculator.calculateCapeRatioQ(company.financials, i, 6);
             result.add(new SimpleDataElement(financialsTtm.date.toString(), growth));
         }
 
@@ -666,7 +679,7 @@ public class FinancialsController {
     }
 
     private Double toPercent(Double grossProfitMargin) {
-        if (grossProfitMargin != null) {
+        if (grossProfitMargin != null && Double.isFinite(grossProfitMargin)) {
             return grossProfitMargin * 100.0;
         } else {
             return null;

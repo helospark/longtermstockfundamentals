@@ -4,7 +4,7 @@ import static com.helospark.financialdata.service.AltmanZCalculator.calculateAlt
 import static com.helospark.financialdata.service.DcfCalculator.doStockDcfAnalysis;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isStableGrowth;
-import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
+import static com.helospark.financialdata.service.GrowthCalculator.getEpsGrowthInInterval;
 import static com.helospark.financialdata.service.Helpers.min;
 
 import java.util.Optional;
@@ -26,9 +26,9 @@ public class DcfScreenerShortTerm implements StockScreeners {
                 continue;
             }
 
-            Optional<Double> fiveYearAvgGrowth = getGrowthInInterval(financials, 8, 0);
-            Optional<Double> threeYearAvgGrowth = getGrowthInInterval(financials, 3, 0);
-            Optional<Double> preCovidYearAvgGrowth = getGrowthInInterval(financials, 5, 3);
+            Optional<Double> fiveYearAvgGrowth = getEpsGrowthInInterval(financials, 8, 0);
+            Optional<Double> threeYearAvgGrowth = getEpsGrowthInInterval(financials, 3, 0);
+            Optional<Double> preCovidYearAvgGrowth = getEpsGrowthInInterval(financials, 5, 3);
 
             boolean continouslyProfitable = isProfitableEveryYearSince(financials, 7, 0);
             boolean stableGrowth = isStableGrowth(financials, 8, 0);

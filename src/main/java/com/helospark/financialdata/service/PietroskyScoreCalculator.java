@@ -25,7 +25,7 @@ public class PietroskyScoreCalculator {
         if (nowFinancials.incomeStatementTtm.netIncome > 0) {
             ++result;
         }
-        if (nowFinancials.remoteRatio.returnOnAssets > 0) {
+        if (RoicCalculator.calculateROA(nowFinancials) > 0) {
             ++result;
         }
         if (nowFinancials.cashFlowTtm.operatingCashFlow > 0) {
@@ -44,10 +44,12 @@ public class PietroskyScoreCalculator {
         if (nowFinancials.incomeStatementTtm.weightedAverageShsOutDil <= oneYearAgoFinancials.incomeStatementTtm.weightedAverageShsOutDil) {
             ++result;
         }
-        if (nowFinancials.remoteRatio.grossProfitMargin > oneYearAgoFinancials.remoteRatio.grossProfitMargin) {
+        if (nowFinancials.remoteRatio.grossProfitMargin != null && oneYearAgoFinancials.remoteRatio.grossProfitMargin != null
+                && nowFinancials.remoteRatio.grossProfitMargin > oneYearAgoFinancials.remoteRatio.grossProfitMargin) {
             ++result;
         }
-        if (nowFinancials.remoteRatio.assetTurnover > oneYearAgoFinancials.remoteRatio.assetTurnover) {
+        if (nowFinancials.remoteRatio.assetTurnover != null && oneYearAgoFinancials.remoteRatio.assetTurnover != null
+                && nowFinancials.remoteRatio.assetTurnover > oneYearAgoFinancials.remoteRatio.assetTurnover) {
             ++result;
         }
 

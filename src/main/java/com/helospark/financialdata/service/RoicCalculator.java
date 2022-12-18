@@ -30,8 +30,12 @@ public class RoicCalculator {
     }
 
     public static double calculateRoic(FinancialsTtm financialsTtm) {
-        double ebit = financialsTtm.incomeStatementTtm.ebitda + financialsTtm.incomeStatementTtm.depreciationAndAmortization;
+        double ebit = calculateEbit(financialsTtm);
         return ebit / (financialsTtm.balanceSheet.totalAssets - financialsTtm.balanceSheet.totalCurrentLiabilities);
+    }
+
+    public static long calculateEbit(FinancialsTtm financialsTtm) {
+        return financialsTtm.incomeStatementTtm.ebitda + financialsTtm.incomeStatementTtm.depreciationAndAmortization;
     }
 
     public static double calculateROA(FinancialsTtm financialsTtm) {

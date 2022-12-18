@@ -6,14 +6,18 @@ import static java.time.format.DateTimeFormatter.ISO_DATE;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
@@ -23,8 +27,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.RateLimiter;
 import com.helospark.financialdata.domain.CompanyListElement;
 import com.helospark.financialdata.domain.FxSupportedSymbolsResponse;
+import com.helospark.financialdata.domain.Profile;
+import com.helospark.financialdata.service.DataLoader;
+import com.helospark.financialdata.service.exchanges.ExchangeRegion;
+import com.helospark.financialdata.service.exchanges.Exchanges;
+import com.helospark.financialdata.service.exchanges.MarketType;
 
 public class StockDataDownloader {
+    public static final String SYMBOL_CACHE_FILE = BASE_FOLDER + "/info/symbols/symbols.csv";
     static final ObjectMapper objectMapper = new ObjectMapper();
     static final String API_KEY = System.getProperty("API_KEY");
     static final Integer NUM_YEARS = 100;
@@ -43,7 +53,6 @@ public class StockDataDownloader {
         List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
         List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
         List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
-        downloadUrlIfNeededWithoutRetry("info/cpi.json", "/v4/economic", Map.of("name", "CPI", "from", "1990-01-01", "to", LocalDate.now().format(ISO_DATE)));
         downloadFxRates();
         downloadUsefulInfo();
 
@@ -59,6 +68,98 @@ public class StockDataDownloader {
         for (var symbol : symbols) {
             downloadStockData(symbol);
         }
+
+        createExchangeCache();
+        createSymbolCache();
+    }
+
+    private static void createExchangeCache() {
+        Map<String, List<String>> exchangeToSymbol = new HashMap<>();
+        Map<String, String> exchangeToName = new HashMap<>();
+        Set<String> allSymbols = DataLoader.provideAllSymbols();
+
+        for (var symbol : allSymbols) {
+            List<Profile> profiles = DataLoader.readFinancialFile(symbol, "profile.json", Profile.class);
+            if (profiles.size() > 0 && profiles.get(0).exchangeShortName != null) {
+                putToMultiMap(exchangeToSymbol, profiles.get(0).exchangeShortName, symbol);
+                exchangeToName.put(profiles.get(0).exchangeShortName, profiles.get(0).exchange);
+            } else {
+                putToMultiMap(exchangeToSymbol, "UNKNOWN", symbol);
+            }
+        }
+
+        for (var entry : exchangeToSymbol.entrySet()) {
+            File file = new File(BASE_FOLDER + "/info/exchanges/" + entry.getKey());
+            if (!file.exists()) {
+                file.getParentFile().mkdirs();
+
+                String valueToWrite = entry.getValue().stream().collect(Collectors.joining("\n"));
+
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    fos.write(valueToWrite.getBytes());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+    }
+
+    private static void createSymbolCache() {
+        Set<String> symbolCompanyNameCache = new LinkedHashSet<>();
+
+        Set<Profile> usCompanies = new TreeSet<>((a, b) -> Double.compare(b.mktCap, a.mktCap));
+        // sort by most often searched regions
+        for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByRegion(ExchangeRegion.US))) {
+            List<Profile> profiles = DataLoader.readFinancialFile(symbol, "profile.json", Profile.class);
+            if (profiles.size() > 0 && !symbol.endsWith("-PL")) {
+                usCompanies.add(profiles.get(0));
+            }
+        }
+        for (var usCompany : usCompanies) {
+            symbolCompanyNameCache.add(symbolToSearchData(usCompany.symbol));
+        }
+        for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByRegion(ExchangeRegion.US))) {
+            String information = symbolToSearchData(symbol);
+            symbolCompanyNameCache.add(information);
+        }
+        for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByType(MarketType.DEVELOPED_MARKET))) {
+            String information = symbolToSearchData(symbol);
+            symbolCompanyNameCache.add(information);
+        }
+        for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByType(MarketType.DEVELOPING_MARKET))) {
+            String information = symbolToSearchData(symbol);
+            symbolCompanyNameCache.add(information);
+        }
+        for (var symbol : DataLoader.provideAllSymbols()) {
+            String information = symbolToSearchData(symbol);
+            symbolCompanyNameCache.add(information);
+        }
+
+        File file = new File(SYMBOL_CACHE_FILE);
+        if (!file.exists()) {
+            file.getParentFile().mkdirs();
+
+            String valueToWrite = symbolCompanyNameCache.stream().collect(Collectors.joining("\n"));
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                fos.write(valueToWrite.getBytes());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+    }
+
+    public static String symbolToSearchData(String symbol) {
+        List<Profile> profiles = DataLoader.readFinancialFile(symbol, "profile.json", Profile.class);
+
+        String information = symbol + ";";
+
+        if (profiles.size() > 0 && profiles.get(0).companyName != null) {
+            information += profiles.get(0).companyName;
+        }
+        return information;
     }
 
     private static void downloadUsefulInfo() {
@@ -70,6 +171,17 @@ public class StockDataDownloader {
         downloadUrlIfNeeded("info/s&p500_historical_constituent.json", "/v3/historical/sp500_constituent", Map.of());
         // https://financialmodelingprep.com/api/v3/historical/dowjones_constituent?apikey=API_KEY
         downloadUrlIfNeeded("info/dowjones_constituent_historical_constituent.json", "/v3/historical/dowjones_constituent", Map.of());
+
+        for (var element : List.of("GDP", "realGDP", "nominalPotentialGDP", "realGDPPerCapita", "federalFunds", "CPI",
+                "inflationRate", "inflation", "retailSales", "consumerSentiment", "durableGoods",
+                "unemploymentRate", "totalNonfarmPayroll", "initialClaims", "industrialProductionTotalIndex",
+                "newPrivatelyOwnedHousingUnitsStartedTotalUnits", "totalVehicleSales", "retailMoneyFunds",
+                "smoothedUSRecessionProbabilities", "3MonthOr90DayRatesAndYieldsCertificatesOfDeposit",
+                "commercialBankInterestRateOnCreditCardPlansAllAccounts", "30YearFixedRateMortgageAverage",
+                "15YearFixedRateMortgageAverage")) {
+            downloadUrlIfNeeded("info/" + element + ".json", "/v4/economic", Map.of("name", element, "from", "1920-01-01", "to", LocalDate.now().format(ISO_DATE)));
+        }
+
     }
 
     private static void downloadFxRates() {
@@ -106,7 +218,6 @@ public class StockDataDownloader {
                     localDate = localDate.plusYears(1);
                 }
             }
-            //            objectMapper.writeValue(new File(BASE_FOLDER + "/" + fileToDownloadTo), rcd);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -218,6 +329,15 @@ public class StockDataDownloader {
             }
         }
         return absoluteFile;
+    }
+
+    private static void putToMultiMap(Map<String, List<String>> exchangeToSymbol, String key, String value) {
+        List<String> values = exchangeToSymbol.get(key);
+        if (values == null) {
+            values = new ArrayList<>();
+            exchangeToSymbol.put(key, values);
+        }
+        values.add(value);
     }
 
 }

@@ -3,7 +3,7 @@ package com.helospark.financialdata.util.analyzer;
 import static com.helospark.financialdata.service.DataLoader.readFinancials;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isStableGrowth;
-import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
+import static com.helospark.financialdata.service.GrowthCalculator.getEpsGrowthInInterval;
 
 import java.util.Optional;
 import java.util.Set;
@@ -22,7 +22,7 @@ public class HighPeHighGrowthScreener {
                 continue;
             }
 
-            Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, 8, 0);
+            Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, 8, 0);
             boolean continouslyProfitable = isProfitableEveryYearSince(financials, 8, 0);
             boolean stableGrowth = isStableGrowth(financials, 8, 0);
 

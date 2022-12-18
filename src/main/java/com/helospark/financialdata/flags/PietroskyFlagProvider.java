@@ -14,16 +14,16 @@ import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 
 @Component
-public class PietroskyFlagFlagProvider implements FlagProvider {
+public class PietroskyFlagProvider implements FlagProvider {
     static double EPS_SD = 15.0;
     static double REV_SD = 7.0;
     static double FCF_SD = 40.0;
 
     @Override
-    public void addFlags(CompanyFinancials company, List<FlagInformation> flags) {
+    public void addFlags(CompanyFinancials company, List<FlagInformation> flags, double offset) {
         List<FinancialsTtm> financials = company.financials;
         if (financials.size() > 0) {
-            Optional<Integer> pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, 0.0);
+            Optional<Integer> pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, offset);
             if (pietrosky.isPresent()) {
                 if (pietrosky.get() >= 8) {
                     flags.add(new FlagInformation(FlagType.GREEN, format("Good pietrosky score (%d)", pietrosky.get())));

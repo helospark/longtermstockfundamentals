@@ -17,10 +17,10 @@ import com.helospark.financialdata.service.GrowthCalculator;
 public class GrowthFlagProvider implements FlagProvider {
 
     @Override
-    public void addFlags(CompanyFinancials company, List<FlagInformation> flags) {
+    public void addFlags(CompanyFinancials company, List<FlagInformation> flags, double offset) {
         List<FinancialsTtm> financials = company.financials;
         if (financials.size() > 0) {
-            Optional<Double> revenueGrowth = GrowthCalculator.getRevenueGrowthInInterval(financials, 5.0, 0.0);
+            Optional<Double> revenueGrowth = GrowthCalculator.getRevenueGrowthInInterval(financials, offset + 5.0, offset, true);
 
             if (revenueGrowth.isPresent()) {
                 if (revenueGrowth.get() > 12.0) {
@@ -30,7 +30,7 @@ public class GrowthFlagProvider implements FlagProvider {
                 }
             }
 
-            Optional<Double> epsGrowth = GrowthCalculator.getGrowthInInterval(financials, 5.0, 0.0);
+            Optional<Double> epsGrowth = GrowthCalculator.getEpsGrowthInInterval(financials, offset + 5.0, offset, true);
             if (epsGrowth.isPresent()) {
                 if (epsGrowth.get() > 25.0) {
                     flags.add(new FlagInformation(FlagType.STAR, format("In 5yrs EPS has increased more than 25%% annually (%.2f%%)", epsGrowth.get())));
@@ -41,14 +41,14 @@ public class GrowthFlagProvider implements FlagProvider {
                 }
             }
 
-            Optional<Double> fcfGrowth = GrowthCalculator.getFcfGrowthInInterval(financials, 5.0, 0.0);
+            Optional<Double> fcfGrowth = GrowthCalculator.getFcfGrowthInInterval(financials, offset + 5.0, offset, true);
             if (fcfGrowth.isPresent()) {
                 if (fcfGrowth.get() > 25.0) {
                     flags.add(new FlagInformation(FlagType.STAR, format("In 5yrs FCF per share has increased more than 25%% annually (%.2f%%)", fcfGrowth.get())));
                 } else if (fcfGrowth.get() > 12.0) {
                     flags.add(new FlagInformation(FlagType.GREEN, format("In 5yrs FCF per share has increased more than 12%% annually (%.2f%%)", fcfGrowth.get())));
                 } else if (fcfGrowth.get() < 0.0) {
-                    flags.add(new FlagInformation(FlagType.YELLOW, format("In 5yrs FCF per share has decreased (annual (%.2f%%)", fcfGrowth.get())));
+                    flags.add(new FlagInformation(FlagType.YELLOW, format("In 5yrs FCF per share has decreased (annual %.2f%%)", fcfGrowth.get())));
                 }
             }
 

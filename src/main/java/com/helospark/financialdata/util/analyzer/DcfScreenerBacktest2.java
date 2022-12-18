@@ -5,7 +5,7 @@ import static com.helospark.financialdata.service.DataLoader.readFinancials;
 import static com.helospark.financialdata.service.DcfCalculator.doStockDcfAnalysis;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isStableGrowth;
-import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
+import static com.helospark.financialdata.service.GrowthCalculator.getEpsGrowthInInterval;
 import static com.helospark.financialdata.service.Helpers.min;
 
 import java.util.ArrayList;
@@ -93,7 +93,7 @@ public class DcfScreenerBacktest2 implements StockScreeners {
                     if (financials.size() > latestElement + 1) {
 
                         double yearLimit = param.getValue("year");
-                        Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, yearLimit + yearsAgo, yearsAgo);
+                        Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, yearLimit + yearsAgo, yearsAgo);
 
                         //                    System.out.println(tenYearAvgGrowth + " " + eightYearAvgGrowth + " " + fiveYearAvgGrowth + " " + threeYearAvgGrowth);
 

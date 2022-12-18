@@ -2,11 +2,15 @@
 <html>
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 <link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
 <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
 <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+
 <body>
 
+<input id="autoComplete">
 <h2><span id="stock" th:text="${stock}"></span><span id="stock-name"></span></h2> <a href="#" id="show-description-link">Show description</a>
 <div id="stock-description" class="hidden-element"></div>
 
@@ -21,6 +25,52 @@
 </div>
 
 <script>
+const autoCompleteJS = new autoComplete({
+    placeHolder: "Search for stocks...",
+    data: {
+        src: async (query) => {
+          let url = "http://localhost:8080/suggest?search=" + query;
+          
+          result = [];
+          suggestions = await fetch(url)
+                          .then(res => res.json())
+                          .catch(err => { throw err });
+          for (i = 0; i < suggestions.length; ++i) {
+            out = suggestions[i];
+            element=out.symbol + " - " + out.name;
+            result.push({
+               key: out.symbol,
+               display: element
+            });
+          }
+          return result;
+        },
+        keys: ["display"],
+        cache: false
+    },
+    resultItem: {
+        highlight: true,
+    },
+    events: {
+        input: {
+            selection: (event) => {
+                const selection = event.detail.selection.value;
+                window.location.href = "/stock/" + selection.key
+                console.log(selection);
+            }
+        }
+    }
+});
+
+
+
+
+
+
+
+
+
+
 var stock = document.getElementById("stock").innerText;
 
 function populateProfile() {
@@ -417,19 +467,19 @@ createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggested
 createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {suggestedMin: -2, suggestedMax: 5});
 createChart("/financials/ev_over_ebitda", "EV over ebitda", {});
 
-createChart("/financials/pfcf_ratio", "PFCF ratio", {suggestedMin: -2, suggestedMax: 50});
 createChart("/financials/p2g_ratio", "Price to Book ratio", {suggestedMin: 0, suggestedMax: 15});
 createChart("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5});
 
 
 createSeparator("Debt information")
 
-createChart("/financials/cash_flow_to_debt", "Cash flow to debt", {});
-createChart("/financials/short_term_coverage_ratio", "Short term coverage ratio", {});
+createChart("/financials/cash_flow_to_debt", "Operating cash flow debt coverage", {unit: '%'});
+createChart("/financials/short_term_coverage_ratio", "Operating cash flow short term debt coverage", {unit: '%'});
 createChart("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {});
 createChart("/financials/altmanz", "Altman Z score", {});
 createChart("/financials/interest_expense", "Interest expense", {});
 createChart("/financials/interest_rate", "Interest rate", {unit: '%'});
+createChart("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
 
 
 
@@ -458,15 +508,28 @@ createChart("/financials/return_on_assets", "Return on assets", {unit: '%'});
 createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%'});
 
 
+createSeparator("Yields")
+createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, suggestedMax: 50, unit: '%', label: "EPS yield", additionalCharts: [
+  {
+    "url": "/financials/fcf_yield",
+    "label": "Free cash flow yield"
+  },
+  {
+    "url": "/financials/fed_rate",
+    "label": "FED funds rate"
+  }
+]});
+createChart("/financials/expected_return", "Compsite yield", {unit: '%'});
+
 
 createSeparator("Other")
 createChart("/financials/share_count", "Share count", {});
 createChart("/financials/tax_rate", "Tax rate", {});
-createChart("/financials/stock_compensation", "Stock compensation", {});
-createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2});
-createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0});
-createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0});
-createChart("/financials/capex_to_revenue", "CAPEX to revenue", {});
+createChart("/financials/stock_compensation", "Stock compensation", {unit: '%'});
+createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
+createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
+createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
+createChart("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%'});
 createChart("/financials/pietrosky_score", "Pietrosky score", {});
 
 
@@ -482,7 +545,7 @@ createChart("/financials/dividend_yield_per_current_price", "Dividend yield for 
 
 createSeparator("Growth")
 createChart("/financials/eps_growth_rate", "EPS growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS growth x year intervals annual", {
+createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS annual growth x year intervals", {
   type: 'bar',
   unit: '%',
   slider: {
@@ -494,7 +557,7 @@ createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS growth x year int
 }});
 
 createChart("/financials/fcf_growth_rate", "FCF growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF growth 7 year intervals annual", {
+createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x year intervals", {
   type: 'bar',
   unit: '%',
   slider: {
@@ -518,7 +581,6 @@ createChart("/financials/dividend_dcf", "Dividend DCF", {});
 createChart("/financials/cash_per_share", "Cash per share", {});
 createChart("/financials/graham_number", "Graham number", {});
 createChart("/financials/revenue_projection", "Revenue projection stock price", {});
-createChart("/financials/expected_return", "Expected return", {unit: '%'});
 
 
 createSeparator("Price")

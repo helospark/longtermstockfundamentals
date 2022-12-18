@@ -15,7 +15,7 @@ import com.helospark.financialdata.domain.FlagType;
 public class IpoFlagProvider implements FlagProvider {
 
     @Override
-    public void addFlags(CompanyFinancials company, List<FlagInformation> flags) {
+    public void addFlags(CompanyFinancials company, List<FlagInformation> flags, double offset) {
         List<FinancialsTtm> financials = company.financials;
         if (financials.size() > 0) {
             var date = financials.get(financials.size() - 1).getDate();

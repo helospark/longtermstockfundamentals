@@ -5,7 +5,7 @@ import static com.helospark.financialdata.service.DataLoader.readFinancials;
 import static com.helospark.financialdata.service.DcfCalculator.doStockDcfAnalysis;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isStableGrowth;
-import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
+import static com.helospark.financialdata.service.GrowthCalculator.getEpsGrowthInInterval;
 import static com.helospark.financialdata.service.Helpers.min;
 
 import java.time.LocalDate;
@@ -40,10 +40,10 @@ public class DcfScreenerBacktest implements StockScreeners {
                 //                System.out.println(financials.size() + " > " + (latestElement + 1));
                 if (financials.size() > latestElement + 1) {
 
-                    Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, PROFITABLE_YEAR + yearsAgo, yearsAgo);
-                    Optional<Double> eightYearAvgGrowth = getGrowthInInterval(financials, 8 + yearsAgo, yearsAgo);
-                    Optional<Double> fiveYearAvgGrowth = getGrowthInInterval(financials, 5 + yearsAgo, yearsAgo);
-                    Optional<Double> threeYearAvgGrowth = getGrowthInInterval(financials, 3 + yearsAgo, yearsAgo);
+                    Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, PROFITABLE_YEAR + yearsAgo, yearsAgo);
+                    Optional<Double> eightYearAvgGrowth = getEpsGrowthInInterval(financials, 8 + yearsAgo, yearsAgo);
+                    Optional<Double> fiveYearAvgGrowth = getEpsGrowthInInterval(financials, 5 + yearsAgo, yearsAgo);
+                    Optional<Double> threeYearAvgGrowth = getEpsGrowthInInterval(financials, 3 + yearsAgo, yearsAgo);
 
                     //                    System.out.println(tenYearAvgGrowth + " " + eightYearAvgGrowth + " " + fiveYearAvgGrowth + " " + threeYearAvgGrowth);
 

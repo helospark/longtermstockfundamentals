@@ -20,7 +20,7 @@ public class LimitedRandomStrategy implements StepStrategy {
     public StepStrategyResponse step(double previous) {
         double number = random.nextDouble(min, max);
         boolean ended;
-        if (count++ > limit) {
+        if (++count >= limit) {
             this.count = 0;
             ended = true;
         } else {

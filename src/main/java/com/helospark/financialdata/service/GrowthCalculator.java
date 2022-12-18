@@ -11,6 +11,10 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 public class GrowthCalculator {
 
     public static Optional<Double> getFcfGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
+        return getFcfGrowthInInterval(financials, years, offset, true);
+    }
+
+    public static Optional<Double> getFcfGrowthInInterval(List<FinancialsTtm> financials, double years, double offset, boolean ignoreNegativeTransition) {
         int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
         int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
@@ -20,6 +24,10 @@ public class GrowthCalculator {
 
         double now = getFcfPerShare(financials.get(newIndex));
         double then = getFcfPerShare(financials.get(oldIndex));
+
+        if (ignoreNegativeTransition && isNegativeTransition(now, then)) {
+            return Optional.empty();
+        }
 
         double distance = years - offset;
         double resultPercent = calculatePercentChange(now, then, distance);
@@ -34,7 +42,11 @@ public class GrowthCalculator {
         return fcfPerShare;
     }
 
-    public static Optional<Double> getGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear) {
+    public static Optional<Double> getEpsGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear) {
+        return getEpsGrowthInInterval(financials, year, offsetYear, true);
+    }
+
+    public static Optional<Double> getEpsGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear, boolean ignoreNegativeTransition) {
         int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (year * 12.0)));
         int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (offsetYear * 12.0)));
 
@@ -45,6 +57,10 @@ public class GrowthCalculator {
 
         double now = minEpsOf(financials, newIndex, newIndex);
         double then = maxEpsOf(financials, oldIndex, oldIndex);
+
+        if (ignoreNegativeTransition && isNegativeTransition(now, then)) {
+            return Optional.empty();
+        }
 
         double distance = year - offsetYear;
         double resultPercent = calculatePercentChange(now, then, distance);
@@ -79,6 +95,10 @@ public class GrowthCalculator {
     }
 
     public static Optional<Double> getRevenueGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
+        return getRevenueGrowthInInterval(financials, years, offset, true);
+    }
+
+    public static Optional<Double> getRevenueGrowthInInterval(List<FinancialsTtm> financials, double years, double offset, boolean ignoreNegativeTransition) {
         int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
         int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
@@ -87,10 +107,20 @@ public class GrowthCalculator {
             return Optional.empty();
         }
 
-        FinancialsTtm now = financials.get(newIndex);
-        FinancialsTtm then = financials.get(oldIndex);
+        long now = financials.get(newIndex).incomeStatementTtm.revenue;
+        long then = financials.get(oldIndex).incomeStatementTtm.revenue;
 
-        double resultPercent = (Math.pow((double) now.incomeStatementTtm.revenue / then.incomeStatementTtm.revenue, 1.0 / (years - offset)) - 1.0) * 100.0;
+        if (ignoreNegativeTransition && isNegativeTransition(now, then)) {
+            return Optional.empty();
+        }
+
+        double distance = years - offset;
+
+        double resultPercent = calculatePercentChange(now, then, distance);
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
 
         return Optional.of(resultPercent);
     }
@@ -158,14 +188,18 @@ public class GrowthCalculator {
 
     private static double calculatePercentChange(double now, double then, double distance) {
         if (now < 0.0 && then < 0.0) {
-            return (Math.pow(then / now, 1.0 / distance) - 1.0) * 100.0;
+            return -(Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
         } else if (now > 0.0 && then > 0.0) {
             return (Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;
-        } else if (now > 0.0 && then < 0.0) {
-            return (Math.pow(-then / now, 1.0 / distance) - 2.0) * 100.0;
+        } else if (now >= 0.0 && then < 0.0) {
+            return (Math.pow(-then / now, 1.0 / distance) + 1.0) * 100.0;
         } else {
-            return (Math.pow(-now / then, 1.0 / distance)) * 100.0;
+            return -(Math.pow(-now / then, 1.0 / distance) + 1.0) * 100.0;
         }
+    }
+
+    public static boolean isNegativeTransition(double now, double then) {
+        return now < 0 && then > 0 || now > 0 && then < 0;
     }
 
 }

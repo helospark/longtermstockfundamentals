@@ -19,13 +19,15 @@ import java.util.stream.Collectors;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.service.AltmanZCalculator;
 import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
+import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
+import com.helospark.financialdata.util.analyzer.parameter.IncrementStepStrategy;
 import com.helospark.financialdata.util.analyzer.parameter.LimitedRandomStrategy;
 import com.helospark.financialdata.util.analyzer.parameter.Parameter;
 import com.helospark.financialdata.util.analyzer.parameter.TestParameterProvider;
 
-public class CompounderScreenerBacktest2 {
+public class CompounderRoicScreenerBacktest2 {
     private static final double INVEST_PER_STOCK = 1000.0;
 
     public void analyze(Set<String> symbols) {
@@ -33,7 +35,8 @@ public class CompounderScreenerBacktest2 {
         TestParameterProvider param = new TestParameterProvider();
         param.registerParameter(new Parameter("epsSd", 2.0, new LimitedRandomStrategy(10, 1.0, 10.0)));
         param.registerParameter(new Parameter("revSd", 6.0, new LimitedRandomStrategy(10, 4.0, 30.0)));
-        param.registerParameter(new Parameter("fcfSd", 30.0, new LimitedRandomStrategy(10, 4.0, 45.0)));
+        param.registerParameter(new Parameter("roic", 30.0, new LimitedRandomStrategy(10, 0.25, 0.5)));
+        param.registerParameter(new Parameter("pyr", 30.0, new IncrementStepStrategy(3, 10, 1)));
         boolean finished = false;
 
         List<TestParameterProvider> providerList = new ArrayList<>();
@@ -92,27 +95,23 @@ public class CompounderScreenerBacktest2 {
                     }
                     double latestPriceThen = financials.get(index).price;
 
-                    Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, 8 + yearsAgo, yearsAgo);
-                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, 8 + yearsAgo, yearsAgo);
+                    Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, param.getValue("pyr") + yearsAgo, yearsAgo);
+                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, param.getValue("pyr") + yearsAgo, yearsAgo);
                     double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
 
-                    if (tenYearAvgGrowth.isPresent() && continouslyProfitable) {
-                        Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
-                        Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
-                        Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
+                    if (tenYearAvgGrowth.isPresent() && tenYearAvgGrowth.get() >= 10.0 && continouslyProfitable && altmanZ > 2.2) {
 
-                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo, 8);
-                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo, 8);
-                        Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, yearsAgo, 8);
-                        if (epsDeviation.isPresent() && revenueDeviation.isPresent() && fcfDeviation.isPresent()) {
-                            double growth = tenYearAvgGrowth.get();
+                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo, 6);
+                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo, 6);
+
+                        if (epsDeviation.isPresent() && revenueDeviation.isPresent()) {
+                            Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
                             Double epsStandardDeviation = epsDeviation.get();
-                            Double pegCutoff = 1.1;
-                            if (growth >= 10.0 && epsStandardDeviation < param.getValue("epsSd") &&
+                            Double pegCutoff = 1.4;
+                            Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
+                            if (roic.isPresent() && roic.get() >= param.getValue("roic") && epsStandardDeviation < param.getValue("epsSd") &&
                                     revenueDeviation.get() < param.getValue("revSd") &&
-                                    revenueDeviation.get() < param.getValue("fcfSd") &&
-                                    altmanZ > 2.2 &&
-                                    trailingPeg.orElse(0.0) < pegCutoff && trailingPeg2.orElse(0.0) < pegCutoff && trailingPeg3.orElse(0.0) < pegCutoff) {
+                                    trailingPeg.isPresent() && trailingPeg.get() < pegCutoff) {
                                 double sellPrice = company.latestPrice;
                                 double growthRatio = sellPrice / latestPriceThen;
                                 double benchmarkIncrease = INVEST_PER_STOCK

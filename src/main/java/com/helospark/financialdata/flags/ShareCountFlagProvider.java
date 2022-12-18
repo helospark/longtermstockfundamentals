@@ -2,6 +2,7 @@ package com.helospark.financialdata.flags;
 
 import static java.lang.String.format;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,16 +13,18 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.service.GrowthCalculator;
+import com.helospark.financialdata.service.Helpers;
 
 @Component
 public class ShareCountFlagProvider implements FlagProvider {
 
     @Override
-    public void addFlags(CompanyFinancials company, List<FlagInformation> flags) {
+    public void addFlags(CompanyFinancials company, List<FlagInformation> flags, double offset) {
         List<FinancialsTtm> financials = company.financials;
-        if (financials.size() > 0) {
-            FinancialsTtm financialsTtm = company.financials.get(0);
-            Optional<Double> shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(financials, 5, 0.0);
+        int index = Helpers.findIndexWithOrBeforeDate(financials, LocalDate.now().minusMonths((long) (12.0 * offset)));
+        if (index != -1) {
+            FinancialsTtm financialsTtm = company.financials.get(index);
+            Optional<Double> shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(financials, offset + 5, offset);
             if (shareCountGrowth.isPresent()) {
                 double shareCount = shareCountGrowth.get();
                 if (shareCount > 10.0) {
@@ -40,11 +43,13 @@ public class ShareCountFlagProvider implements FlagProvider {
                 flags.add(new FlagInformation(FlagType.YELLOW, format("More than 1%% share based compensation per market cap (compensation=%.2f%%)", shareBasedCompensationPerMkt)));
             }
 
-            double shareBasedCompensationPerRev = financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.incomeStatementTtm.revenue * 100.0;
-            if (shareBasedCompensationPerRev > 10.0) {
-                flags.add(new FlagInformation(FlagType.RED, format("More than 10%% share based compensation per revenue (compensation=%.2f%%)", shareBasedCompensationPerRev)));
-            } else if (shareBasedCompensationPerRev > 1.0) {
-                flags.add(new FlagInformation(FlagType.YELLOW, format("More than 1%% share based compensation per revenue (compensation=%.2f%%)", shareBasedCompensationPerRev)));
+            if (financialsTtm.incomeStatementTtm.revenue > 0) {
+                double shareBasedCompensationPerRev = financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.incomeStatementTtm.revenue * 100.0;
+                if (shareBasedCompensationPerRev > 10.0) {
+                    flags.add(new FlagInformation(FlagType.RED, format("More than 10%% share based compensation per revenue (compensation=%.2f%%)", shareBasedCompensationPerRev)));
+                } else if (shareBasedCompensationPerRev > 1.0) {
+                    flags.add(new FlagInformation(FlagType.YELLOW, format("More than 1%% share based compensation per revenue (compensation=%.2f%%)", shareBasedCompensationPerRev)));
+                }
             }
         }
 

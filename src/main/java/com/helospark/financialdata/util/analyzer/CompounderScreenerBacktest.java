@@ -2,7 +2,7 @@ package com.helospark.financialdata.util.analyzer;
 
 import static com.helospark.financialdata.service.DataLoader.readFinancials;
 import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
-import static com.helospark.financialdata.service.GrowthCalculator.getGrowthInInterval;
+import static com.helospark.financialdata.service.GrowthCalculator.getEpsGrowthInInterval;
 import static java.lang.Double.NaN;
 
 import java.time.LocalDate;
@@ -33,7 +33,7 @@ public class CompounderScreenerBacktest {
         double benchmarkSum = 0.0;
         int count = 0;
         int beats = 0;
-        System.out.printf("Symbol\tGrowth\tPE\tEPS_SD\tREV_SD\tFCF_SD\tGrowth%% (from->to)\n");
+        System.out.printf("Symbol\tGrowth\ttPEG\tEPS_SD\tREV_SD\tFCF_SD\tGrowth%% (from->to)\n");
         for (int index = 0; index <= 25 * 4; ++index) {
             double yearsAgo = (index / 4.0);
             double yearGrowthSum = 0.0;
@@ -48,7 +48,7 @@ public class CompounderScreenerBacktest {
                 }
                 double latestPriceThen = financials.get(index).price;
 
-                Optional<Double> tenYearAvgGrowth = getGrowthInInterval(financials, PROF_YEAR + yearsAgo, yearsAgo);
+                Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, PROF_YEAR + yearsAgo, yearsAgo);
                 boolean continouslyProfitable = isProfitableEveryYearSince(financials, PROF_YEAR + yearsAgo, yearsAgo);
                 Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo);
                 Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo);
@@ -65,7 +65,7 @@ public class CompounderScreenerBacktest {
                     double growth = tenYearAvgGrowth.get();
                     Double epsStandardDeviation = epsDeviation.get();
                     if (growth >= GROWTH && epsDeviation.get() < EPS_SD && fcfDeviation.get() < FCF_SD && revenueDeviation.get() < REV_SD && altmanZ > 2.2 &&
-                            trailingPeg.orElse(0.0) < PEG_CUTOFF && trailingPeg2.orElse(0.0) < PEG_CUTOFF && trailingPeg3.orElse(0.0) < PEG_CUTOFF) {
+                            trailingPeg.isPresent() && trailingPeg.get() < PEG_CUTOFF && trailingPeg2.orElse(0.0) < PEG_CUTOFF && trailingPeg3.orElse(0.0) < PEG_CUTOFF) {
                         double sellPrice = company.latestPrice;
                         double growthRatio = sellPrice / latestPriceThen;
                         double benchmarkIncrease = (StandardAndPoorPerformanceProvider.getLatestPrice() / StandardAndPoorPerformanceProvider.getPriceAt(financials.get(index).getDate()));
@@ -76,7 +76,7 @@ public class CompounderScreenerBacktest {
                         benchmarkSum += benchmarkIncrease * 1000.0;
                         ++yearCount;
 
-                        System.out.printf("%s\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f%% (%.1f -> %.1f)\t%s | %s\n", symbol, growth, currentPe, epsStandardDeviation, revenueDeviation.orElse(NaN),
+                        System.out.printf("%s\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f\t%.1f%% (%.1f -> %.1f)\t%s | %s\n", symbol, growth, trailingPeg.get(), epsStandardDeviation, revenueDeviation.orElse(NaN),
                                 fcfDeviation.orElse(NaN), ((growthRatio - 1.0) * 100.0), latestPriceThen, sellPrice, company.profile.companyName, company.profile.industry);
 
                     }
@@ -90,7 +90,7 @@ public class CompounderScreenerBacktest {
             }
             double increase = (yearGrowthSum / (yearCount * 1000) - 1.0);
             double annual = Math.pow(yearGrowthSum / (yearCount * 1000), (1.0 / yearsAgo)) - 1.0;
-            double benchmark = StandardAndPoorPerformanceProvider.getGrowth(yearsAgo);
+            double benchmark = (Math.pow(yearBenchmarkSum / (yearCount * 1000), (1.0 / yearsAgo)) - 1.0) * 100.0;
             LocalDate dateThen = LocalDate.now().minusMonths((long) (yearsAgo * 12.0));
             System.out.println(
                     "Have " + (int) (yearGrowthSum) + " from " + yearCount * 1000 + " (" + (increase * 100.0) + "%, " + (annual * 100.0) + "%) invested "

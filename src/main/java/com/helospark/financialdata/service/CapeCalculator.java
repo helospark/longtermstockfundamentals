@@ -3,17 +3,11 @@ package com.helospark.financialdata.service;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import com.helospark.financialdata.domain.FinancialsTtm;
 
-@Service
 public class CapeCalculator {
-    @Autowired
-    CpiAdjustor cpiAdjustor;
 
-    public Double calculateCapeRatioQ(List<FinancialsTtm> financials, int offset, int years) {
+    public static Double calculateCapeRatioQ(List<FinancialsTtm> financials, int offset, int years) {
         if (financials.size() <= offset) {
             return null;
         }
@@ -30,7 +24,7 @@ public class CapeCalculator {
             }
             var previousYear = financials.get(previousYearIndex);
 
-            double adjustedEps = cpiAdjustor.adjustForInflationToOldDate(previousYear.incomeStatementTtm.eps, previousYear.getDate(), startDate);
+            double adjustedEps = CpiAdjustor.adjustForInflationToOldDate(previousYear.incomeStatementTtm.eps, previousYear.getDate(), startDate);
 
             sumEps += adjustedEps;
             ++epsCount;

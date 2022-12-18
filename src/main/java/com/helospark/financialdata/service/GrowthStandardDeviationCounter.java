@@ -10,7 +10,7 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 public class GrowthStandardDeviationCounter {
 
     public static Optional<Double> calculateEpsGrowthDeviation(List<FinancialsTtm> financials, double offset) {
-        return calculateGrowthDeviationInternal(financials, offset, 23, stepYear -> GrowthCalculator.getGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+        return calculateGrowthDeviationInternal(financials, offset, 23, stepYear -> GrowthCalculator.getEpsGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
     public static Optional<Double> calculateRevenueGrowthDeviation(List<FinancialsTtm> financials, double offset) {
@@ -22,7 +22,7 @@ public class GrowthStandardDeviationCounter {
     }
 
     public static Optional<Double> calculateEpsGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {
-        return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
+        return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getEpsGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
     public static Optional<Double> calculateRevenueGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {

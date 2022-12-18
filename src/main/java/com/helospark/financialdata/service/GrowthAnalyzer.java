@@ -86,4 +86,20 @@ public class GrowthAnalyzer {
         return true;
     }
 
+    public static boolean isCashFlowProfitableEveryYearSince(List<FinancialsTtm> financials, double year, double offset) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, NOW.minusMonths((long) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, NOW.minusMonths((long) (offset * 12.0)));
+
+        if (oldIndex >= financials.size() || oldIndex == -1 || newIndex == -1 || newIndex >= financials.size() || newIndex > oldIndex) {
+            return false;
+        }
+
+        for (int i = oldIndex; i >= newIndex; --i) {
+            if (financials.get(i).cashFlowTtm.freeCashFlow <= 0.0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }
