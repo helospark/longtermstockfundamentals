@@ -1,3 +1,11 @@
+body {
+  margin:0px;
+}
+
+#content {
+  margin: 8px;
+}
+
 .chartDiv {
   width:98%;
   display:grid;
@@ -30,4 +38,63 @@
 
 #flags {
   margin-top: 20px;
+}
+
+
+
+/* Add a black background color to the top navigation */
+.topnav {
+  background-color: #333;
+  width: 100%;
+  height: 50px;
+}
+
+/* Style the links inside the navigation bar */
+.topnav a, .topnav div {
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.topnav > .autoComplete_wrapper {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  float:right;
+}
+
+
+/* Change the color of links on hover */
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+/* Add a color to the active/current link */
+.topnav a.active {
+  background-color: #04AA6D;
+  color: white;
+}
+
+.topnav .menu {
+  float:left;
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+
+.autoComplete_wrapper > input {
+  height: 2rem;
+  background-position: left 1.05rem top .3rem;
+}
+
+.clearFloat {
+  clear:both;
+}
+
+.chart-title {
+  text-align:center;
+  font-size: 10pt;
+  margin-bottom: 0px;
 }

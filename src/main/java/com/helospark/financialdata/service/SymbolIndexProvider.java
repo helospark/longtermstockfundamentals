@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
@@ -83,6 +84,15 @@ public class SymbolIndexProvider {
             }
         }
         return result;
+    }
+
+    public Optional<String> getCompanyName(String stock) {
+        for (int i = 0; i < symbols.size(); ++i) {
+            if (symbols.get(i).equalsIgnoreCase(stock) && !companyNames.get(i).isBlank()) {
+                return Optional.of(companyNames.get(i));
+            }
+        }
+        return Optional.empty();
     }
 
 }

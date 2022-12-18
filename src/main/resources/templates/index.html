@@ -1,600 +1,257 @@
 <!DOCTYPE html>
-<html>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-<link rel="stylesheet" href="../style.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
-<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
-<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<html lang="en">
+<head>
+<!-- basic -->
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- mobile metas -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+<!-- site metas -->
+<title>Long term stock fundamentals</title>
+<meta name="keywords" content="stock, fundamentals, long-term, long term, trends, risk, analysis, research">
+<meta name="description" content="Long term stock fundamentals">
+<!-- bootstrap css -->
+<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+<!-- style css -->
+<!-- Responsive-->
+<link rel="stylesheet" href="css/responsive.css">
+<!-- Scrollbar Custom CSS -->
+<link rel="stylesheet" href="css/jquery.mCustomScrollbar.min.css">
+<!-- Tweaks for older IEs-->
+<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
+<link rel="stylesheet" href="css/autocomplete/autocomplete.css">
+
+
 <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
 
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
 <body>
+	<header id="home"class="section">
+	<div class="header_main">
+         <!-- header inner -->
+         <div class="header">
+            <div class="container">
+               <div class="row">
+                  <div class="col-xl-3 col-lg-3 col-md-3 col-sm-3 col logo_section">
+                     <div class="full">
+                        <div class="center-desk">
+                           <div class="logo"><a href="#home"><img src="images/logo.png" style="max-width: 100%;"></a> 
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <!-- end header inner -->
+      <section >
+      	<div class="bannen_inner">
+            <div class="container">
+                <div class="row marginii">
+                    <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
+                    	<div class="taital_main">
+                    		
+                    	</div>
+                        <h1 class="web_text"><strong>Long term stock fundamentals</strong></h1>
+                        <p class="donec_text">Research stocks based on the long term fundamentals for free.<br/><br/>
+                                Historical fundamental data available for more than 40,000 companies worldwide going back 30+ years.<br/><br/>
+                                Make confident investing choices by exploring long term trends and risks.<br/>
+                                See sample pages before signing up: <a class="sample-link" href="/stock/TSLA">TSLA</a>, <a class="sample-link" href="/stock/INTC">INTC</a></p>
+                         <a class="get_bg" href="#sign_up" role="button">Sign up</a>
+                         <a class="btn btn-lg btn-dark" href="about.html" role="button">Sign in</a>
+                    </div>
+                 <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
+                 <div class="img-box">
+                    <figure><img src="images/woofer2.png" alt="img" style="max-width: 180%;"></figure>
+                 </div>
+            </div>
+           </div>
+           <div class="emaim-bt">
+           	<div class="col-md-9 margin-0">
+            <div class="custom-form-control mb-3 margin-top-20">
+                <input id="autoComplete" type="text" class="custom-form-control" placeholder="Enter stock name or ticker">
+            </div>           
+        </div>
+       </div>
+     </div>
+    </div>
+    </section>
+	</header>
+    <!-- banner end -->
+    <!-- choose start -->
+    <div id="about" class="choose_section">
+    	<div class="container">
+    		<div class="col-sm-12">
+    			<h1 class="choose_text">Why you should <span class="color">sign up</span></h1>
+    		</div>
+    	</div>
+    </div>
+    <div class="choose_section_2">
+    	<div class="container">
+    	    <div class="row">
+    		    <div class="col-sm-4">
+    			    <div class="power">
+    				    <div class="icon"><a href="#"><img src="images/icon-trends.png"></a></div>
+    				    <h2 class="totaly_text">Long term trends</h2>
+    				    <p class="making">Seeing long term fundamental data trends can help you to make better investment decisions.</p>
+    			    </div>
+    		    </div>
+    		    <div class="col-sm-4">
+    			    <div class="power">
+    				    <div class="icon"><a href="#"><img src="images/optimised-icon.png"></a></div>
+    				    <h2 class="totaly_text">Risk checks</h2>
+    				    <p class="making">We provide several checks for possible red flags in stocks, using them you can avoid companies with weak fundamentals.</p>
+    			    </div>
+    		    </div>
+    		    <div class="col-sm-4">
+    			    <div class="power">
+    				    <div class="icon"><a href="#"><img src="images/icon-3.png"></a></div>
+    				    <h2 class="totaly_text">Value analysis</h2>
+    				    <p class="making">We provide several tools that can help you to find undervalued stocks with great value.</p>
+    			    </div>
+    		    </div>
+    	    </div>    		
+    	</div>
+    </div>
+    <div class="contact_section_2">
+    	<div class="container">
+    		<div class="row">
+    			<div class="col-md-6">
+    				<div class="input_main">
+                       <div class="container">
+                          <a id="sign_up"><h1 class="choose_text">Free sign up</h1></a>
+                          <form action="/action_page.php">
+                            <div class="form-group">
+                              <input type="text" class="email-bt" placeholder="Username" name="Usernameame">
+                            </div>
+                            <div class="form-group">
+                              <input type="text" class="email-bt" placeholder="Email" name="Email">
+                            </div>
+                            <div class="form-group">
+                              <input type="password" class="email-bt" placeholder="Password" name="Password">
+                            </div>
+                            <div class="form-group">
+                              <input type="password" class="email-bt" placeholder="Password confirm" name="password2">
+                            </div>
+                          </form>
+                          
+                       </div> 
+                       <div class="send_btn">
+                        <button type="button" class="main_bt"><a href="#">Sign up</a></button>
+                       </div>                   
+                    </div>
+    			</div>
+    			<div class="col-md-6">
+    				<div class="section_right">
+    					<img src="images/img-2.png" style="max-width: 100%;">
+    				</div>
+    			</div>
+    		</div>
+    	</div>
+    </div>
+    <!--
+    <div class="contact_section_3">
+    	<div class="container">
+    		<div class="contact_product">
+    			<div class="row">
+    				<div class="col-sm-6 col-md-6 col-lg-2">
+    					<div class="footer-logo"><img src="images/footer-logo.png" style="max-width: 100%;"></div>
+    				</div>
+    				<div class="col-sm-6 col-md-6 col-lg-4">
+    					<h1 class="useful_text">USEFUL LINK</h1>
+    				<div class="menu">
+    					<ul>
+    						<li><a href="#home"><img src="images/bulit-icon.png" style="padding-right: 10px;">Home</a></li>
+    						<li><a href="#about"><img src="images/bulit-icon.png" style="padding-right: 10px;">About</a></li>
+    						<li><a href="#service"><img src="images/bulit-icon.png" style="padding-right: 10px;">Services</a></li>
+    						<li><a href="#contact"><img src="images/bulit-icon.png" style="padding-right: 10px;">Contact Us</a></li>
+    					</ul>
+    				</div>	
+    				</div>
+    				<div class="col-sm-12 col-md-12 col-lg-6">
+    					<h1 class="useful_text">PRODUCT</h1>
+    					<div class="menu multi_column_menu">
+    					   <ul>
+    						  <li class="footer_menu"><a href="#"><img src="images/bulit-icon.png" class="footer_menu">Webhosting</a></li>
+    						  <li class="footer_menu"><a href="#"><img src="images/bulit-icon.png" class="footer_menu">Reseler Hosting</a></li>
+    						  <li class="footer_menu"><a href="#"><img src="images/bulit-icon.png" class="footer_menu">VPS Hosting</a></li>
+    						  <li class="footer_menu"><a href="#"><img src="images/bulit-icon.png" class="footer_menu">Wordpress Hosting</a></li>
+    						  <li class="footer_menu"><a href="#"><img src="images/bulit-icon.png" class="footer_menu">Dedicated hosting</a></li>
+    						  <li class="footer_menu"><a href="#"><img src="images/bulit-icon.png" class="footer_menu">Windows</a></li>
+    					   </ul>
+    				    </div>
+    				</div>
+    			</div>
+    		</div>
+    	</div>
+    </div>
+    -->
+    <div class="copyright_main">
+    	<div class="container">
+    		<p class="copy_text">© 2018 All Rights Reserved. <a href="https://html.design">Free Website Templates</a></p>
+    	</div>
+    </div>
 
-<input id="autoComplete">
-<h2><span id="stock" th:text="${stock}"></span><span id="stock-name"></span></h2> <a href="#" id="show-description-link">Show description</a>
-<div id="stock-description" class="hidden-element"></div>
+
+    <!-- contact end -->
+    <!-- Javascript files-->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <script src="js/bootstrap.bundle.min.js"></script>
 
 
-<div id="charts">
-
-</div>
-
-<h2>Checks</h2>
-<div id="flags">
-
-</div>
-
-<script>
-const autoCompleteJS = new autoComplete({
-    placeHolder: "Search for stocks...",
-    data: {
-        src: async (query) => {
-          let url = "http://localhost:8080/suggest?search=" + query;
-          
-          result = [];
-          suggestions = await fetch(url)
-                          .then(res => res.json())
-                          .catch(err => { throw err });
-          for (i = 0; i < suggestions.length; ++i) {
-            out = suggestions[i];
-            element=out.symbol + " - " + out.name;
-            result.push({
-               key: out.symbol,
-               display: element
-            });
-          }
-          return result;
-        },
-        keys: ["display"],
-        cache: false
-    },
-    resultItem: {
-        highlight: true,
-    },
-    events: {
-        input: {
-            selection: (event) => {
-                const selection = event.detail.selection.value;
-                window.location.href = "/stock/" + selection.key
-                console.log(selection);
-            }
-        }
-    }
-});
-
-
-
-
-
-
-
-
-
-
-var stock = document.getElementById("stock").innerText;
-
-function populateProfile() {
-  let url = 'http://localhost:8080/' + stock + "/financials/profile";
-  
-  fetch(url)
-          .then(res => res.json())
-          .then(out => {
-            document.getElementById("stock-name").innerText = " - " + out.companyName + " (" + out.industry + ", " + out.sector + ")";
-            document.getElementById("stock-description").innerHTML = out.description.replaceAll(/\. ([A-Z])/gm, "\.<br\/>$1");
-            $("#show-description-link").click(function() {
-              $("#stock-description").toggleClass("hidden-element");
-            });
-          })
-          .catch(err => { throw err });
-}
-
-function addFlags() {
-  let url = 'http://localhost:8080/' + stock + "/financials/flags";
-  var flagsDiv = document.getElementById("flags");
-  fetch(url)
-          .then(res => res.json())
-          .then(out => {
-              for (elementIndex in out) {
-                value = out[elementIndex];
-                if (value.type == "RED") {
-                    flagsDiv.innerHTML += "&#128308; " + value.text + "<br/>";
-                } else if (value.type == "GREEN") {
-                    flagsDiv.innerHTML += "&#128994; " + value.text + "<br/>";
-                } else if (value.type == "STAR") {
-                    flagsDiv.innerHTML += "&#11088; " + value.text + "<br/>";
-                } else if (value.type == "YELLOW") {
-                    flagsDiv.innerHTML += "&#128992; " + value.text + "<br/>";
-                }
-              }
-          })
-          .catch(err => { throw err });
-}
-
-var constColorPalette = [
-  "rgba(0,0,255,0.3)",
-  "rgba(255,0,0,0.3)",
-  "rgba(0,255,0,0.3)",
-];
-var constColorPaletteLine = [
-  "rgba(0,0,255,0.8)",
-  "rgba(255,0,0,0.8)",
-  "rgba(0,255,0,0.8)",
-];
-
-
-function createCheckbox(label) {
-  var checkbox = document.createElement("input");
-  checkbox.type="checkbox";
-  checkbox.innerHtml=label;
-  
-
-  return label;
-}
-
-function createChart(urlPath, title, chartOptions) {
-  var canvas =document.createElement("canvas");
-  canvas.style='width:100%;max-height:400px'
-  
-  var underChartBar = document.createElement("div");
-  underChartBar.style="width:100%";
-  
-  var chartDiv = document.createElement("div");
-  chartDiv.className="chartDiv";
-  
-  var element = document.getElementById("charts");
-  element.appendChild(chartDiv);
-  element.appendChild(underChartBar);
-
-  var xValues = [];
-  var yValues = [];
-  type = chartOptions.type !== undefined ? chartOptions.type : 'line';
-  suggestedMin = chartOptions.suggestedMin !== undefined ? chartOptions.suggestedMin : undefined;
-  var unit = chartOptions.unit !== undefined ? " " + chartOptions.unit : "";
-  var label = chartOptions.label === undefined ? "data" : chartOptions.label;
-  var legendDisplay = chartOptions.additionalCharts === undefined ? false : true;
-  
-  var colorPaletteLine = constColorPaletteLine;
-  var colorPalette = constColorPalette;
-  
-  if (type == "bar") {
-    colorPalette = ["rgba(0,0,255,0.6)"];
-  }
-  
-  var chart = new Chart(canvas, {
-    type: type,
-    data: {
-      labels: xValues,
-      datasets: [{
-        fill: true,
-        pointRadius: 2,
-        borderColor: colorPaletteLine[0],
-        backgroundColor: colorPalette[0],
-        data: yValues,
-        pointHitRadius: 300,
-        label: label
-      }]
-    }, 
-    options: {
-      responsive: true,
-
-       label: {
-         display: false
-       },
-      plugins: {
-        title: {
-          display: true,
-          text: title
-        },
-        legend: {
-          display: legendDisplay
-        },
-        tooltip: {
-            callbacks: {
-                label: (item) =>
-                    `${item.dataset.label}: ${item.formattedValue}${unit}`,
+      <script src="js/jquery-3.0.0.min.js"></script>
+      <script src="js/plugin.js"></script>
+      <!-- sidebar -->
+      <script src="js/jquery.mCustomScrollbar.concat.min.js"></script>
+      <script src="js/custom.js"></script>
+      <!-- javascript --> 
+      <script>
+         const autoCompleteJS = new autoComplete({
+            placeHolder: "Search for stocks...",
+            data: {
+                src: async (query) => {
+                  let url = "http://localhost:8080/suggest?search=" + query;
+                  
+                  result = [];
+                  suggestions = await fetch(url)
+                                  .then(res => res.json())
+                                  .catch(err => { throw err });
+                  for (i = 0; i < suggestions.length && i < 3; ++i) {
+                    out = suggestions[i];
+                    element=out.symbol + " - " + out.name;
+                    result.push({
+                       key: out.symbol,
+                       display: element
+                    });
+                  }
+                  return result;
+                },
+                keys: ["display"],
+                cache: false
             },
-        },
-      },
-      scales: {
-        x: {
-          display: true,
-        },
-        y: {
-          display: true,
-          type: 'linear',
-          min: chartOptions.suggestedMin,
-          max: chartOptions.suggestedMax
-        }
-      },
-    },
-  });
-  
-  
-  var button=document.createElement("button");
-  button.innerHTML = "Logarithmic";
-  button.className="floatleft";
-  button.onclick=function() {
-      isCurrentlyLinear = chart.options.scales.y.type == 'linear';
-      value = (isCurrentlyLinear ? 'logarithmic' : 'linear')
-      if (isCurrentlyLinear) {
-        button.classList.add("pressed");
-      }else {
-        button.classList.remove("pressed");
-      }
-      chart.options.scales.y.type = value;
-      chart.update();
-  }
-  var startAtZeroButton=document.createElement("button");
-  startAtZeroButton.innerHTML = "Zero based";
-  startAtZeroButton.className="floatleft";
-  startAtZeroButton.onclick=function() {
-      isCurrentlyEnabled = (chart.options.scales.y.originalMin !== undefined);
-      if (isCurrentlyEnabled) {
-        startAtZeroButton.classList.remove("pressed");
-      } else {
-        startAtZeroButton.classList.add("pressed");
-      }
-      if (isCurrentlyEnabled) {
-        chart.options.scales.y.min = chart.options.scales.y.originalMin;
-        chart.options.scales.y.max = chart.options.scales.y.originalMax;
-        chart.options.scales.y.originalMin = undefined;
-        chart.options.scales.y.originalMax = undefined;
-      } else {
-        chart.options.scales.y.originalMin = chart.options.scales.y.min;
-        chart.options.scales.y.originalMax = chart.options.scales.y.max;
-        if (chart.options.scales.y.min > 0) {
-           chart.options.scales.y.min = 0;
-        }
-        if (chart.options.scales.y.max < 0) {
-          chart.options.scales.y.max = 0;
-        }
-      }
-
-      chart.update();
-  }
-  underChartBar.appendChild(button);
-  underChartBar.appendChild(startAtZeroButton);
-
-  if (chartOptions.slider !== undefined) {
-    var sliderDiv = document.createElement("div")
-    var optionSlider = document.createElement("input");
-    optionSlider.id=chartOptions.slider.id;
-    optionSlider.min = chartOptions.slider.min;
-    optionSlider.max = chartOptions.slider.max;
-    optionSlider.value = chartOptions.slider.default;
-    optionSlider.type="range";
-    
-    optionSlider.oninput = function() {
-    
-      let paramedUrl = 'http://localhost:8080/' + stock + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
-  
-      fetch(paramedUrl)
-          .then(res => res.json())
-          .then(out => {
-                      for (index = 0; index < out.length; index++) {
-                          xValues[out.length - index - 1] = out[index].date;
-                          yValues[out.length - index - 1] = out[index].value;
-                      }
-                      chart.update();
-          })
-          .catch(err => { throw err });
-    }
-    
-    var sliderLabel = document.createElement("label");
-    sliderLabel.htmlFor=chartOptions.slider.id;
-    sliderLabel.innerText=chartOptions.slider.parameterName;
-    
-    sliderDiv.appendChild(sliderLabel);
-    sliderDiv.appendChild(optionSlider);
-    
-    underChartBar.appendChild(sliderDiv);
-  }
-  
-  $(underChartBar.lastChild).removeClass("floatleft");
-  
-
-
-  var sliderDiv=document.createElement("div");
-  sliderDiv.style="height:300px;position:relative; top: 30px;";
-  var slider = $(sliderDiv).slider({
-      range: true,
-      orientation: "vertical",
-      min: 0,
-      max: 500,
-      values: [ 0, 500 ],
-      slide: function( event, ui ) {
-          var start = ui.values[0],
-          end = ui.values[1];
-
-          chart.options.scales.y.min = start;
-          chart.options.scales.y.max = end;
-          chart.update();
-      }
-    });
-    $(slider).on("slide", function() {
-      var selection = $(this).slider("value");
-    });
-    chartDiv.appendChild(sliderDiv);
-  chartDiv.appendChild(canvas);
-  
-  
-  let url = 'http://localhost:8080/' + stock + urlPath;
-  
-  fetch(url)
-          .then(res => res.json())
-          .then(out => {
-                      for (index = 0; index < out.length; index++) {
-                          xValues[out.length - index - 1] = out[index].date;
-                          yValues[out.length - index - 1] = out[index].value;
-                      }
-                      max = Math.max.apply(Math, yValues);
-                      min = Math.min.apply(Math, yValues);
-                  
-                      minValueToSet = chartOptions.suggestedMin !== undefined ? chartOptions.suggestedMin : min;
-                      maxValueToSet = chartOptions.suggestedMax !== undefined ? chartOptions.suggestedMax : max;
-                      
-                      minValueToSet = minValueToSet < min ? min : minValueToSet;
-                      maxValueToSet = maxValueToSet > max ? max : maxValueToSet;
-                      
-                      if (minValueToSet >= maxValueToSet) {
-                         minValueToSet = maxValueToSet + 1.0;
-                      }
-                  
-                      if (!isNaN(minValueToSet)) {
-                        slider.slider("option", "min", min);
-                        slider.slider('values', 0, minValueToSet);
-                        chart.options.scales.y.min = minValueToSet;
-                      }
-                      if (!isNaN(maxValueToSet)) {
-                        slider.slider("option", "max", max);
-                        slider.slider('values', 1, maxValueToSet);
-                        chart.options.scales.y.max = maxValueToSet;
-                      }
-                      startAtZeroButton.onclick();
-                      chart.update();
-          }).then(out => {
-                   if (chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts.length > 0) {
-                   for (elementIndex in chartOptions.additionalCharts) {
-                      var element = chartOptions.additionalCharts[elementIndex];
-                      addAdditionalChart(element);
-                   }
+            resultItem: {
+                highlight: true,
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection = event.detail.selection.value;
+                        window.location.href = "/stock/" + selection.key
+                        console.log(selection);
+                    }
                 }
-          })
-          .catch(err => { throw err });
-    
-    
-    function addAdditionalChart(element) {
-          localUri  = 'http://localhost:8080/' + stock + element.url;
-          fetch(localUri)
-            .then(res => res.json())
-            .then(out => {
-                        var newXValues = [];
-                        var newYValues = [];
-                        for (index = 0; index < out.length; index++) {
-                            newXValues[out.length - index - 1] = out[index].date;
-                            newYValues[out.length - index - 1] = out[index].value;
-                        }
-                        max = Math.max.apply(Math, newYValues);
-                        min = Math.min.apply(Math, newYValues);
-                    
-                        minValueToSet = min;
-                        maxValueToSet = max;
-                    
-                        if (chart.options.scales.y.min < minValueToSet) {
-                           minValueToSet = chart.options.scales.y.min;
-                        }
-                        if (chart.options.scales.y.max > maxValueToSet) {
-                           maxValueToSet = chart.options.scales.y.max;
-                        }
-
-                        
-                        if (minValueToSet >= maxValueToSet) {
-                           minValueToSet = maxValueToSet + 1.0;
-                        }
-                        chart.data.datasets.unshift({
-                          pointRadius: 2,
-                          borderColor: colorPaletteLine[chart.data.datasets.length % colorPalette.length],
-                          backgroundColor: colorPalette[chart.data.datasets.length % colorPalette.length],
-                          data: newYValues,
-                          pointHitRadius: 300,
-                          label: element.label
-                        });
-                    
-                        if (!isNaN(minValueToSet)) {
-                          slider.slider("option", "min", min);
-                          slider.slider('values', 0, minValueToSet);
-                          chart.options.scales.y.min = minValueToSet;
-                        }
-                        if (!isNaN(maxValueToSet)) {
-                          slider.slider("option", "max", max);
-                          slider.slider('values', 1, maxValueToSet);
-                          chart.options.scales.y.max = maxValueToSet;
-                        }
-                        chart.update();
-            })
-            .catch(err => { throw err });
-    }
-    
-
-}
-
-function createSeparator(title) {
-  var hrElement =document.createElement("hr");
-  var hone = document.createElement("h1");
-  
-  hone.innerHTML = title;
-  
-  var element = document.getElementById("charts");
-  
-  children=Array.from(element.children);
-  
-  if (children.length > 1) {
-    element.appendChild(hrElement);
-  }
-  element.appendChild(hone);
-  
-}
-
-populateProfile();
-
-createSeparator("Income");
-createChart("/financials/revenue", "Revenue", {label: "Revenue"});
-createChart("/financials/net_income", "Net income", {label: "Net income", additionalCharts: [
-  {
-    "url": "/financials/fcf",
-    "label": "FCF"
-  },
-]});
-
-
-createChart("/financials/eps", "EPS", {});
-createChart("/financials/pfcf", "FCF per share", {});
-
-
-createSeparator("Margins")
-createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit: '%', label: "Gross margin", additionalCharts: [
-  {
-    "url": "/financials/operating_margin",
-    "label": "Operating margin"
-  }
-]});
-createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%'});
-
-
-createSeparator("Price ratios")
-createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50});
-createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100});
-createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {suggestedMin: -2, suggestedMax: 5});
-createChart("/financials/ev_over_ebitda", "EV over ebitda", {});
-
-createChart("/financials/p2g_ratio", "Price to Book ratio", {suggestedMin: 0, suggestedMax: 15});
-createChart("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5});
-
-
-createSeparator("Debt information")
-
-createChart("/financials/cash_flow_to_debt", "Operating cash flow debt coverage", {unit: '%'});
-createChart("/financials/short_term_coverage_ratio", "Operating cash flow short term debt coverage", {unit: '%'});
-createChart("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {});
-createChart("/financials/altmanz", "Altman Z score", {});
-createChart("/financials/interest_expense", "Interest expense", {});
-createChart("/financials/interest_rate", "Interest rate", {unit: '%'});
-createChart("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
-
-
-
-createSeparator("Assets")
-createChart("/financials/current_assets", "Current assets vs liabilities", {label: "Current assets", additionalCharts: [
-  {
-    "url": "/financials/current_liabilities",
-    "label": "Current liabilities"
-  }
-]});
-createChart("/financials/total_assets", "Total assets vs liabilities", {label: "Total assets", additionalCharts: [
-  {
-    "url": "/financials/total_liabilities",
-    "label": "Total liabilities"
-  }
-]});
-createChart("/financials/cash", "Cash and cash equivalents", {});
-
-//createChart("/financials/non_current_assets", "Non current assets", {});
-//createChart("/financials/long_term_debt", "Long term debt", {});
-
-
-createSeparator("Return ratios")
-createChart("/financials/roic", "Return on invested capital", {unit: '%'});
-createChart("/financials/return_on_assets", "Return on assets", {unit: '%'});
-createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%'});
-
-
-createSeparator("Yields")
-createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, suggestedMax: 50, unit: '%', label: "EPS yield", additionalCharts: [
-  {
-    "url": "/financials/fcf_yield",
-    "label": "Free cash flow yield"
-  },
-  {
-    "url": "/financials/fed_rate",
-    "label": "FED funds rate"
-  }
-]});
-createChart("/financials/expected_return", "Compsite yield", {unit: '%'});
-
-
-createSeparator("Other")
-createChart("/financials/share_count", "Share count", {});
-createChart("/financials/tax_rate", "Tax rate", {});
-createChart("/financials/stock_compensation", "Stock compensation", {unit: '%'});
-createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
-createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
-createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
-createChart("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%'});
-createChart("/financials/pietrosky_score", "Pietrosky score", {});
-
-
-
-createSeparator("Dividend")
-createChart("/financials/dividend_yield", "Dividend yield", {unit: '%', suggestedMin: -2, suggestedMax: 50});
-createChart("/financials/dividend_payout_ratio", "Dividend payout ratio", {unit: '%', suggestedMin: -2, suggestedMax: 150});
-createChart("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150});
-createChart("/financials/dividend_paid", "Dividend paid", {});
-createChart("/financials/dividend_yield_per_current_price", "Dividend yield for invest price", {unit: '%', suggestedMin: -2, suggestedMax: 200});
-
-
-
-createSeparator("Growth")
-createChart("/financials/eps_growth_rate", "EPS growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS annual growth x year intervals", {
-  type: 'bar',
-  unit: '%',
-  slider: {
-    id: "eps_growth_year_slider",
-    parameterName: "year",
-    min: 2,
-    max: 10,
-    default: 7
-}});
-
-createChart("/financials/fcf_growth_rate", "FCF growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x year intervals", {
-  type: 'bar',
-  unit: '%',
-  slider: {
-    id: "fcf_growth_year_slider",
-    parameterName: "year",
-    min: 2,
-    max: 10,
-    default: 7
-}});
-
-createChart("/financials/revenue_growth_rate", "Revenue growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/share_count_growth_rate", "Share count growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type: 'bar', unit: '%'});
-
-
-
-createSeparator("DCF")
-createChart("/financials/eps_dcf", "EPS DCF", {});
-createChart("/financials/fcf_dcf", "FCF DCF", {});
-createChart("/financials/dividend_dcf", "Dividend DCF", {});
-createChart("/financials/cash_per_share", "Cash per share", {});
-createChart("/financials/graham_number", "Graham number", {});
-createChart("/financials/revenue_projection", "Revenue projection stock price", {});
-
-
-createSeparator("Price")
-createChart("/financials/price", "Price", {label: "price", additionalCharts: [
-  {
-    "url": "/financials/composite_fair_value",
-    "label": "Composite fair value"
-  }
-]});
-createChart("/financials/price_growth_rate", "Price growth", {type: 'bar'});
-
-addFlags();
-
-</script>
-
+            }
+        });
+ 
+         </script> 
+ 
+ 
+ 
 </body>
 </html>
+
+
+
