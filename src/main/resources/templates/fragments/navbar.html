@@ -1,6 +1,6 @@
-<div class="topnav" th:fragment="my_fragment">
-  <div class="menu"><a th:attr="class=${active == 'Home' ? 'active' : ''}"  href="/">Home</a></div>
-  <div class="menu"><a th:attr="class=${active == 'Charts' ? 'active' : ''}" href="#home">Charts</a></div>
-  <div class="menu"><a th:attr="class=${active == 'Calculator' ? 'active' : ''}" href="#home">Calculator</a></div>
+<div id="topnav" class="topnav" th:fragment="my_fragment" th:data-uri="${active}">
+  <div class="menu"><a th:attr="class=${active == 'home' ? 'active' : ''}"  href="/">Home</a></div>
+  <div class="menu"><a th:attr="class=${active == 'stock' ? 'active' : ''}" th:href="'/stock/'+${stock}">Charts</a></div>
+  <div class="menu"><a th:attr="class=${active == 'calculator' ? 'active' : ''}" th:href="'/calculator/' + ${stock}">Calculator</a></div>
   <input id="autoComplete">
 </div> 

@@ -37,7 +37,7 @@ public class MarginCalculator {
         return Optional.of(financials.get(oldIndex).incomeStatementTtm.grossProfitRatio * 100.0);
     }
 
-    private static double getAvgNetMargin(List<FinancialsTtm> financials, int oldIndex) {
+    public static double getAvgNetMargin(List<FinancialsTtm> financials, int oldIndex) {
         double sum = 0.0;
         int count = 0;
         for (int i = oldIndex; i < oldIndex + 4 && i < financials.size(); ++i) {
