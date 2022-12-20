@@ -1,0 +1,35 @@
+package com.helospark.financialdata.management.user;
+
+import org.hibernate.validator.constraints.Length;
+
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
+public class RegisterRequest {
+    @NotNull
+    @NotEmpty
+    @Length(min = 3, max = 50, message = "Must be between 3 and 50 characters long")
+    public String userName;
+
+    @Email(message = "Not a valid email address")
+    @NotNull
+    @NotEmpty
+    public String email;
+
+    @Length(min = 5, max = 100, message = "Password must be between 5 and 100 characters")
+    @NotNull
+    @NotEmpty
+    public String password;
+
+    @Length(min = 5, max = 100, message = "Password must be between 5 and 100 characters")
+    @NotNull
+    @NotEmpty
+    public String passwordVerify;
+
+    @Override
+    public String toString() {
+        return "RegisterRequest [userName=" + userName + ", email=" + email + "]";
+    }
+
+}

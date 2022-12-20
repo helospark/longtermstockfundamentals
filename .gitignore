@@ -38,3 +38,6 @@ build/
 .mvn
 mvnw
 mvnw.cmd
+
+## Secrets
+src/main/resources/jwt

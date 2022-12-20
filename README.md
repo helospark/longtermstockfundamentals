@@ -23,3 +23,11 @@ There are utils under `com.helospark.financialdata.util`, these are separate app
 
  - StockDataDownload - Downloads data from financialmodelingprep
  - CompanyScreener - Find stocks with certain properties or does backtest. You can find multiple implementations under analyzer package.
+ 
+ 
+### Dev notes
+
+Generate new JWT signing keys
+
+    openssl req -x509 -nodes -sha256 -days 3650 -newkey rsa:2048 -keyout private_key.key -out certificate.crt
+
