@@ -170,6 +170,14 @@ function createChart(urlPath, title, chartOptions) {
                           xValues[out.length - index - 1] = out[index].date;
                           yValues[out.length - index - 1] = out[index].value;
                       }
+                      
+                      max = Math.max.apply(Math, yValues);
+                      min = Math.min.apply(Math, yValues);
+                  
+
+                      chart.options.scales.y.min = min;
+                      chart.options.scales.y.max = max;
+                  
                       chart.update();
           })
           .catch(err => { throw err });
@@ -238,7 +246,7 @@ function createChart(urlPath, title, chartOptions) {
                       if (minValueToSet >= maxValueToSet) {
                          minValueToSet = maxValueToSet + 1.0;
                       }
-                  
+
                       if (!isNaN(minValueToSet)) {
                         slider.slider("option", "min", min);
                         slider.slider('values', 0, minValueToSet);

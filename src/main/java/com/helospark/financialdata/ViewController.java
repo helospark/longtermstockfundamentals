@@ -57,7 +57,7 @@ public class ViewController {
             model.addAttribute("endMargin", String.format("%.2f", margin * 100.0));
             model.addAttribute("shareChange", String.format("%.2f", shareCountGrowth));
             model.addAttribute("shareCount", company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / 1000);
-            model.addAttribute("endMultiple", String.format("%.2f", endMultiple));
+            model.addAttribute("endMultiple", String.format("%.0f", endMultiple));
         }
 
         model.addAttribute("latestPrice", company.latestPrice);

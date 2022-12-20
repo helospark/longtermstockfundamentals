@@ -549,6 +549,19 @@ public class FinancialsController {
         return result;
     }
 
+    @GetMapping("/revenue_growth_rate_xyr_moving_avg")
+    public List<SimpleDataElement> getXyrGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int year) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < 23 * 4; ++i) {
+            double yearsAgo = i / 4.0;
+            Optional<Double> growth = GrowthCalculator.getRevenueGrowthInInterval(company.financials, yearsAgo + year, yearsAgo);
+            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
     @GetMapping("revenue_growth_rate")
     public List<SimpleDataElement> getRevenueGrowthRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
