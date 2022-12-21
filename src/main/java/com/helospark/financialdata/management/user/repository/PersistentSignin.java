@@ -6,7 +6,7 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 @DynamoDBTable(tableName = "PersistentSignin")
 public class PersistentSignin {
     private String key;
-    private String userName;
+    private String email;
 
     @DynamoDBHashKey
     public String getKey() {
@@ -17,12 +17,12 @@ public class PersistentSignin {
         this.key = key;
     }
 
-    public String getUserName() {
-        return userName;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public void setUserName(String userName) {
-        this.userName = userName;
+    public String getEmail() {
+        return email;
     }
 
 }

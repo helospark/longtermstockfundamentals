@@ -1,9 +1,9 @@
 package com.helospark.financialdata.management.user;
 
-public class RegistrationException extends RuntimeException {
+public class RegistrationException extends FieldAwareException {
 
-    public RegistrationException(String string) {
-        super(string);
+    public RegistrationException(String string, String field) {
+        super(string, field);
     }
 
 }

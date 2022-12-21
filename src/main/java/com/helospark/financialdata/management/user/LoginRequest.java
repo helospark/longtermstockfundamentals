@@ -1,6 +1,6 @@
 package com.helospark.financialdata.management.user;
 
 public class LoginRequest {
-    public String userName;
+    public String email;
     public String password;
 }

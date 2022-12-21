@@ -11,9 +11,8 @@
 <title>Long term stock fundamentals</title>
 <meta name="keywords" content="stock, fundamentals, long-term, long term, trends, risk, analysis, research">
 <meta name="description" content="Long term stock fundamentals">
-<!-- bootstrap css -->
-<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
 <!-- style css -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 <!-- Responsive-->
 <link rel="stylesheet" href="css/responsive.css">
 <!-- Scrollbar Custom CSS -->
@@ -21,6 +20,8 @@
 <!-- Tweaks for older IEs-->
 <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
 <link rel="stylesheet" href="css/autocomplete/autocomplete.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="js/jquery.min.js"></script>
 
 
 <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
@@ -34,10 +35,13 @@
          <div class="header">
             <div class="container">
                <div class="row">
-                  <div class="col-xl-3 col-lg-3 col-md-3 col-sm-3 col logo_section">
+                  <div class="col-lg-5 col logo_section">
                      <div class="full">
                         <div class="center-desk">
-                           <div class="logo"><a href="#home"><img src="images/logo.png" style="max-width: 100%;"></a> 
+                           <div class="logo">
+                              <h1 style="float:left;color:white; margin-right: 10px;"><i class="fa-solid fa-chart-simple"></i></h1>
+                              <h1 style="color:white;font-family:'Brush Script MT',cursive;font-weight:bold; line-height: 0.6;letter-spacing: -3px;">LongTermStock<br/>Fundamentals</h1>
+                               
                            </div>
                         </div>
                      </div>
@@ -55,12 +59,14 @@
                     		
                     	</div>
                         <h1 class="web_text"><strong>Long term stock fundamentals</strong></h1>
+                        <input style="width:100%; max-width:500px;" id="autoComplete" type="text" class="custom-form-control" placeholder="Enter stock name or ticker">
+                        
                         <p class="donec_text">Research stocks based on the long term fundamentals for free.<br/><br/>
                                 Historical fundamental data available for more than 40,000 companies worldwide going back 30+ years.<br/><br/>
                                 Make confident investing choices by exploring long term trends and risks.<br/>
                                 See sample pages before signing up: <a class="sample-link" href="/stock/TSLA">TSLA</a>, <a class="sample-link" href="/stock/INTC">INTC</a></p>
                          <a class="get_bg" href="#sign_up" role="button">Sign up</a>
-                         <a class="btn btn-lg btn-dark" href="about.html" role="button">Sign in</a>
+                         <a class="btn btn-lg btn-dark" href="#" onclick="login()" role="button">Sign in</a>
                     </div>
                  <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                  <div class="img-box">
@@ -68,13 +74,7 @@
                  </div>
             </div>
            </div>
-           <div class="emaim-bt">
-           	<div class="col-md-9 margin-0">
-            <div class="custom-form-control mb-3 margin-top-20">
-                <input id="autoComplete" type="text" class="custom-form-control" placeholder="Enter stock name or ticker">
-            </div>           
-        </div>
-       </div>
+
      </div>
     </div>
     </section>
@@ -102,7 +102,7 @@
     			    <div class="power">
     				    <div class="icon"><a href="#"><img src="images/optimised-icon.png"></a></div>
     				    <h2 class="totaly_text">Risk checks</h2>
-    				    <p class="making">We provide several checks for possible red flags in stocks, using them you can avoid companies with weak fundamentals.</p>
+    				    <p class="making">We provide checks for red flags, that can help you avoid companies with weak fundamentals.</p>
     			    </div>
     		    </div>
     		    <div class="col-sm-4">
@@ -122,25 +122,124 @@
     				<div class="input_main">
                        <div class="container">
                           <a id="sign_up"><h1 class="choose_text">Free sign up</h1></a>
-                          <form action="/action_page.php">
-                            <div class="form-group">
-                              <input type="text" class="email-bt" placeholder="Username" name="Usernameame">
-                            </div>
-                            <div class="form-group">
-                              <input type="text" class="email-bt" placeholder="Email" name="Email">
-                            </div>
-                            <div class="form-group">
-                              <input type="password" class="email-bt" placeholder="Password" name="Password">
-                            </div>
-                            <div class="form-group">
-                              <input type="password" class="email-bt" placeholder="Password confirm" name="password2">
-                            </div>
+                          <form id="register_form" action="/action_page.php">
+                                <div class="form-group">
+                                  <input id="register_email" type="email" class="form-control email-bt" placeholder="Email" name="Email" required>
+                                </div>
+                                <div class="form-group">
+                                  <input id="register_password" type="password" class="form-control email-bt" placeholder="Password" name="Password"  minLength="5" maxLength="100" required>
+                                </div>
+                                <div class="form-group">
+                                  <input id="register_password_verify" type="password" class="form-control email-bt" placeholder="Password confirm" name="password2" minLength="5" maxLength="100" required>
+                                </div>
+                               </div>
+                                <div id="registration_global_error" class="invalid-feedback" style="display:none">
+                                  
+                                </div>
+                               <div class="send_btn">
+                                 <button id="register_button" type="button" class="main_bt">Sign up</button>
+                                 <div id="registration-spinner" class="spinner-border" role="status" style="display:none"></div>
+                               </div>
                           </form>
-                           </div> 
-                       <div class="send_btn">
-                        <button type="button" class="main_bt">Sign up</button>
-                       </div>                   
                     </div>
+                    <script>
+                    function checkPasswordVerify() {
+                          password = $("#register_password").val();
+                          passwordVerify = $("#register_password_verify").val();
+                          
+                          if (password !== passwordVerify) {
+                            $("#register_password").get(0).setCustomValidity("Must match password");
+                          } else {
+                            $("#register_password").get(0).setCustomValidity("");
+                          }
+                          $("#register_password").addClass("was-validated");
+                      }
+                      
+                      function showRegistrationLoadSpinner(show) {
+                          if (show) {
+                            $("#registration-spinner").css({"display":"block"});
+                            $("#register_button").css({"display":"none"});
+                          } else {
+                            $("#registration-spinner").css({"display":"none"});
+                            $("#register_button").css({"display":"block"});
+                          }
+                      
+                      }
+
+                      $("#register_password_verify").change(checkPasswordVerify);
+
+
+                      $("#register_button").click(async () => {
+                      form = $("#register_form").get(0);
+                      $("#register_form").get(0).classList.remove('was-validated');
+                      inputs = $("#register_form input");
+                      for (i = 0; i < inputs.length; ++i) {
+                        inputs.get(i).setCustomValidity("");
+                      }
+                      
+                      if (form.checkValidity()) {
+
+                          email = $("#register_email").val();
+                          password = $("#register_password").val();
+                          passwordVerify = $("#register_password_verify").val();
+                          
+                          showRegistrationLoadSpinner(true);
+                          
+                            res = await fetch('/user/register', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({email: email, password: password, passwordVerify: passwordVerify})
+                                });
+                                
+                                content = await res.json();
+                                statusCode = res.status;
+                                
+                                console.log("Status=" + statusCode);
+                                console.log("Content=" + content);
+                                
+                                if (statusCode != 200) {
+                                   var wrongField = content.fieldReference;
+                                   console.log("Field=" + wrongField);
+                                   console.log("contentError=" + content.errorMessage);
+                                   if (wrongField !== undefined && wrongField != null && $("#" + wrongField).length > 0) {
+                                      $("#" + wrongField).get(0).setCustomValidity(content.errorMessage);
+                                   } else {
+                                   console.log("GlobalError=" + content.errorMessage);
+                                      $("#registration_global_error").text(content.errorMessage);
+                                      $("#registration_global_error").css({"display": "block"});
+                                   }
+                                   showRegistrationLoadSpinner(false);
+                                } else {
+                                  // login
+                                  console.log("login");
+                                  
+                                  res = await fetch('/user/login', {
+                                      method: 'POST',
+                                      headers: {
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json'
+                                      },
+                                      body: JSON.stringify({email: email, password: password})
+                                  });
+                                  statusCode = res.status;
+                                  
+                                  $("#registration-result-modal").modal('show');
+                                  
+                                  console.log("Login status=" + statusCode);
+                                  
+                                }
+                                
+                                console.log(content);
+                                
+                      } else {
+                        console.log("Form invalid");
+                      }
+                      $("#register_form").get(0).classList.add('was-validated');
+                      });
+                    </script>
     			</div>
     			<div class="col-md-6">
     				<div class="section_right">
@@ -189,14 +288,13 @@
     -->
     <div class="copyright_main">
     	<div class="container">
-    		<p class="copy_text">© 2018 All Rights Reserved. <a href="https://html.design">Free Website Templates</a></p>
+    		<p class="copy_text">© 2023 All Rights Reserved.</p>
     	</div>
     </div>
 
 
     <!-- contact end -->
     <!-- Javascript files-->
-    <script src="js/jquery.min.js"></script>
     <script src="js/popper.min.js"></script>
     <script src="js/bootstrap.bundle.min.js"></script>
 
@@ -247,8 +345,98 @@
  
          </script> 
  
- 
- 
+
+
+
+
+<div class="modal" id="registration-result-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLabel">Registration successful</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Registration successful, please active your account via your email.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="login-modal" tabindex="-1" aria-labelledby="login-modal" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Login</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="login_form">
+          <div class="mb-3">
+            <label for="recipient-name" class="col-form-label">Email</label>
+            <input type="email" class="form-control" id="login_email" required>
+          </div>
+          <div class="mb-3">
+            <label for="message-text" class="col-form-label">Password</label>
+            <input type="password" class="form-control" id="login_password" required></input>
+          </div>
+          <div class="mb-3">
+               <input type="submit" id="login_button" class="btn btn-primary" value="Sign in"></input>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+function login() {
+  $("#login-modal").modal("show");
+}
+
+$("#login_form").submit(async (e) => {
+                      e.preventDefault();
+                      form = $("#login_form").get(0);
+                      $("#login_form").get(0).classList.remove('was-validated');
+                      inputs = $("#login_form input");
+                      for (i = 0; i < inputs.length; ++i) {
+                        inputs.get(i).setCustomValidity("");
+                      }
+                      
+                      if (form.checkValidity()) {
+                          email = $("#login_email").val();
+                          password = $("#login_password").val();
+
+                            res = await fetch('/user/login', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({email: email, password: password})
+                                });
+                                
+                                statusCode = res.status;
+                                
+                                console.log("Status=" + statusCode);
+                                
+                                if (statusCode == 200) {
+                                   location.reload();
+                                } else {
+                                   console.log("Content=" + content);
+                                   content = await res.json();
+                                   console.log("ERROR " + content);
+                                }
+                       }
+                   });
+
+</script>
+
+
 </body>
 </html>
 

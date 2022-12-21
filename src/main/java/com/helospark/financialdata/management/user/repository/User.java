@@ -6,22 +6,13 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConvertedEnum;
 
 @DynamoDBTable(tableName = "User")
 public class User {
-    private String userName;
     private String email;
     private String password;
     private boolean activated;
     private String registered;
     private AccountType accountType;
 
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
-
     @DynamoDBHashKey
-    public String getUserName() {
-        return userName;
-    }
-
     public String getEmail() {
         return email;
     }

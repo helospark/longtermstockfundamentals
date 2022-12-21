@@ -9,6 +9,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -44,10 +45,12 @@ public class LoginController {
     BCryptPasswordEncoder passwordEncoder;
     @Autowired
     JwtService jwtService;
+    @Value("${website.domain}")
+    private String domain;
 
     @PostMapping("/user/login")
     public void login(@RequestBody LoginRequest request, HttpServletResponse httpResponse) {
-        Optional<User> optionalUser = userRepository.findByUserName(request.userName);
+        Optional<User> optionalUser = userRepository.findByEmail(request.email);
 
         if (!optionalUser.isPresent()) {
             throw new UserLoginException("User not found");
@@ -55,7 +58,7 @@ public class LoginController {
 
         User user = optionalUser.get();
         if (!passwordEncoder.matches(request.password, user.getPassword())) {
-            throw new UserLoginException("Wrong password for user " + user.getUserName());
+            throw new UserLoginException("Wrong password for user " + user.getEmail());
         }
 
         byte[] bytes = new byte[60];
@@ -64,7 +67,7 @@ public class LoginController {
 
         PersistentSignin persistentSignin = new PersistentSignin();
         persistentSignin.setKey(persistentToken);
-        persistentSignin.setUserName(user.getUserName());
+        persistentSignin.setEmail(user.getEmail());
 
         persistentSigninRepository.save(persistentSignin);
 
@@ -95,11 +98,11 @@ public class LoginController {
             throw new JwtRefreshException("Not currently logged in");
         }
 
-        String userName = previousPersistentSignin.get().getUserName();
-        Optional<User> optionalUser = userRepository.findByUserName(userName);
+        String email = previousPersistentSignin.get().getEmail();
+        Optional<User> optionalUser = userRepository.findByEmail(email);
 
         if (!optionalUser.isPresent()) {
-            throw new JwtRefreshException("User doesn't exist with username=" + userName);
+            throw new JwtRefreshException("User doesn't exist with email=" + email);
         }
 
         User user = optionalUser.get();
@@ -110,7 +113,7 @@ public class LoginController {
     @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
     public LoginErrorResponse onLoginError(UserLoginException exception, HttpServletRequest httpRequest) {
         LOGGER.info("Login failed for ip='{}', cause='{}'", httpRequest.getRemoteAddr(), exception.getMessage());
-        return new LoginErrorResponse("Bad username or password");
+        return new LoginErrorResponse("Bad email or password");
     }
 
     @ExceptionHandler(value = JwtRefreshException.class)
@@ -131,6 +134,8 @@ public class LoginController {
         Cookie cookie = new Cookie(REMEMBER_ME_COOKIE_NAME, value);
         cookie.setMaxAge(expiry);
         cookie.setHttpOnly(true);
+        cookie.setDomain(domain);
+        cookie.setPath("/");
         httpResponse.addCookie(cookie);
     }
 
@@ -138,6 +143,8 @@ public class LoginController {
         Cookie cookie = new Cookie(JWT_COOKIE_NAME, value);
         cookie.setMaxAge(expiry);
         cookie.setHttpOnly(true);
+        cookie.setDomain(domain);
+        cookie.setPath("/");
         httpResponse.addCookie(cookie);
     }
 
@@ -153,9 +160,8 @@ public class LoginController {
         return JWT.create()
                 .withIssuer("longTermStockFundamentals")
                 .withExpiresAt(expiration)
-                .withSubject(user.getUserName())
+                .withSubject(user.getEmail())
                 .withClaim("type", user.getAccountType().toString())
-                .withClaim("email", user.getEmail())
                 .sign(jwtService.getAlgorithm());
     }
 

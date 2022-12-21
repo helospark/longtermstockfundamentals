@@ -1,7 +1,6 @@
 package com.helospark.financialdata.management.user;
 
 import java.security.SecureRandom;
-import java.util.List;
 import java.util.Optional;
 
 import org.joda.time.LocalDate;
@@ -24,14 +23,10 @@ public class RegisterService {
     }
 
     public void registerUser(RegisterRequest request) {
-        Optional<User> existingUser = userRepository.findByUserName(request.userName);
+        Optional<User> existingUser = userRepository.findByEmail(request.email);
 
         if (existingUser.isPresent()) {
-            throw new RegistrationException("Username '" + request.userName + "' is already used");
-        }
-        List<User> userByEmail = userRepository.findByEmail(request.email);
-        if (!userByEmail.isEmpty()) {
-            throw new RegistrationException("Email " + request.email + " is already used");
+            throw new RegistrationException("User '" + request.email + "' is already used", "register_email");
         }
 
         String encodedPassword = bCryptPasswordEncoder.encode(request.password);
@@ -40,7 +35,6 @@ public class RegisterService {
         user.setAccountType(AccountType.FREE);
         user.setActivated(false);
         user.setEmail(request.email);
-        user.setUserName(request.userName);
         user.setPassword(encodedPassword);
         user.setRegistered(new LocalDate().toString());
 

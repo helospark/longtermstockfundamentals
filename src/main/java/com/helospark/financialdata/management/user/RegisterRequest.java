@@ -7,11 +7,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 public class RegisterRequest {
-    @NotNull
-    @NotEmpty
-    @Length(min = 3, max = 50, message = "Must be between 3 and 50 characters long")
-    public String userName;
-
     @Email(message = "Not a valid email address")
     @NotNull
     @NotEmpty
@@ -29,7 +24,7 @@ public class RegisterRequest {
 
     @Override
     public String toString() {
-        return "RegisterRequest [userName=" + userName + ", email=" + email + "]";
+        return "RegisterRequest [email=" + email + "]";
     }
 
 }
