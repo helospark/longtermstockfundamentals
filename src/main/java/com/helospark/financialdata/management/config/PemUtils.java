@@ -14,8 +14,11 @@ import java.security.spec.X509EncodedKeySpec;
 
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PemUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PemUtils.class);
 
     private static byte[] parsePEMFile(InputStream stream) throws IOException {
         PemReader reader = new PemReader(new InputStreamReader(stream));
@@ -32,9 +35,11 @@ public class PemUtils {
             EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
             publicKey = kf.generatePublic(keySpec);
         } catch (NoSuchAlgorithmException e) {
-            System.out.println("Could not reconstruct the public key, the given algorithm could not be found.");
+            LOGGER.error("Could not reconstruct the public key, the given algorithm could not be found.", e);
+            throw new RuntimeException(e);
         } catch (InvalidKeySpecException e) {
-            System.out.println("Could not reconstruct the public key");
+            LOGGER.error("Could not reconstruct the public key", e);
+            throw new RuntimeException(e);
         }
 
         return publicKey;

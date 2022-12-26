@@ -29,5 +29,6 @@ There are utils under `com.helospark.financialdata.util`, these are separate app
 
 Generate new JWT signing keys
 
-    openssl req -x509 -nodes -sha256 -days 3650 -newkey rsa:2048 -keyout private_key.key -out certificate.crt
+    openssl genrsa -out jwt2.pem 2048
+    openssl rsa -in jwt2.pem -pubout > jwt2.pub
 

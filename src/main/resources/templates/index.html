@@ -22,6 +22,7 @@
 <link rel="stylesheet" href="css/autocomplete/autocomplete.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="js/jquery.min.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cookie">
 
 
 <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
@@ -29,7 +30,7 @@
 <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
-	<header id="home"class="section">
+	<header id="home" class="section">
 	<div class="header_main">
          <!-- header inner -->
          <div class="header">
@@ -39,8 +40,8 @@
                      <div class="full">
                         <div class="center-desk">
                            <div class="logo">
-                              <h1 style="float:left;color:white; margin-right: 10px;"><i class="fa-solid fa-chart-simple"></i></h1>
-                              <h1 style="color:white;font-family:'Brush Script MT',cursive;font-weight:bold; line-height: 0.6;letter-spacing: -3px;">LongTermStock<br/>Fundamentals</h1>
+                              <h1 style="float:left;color:white; margin-right: 10px;margin-top:8px;"><i class="fa-solid fa-chart-simple"></i></h1>
+                              <h1 style="color:white;font-family:Cookie;line-height: 0.8;letter-spacing: -2px;">LongTermStock<br/>Fundamentals</h1>
                                
                            </div>
                         </div>
@@ -65,8 +66,17 @@
                                 Historical fundamental data available for more than 40,000 companies worldwide going back 30+ years.<br/><br/>
                                 Make confident investing choices by exploring long term trends and risks.<br/>
                                 See sample pages before signing up: <a class="sample-link" href="/stock/TSLA">TSLA</a>, <a class="sample-link" href="/stock/INTC">INTC</a></p>
-                         <a class="get_bg" href="#sign_up" role="button">Sign up</a>
-                         <a class="btn btn-lg btn-dark" href="#" onclick="login()" role="button">Sign in</a>
+                         
+                          <div th:if="${isLoggedIn}">
+                             <a class="btn btn-lg btn-dark" href="javascript:;" onclick="logout(e)" role="button">Sign out</a>
+                          </div>
+                          <div th:unless="${isLoggedIn}">
+                             <a class="get_bg" href="#sign_up" role="button">Sign up</a>
+                             <a class="btn btn-lg" href="javascript:;" onclick="login()" role="button">Sign in</a>
+                          </div>
+                                                   
+                         
+                         
                     </div>
                  <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
                  <div class="img-box">
@@ -81,14 +91,14 @@
 	</header>
     <!-- banner end -->
     <!-- choose start -->
-    <div id="about" class="choose_section">
+    <div id="about" class="choose_section" th:unless="${isLoggedIn}">
     	<div class="container">
     		<div class="col-sm-12">
     			<h1 class="choose_text">Why you should <span class="color">sign up</span></h1>
     		</div>
     	</div>
     </div>
-    <div class="choose_section_2">
+    <div class="choose_section_2" th:unless="${isLoggedIn}">
     	<div class="container">
     	    <div class="row">
     		    <div class="col-sm-4">
@@ -115,7 +125,76 @@
     	    </div>    		
     	</div>
     </div>
-    <div class="contact_section_2">
+
+
+
+    <div class="choose_section_2" th:if="${isLoggedIn}">
+      <div class="container">
+          <div class="row">
+            <div class="col-sm-4">
+              <div class="power payment-div">
+                <div class="icon"><a href="#"><img src="images/icon-trends.png"></a></div>
+                <h2 class="totaly_text">Free<br/>$0/mo</h2>
+                <ul class="feature-list">
+                  <li>View 5 stocks every month</li>
+                  <li>Financials for 40k+ companies</li>
+                  <li>~30 years of data</li>
+                  <li>Stock DCF calculator</li>
+                </ul>
+                <div class="buy-button-div">
+                <button th:unless="${loginAccountType == 'FREE'}"
+                  th:text="${loginAccountTypeIndex <= 0 ? 'Upgrade' : 'Downgrade'}"
+                  type="button" class="btn"
+                  th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
+                  onclick="something()"></button>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="power payment-div">
+                <div class="icon"><a href="#"><img src="images/icon-trends.png"></a></div>
+                <h2 class="totaly_text">Standard<br/>$5/mo</h2>
+                <ul class="feature-list">
+                  <li>View 200 stocks every month</li>
+                  <li>No ads</li>
+                  <li>Financials for 40k+ companies</li>
+                  <li>~30 years of data</li>
+                  <li>Stock DCF calculator</li>
+                </ul>
+                <div class="buy-button-div">
+                <button th:unless="${loginAccountType == 'STANDARD'}" th:text="${loginAccountTypeIndex <= 1 ? 'Upgrade' : 'Downgrade'}"
+                type="button" class="btn"
+                th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
+                onclick="something()"></button>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="power payment-div">
+                <div class="icon"><a href="#"><img src="images/icon-trends.png"></a></div>
+                <h2 class="totaly_text">Advanced<br/>$10/mo</h2>
+                <ul class="feature-list">
+                  <li>View unlimited stocks every month</li>
+                  <li>No ads</li>
+                  <li>Financials for 40k+ companies</li>
+                  <li>~30 years of data</li>
+                  <li>Stock DCF calculator</li>
+                </ul>
+                <div class="buy-button-div">
+                <button th:unless="${loginAccountType == 'ADVANCED'}"
+                      th:text="${loginAccountTypeIndex <= 2 ? 'Upgrade' : 'Downgrade'}"
+                      type="button" class="btn"
+                      th:classappend="${loginAccountTypeIndex <= 2 ? 'btn-primary' : 'btn-outline-danger'}" onclick="something()"></button>
+                </div>
+              </div>
+            </div>
+      </div>
+    </div>
+    </div>
+
+
+
+    <div class="contact_section_2" th:unless="${isLoggedIn}">
     	<div class="container">
     		<div class="row">
     			<div class="col-md-6">
@@ -374,19 +453,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form id="login_form">
-          <div class="mb-3">
-            <label for="recipient-name" class="col-form-label">Email</label>
-            <input type="email" class="form-control" id="login_email" required>
-          </div>
-          <div class="mb-3">
-            <label for="message-text" class="col-form-label">Password</label>
-            <input type="password" class="form-control" id="login_password" required></input>
-          </div>
-          <div class="mb-3">
-               <input type="submit" id="login_button" class="btn btn-primary" value="Sign in"></input>
-          </div>
-        </form>
+        <div th:replace="fragments/login-fragment"></div>
       </div>
     </div>
   </div>
@@ -398,41 +465,17 @@ function login() {
   $("#login-modal").modal("show");
 }
 
-$("#login_form").submit(async (e) => {
-                      e.preventDefault();
-                      form = $("#login_form").get(0);
-                      $("#login_form").get(0).classList.remove('was-validated');
-                      inputs = $("#login_form input");
-                      for (i = 0; i < inputs.length; ++i) {
-                        inputs.get(i).setCustomValidity("");
-                      }
-                      
-                      if (form.checkValidity()) {
-                          email = $("#login_email").val();
-                          password = $("#login_password").val();
-
-                            res = await fetch('/user/login', {
-                                  method: 'POST',
-                                  headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json'
-                                  },
-                                  body: JSON.stringify({email: email, password: password})
-                                });
-                                
-                                statusCode = res.status;
-                                
-                                console.log("Status=" + statusCode);
-                                
-                                if (statusCode == 200) {
-                                   location.reload();
-                                } else {
-                                   console.log("Content=" + content);
-                                   content = await res.json();
-                                   console.log("ERROR " + content);
-                                }
-                       }
-                   });
+function logout(e) {
+  fetch('/user/logout', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }).then(res => {
+        location.reload();
+      });
+}
 
 </script>
 

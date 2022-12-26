@@ -1,5 +1,6 @@
 package com.helospark.financialdata.management.config;
 
+import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -7,8 +8,11 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
+import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.PersistentSignin;
 import com.helospark.financialdata.management.user.repository.User;
+import com.helospark.financialdata.management.user.repository.UserRepository;
+import com.helospark.financialdata.management.user.repository.ViewedStocks;
 
 import jakarta.annotation.PostConstruct;
 
@@ -18,14 +22,27 @@ public class DynamoDbInitializer {
     AmazonDynamoDB amazonDynamoDB;
     @Autowired
     DynamoDBMapper mapper;
+    @Autowired
+    UserRepository userRepository;
 
     @PostConstruct
     public void createTables() {
-        createTable("User", User.class);
+        boolean wasUserTableCreated = createTable("User", User.class);
         createTable("PersistentSignin", PersistentSignin.class);
+        createTable("ViewedStocks", ViewedStocks.class);
+
+        if (wasUserTableCreated) {
+            User user = new User();
+            user.setAccountType(AccountType.ADMIN);
+            user.setActivated(true);
+            user.setEmail("admin@longtermstockfundamentals.com");
+            user.setPassword("$2a$10$a83Kk3OS5I.HUR7i8G8NkOlTOIQ6XMGk/YUUGtVr2rRm7M6345ufu");
+            user.setRegistered(LocalDate.now().toString());
+            userRepository.save(user);
+        }
     }
 
-    public void createTable(String tableName, Class<?> class1) {
+    public boolean createTable(String tableName, Class<?> class1) {
         if (!doesTableExist(tableName)) {
             CreateTableRequest tableRequest = mapper.generateCreateTableRequest(class1);
             tableRequest.setBillingMode("PAY_PER_REQUEST");
@@ -39,6 +56,9 @@ public class DynamoDbInitializer {
                     exceptionlessSleep(1);
                 }
             }
+            return true;
+        } else {
+            return false;
         }
     }
 

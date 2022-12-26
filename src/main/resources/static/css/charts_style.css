@@ -47,6 +47,8 @@ body {
   background-color: #333;
   width: 100%;
   height: 50px;
+  z-index: 10000;
+  position: relative;
 }
 
 /* Style the links inside the navigation bar */
@@ -101,4 +103,14 @@ body {
 
 .autoComplete_wrapper > ul > li mark {
   padding: 0px;
+}
+
+
+.blurred {
+    -webkit-filter: blur(5px);
+    -moz-filter: blur(5px);
+    -o-filter: blur(5px);
+    -ms-filter: blur(5px);
+    filter: blur(5px);
+    filter:progid:DXImageTransform.Microsoft.Blur(PixelRadius='4');
 }

@@ -161,7 +161,7 @@ function createChart(urlPath, title, chartOptions) {
     
     optionSlider.oninput = function() {
     
-      let paramedUrl = 'http://localhost:8080/' + stock + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
+      let paramedUrl = 'http://localhost:8080/' + stockToLoad + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
   
       fetch(paramedUrl)
           .then(res => res.json())
@@ -221,7 +221,7 @@ function createChart(urlPath, title, chartOptions) {
   chartDiv.appendChild(canvas);
   
   
-  let url = 'http://localhost:8080/' + stock + urlPath;
+  let url = 'http://localhost:8080/' + stockToLoad + urlPath;
   
   fetch(url)
           .then(res => res.json())
@@ -275,7 +275,7 @@ function createChart(urlPath, title, chartOptions) {
     
     
     function addAdditionalChart(element) {
-          localUri  = 'http://localhost:8080/' + stock + element.url;
+          localUri  = 'http://localhost:8080/' + stockToLoad + element.url;
           fetch(localUri)
             .then(res => res.json())
             .then(out => {

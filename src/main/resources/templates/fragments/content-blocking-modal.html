@@ -1,0 +1,47 @@
+<div class="modal" id="not-registered-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Sign in to view this stock</h5>
+      </div>
+      <div class="modal-body">
+        <p>If you don't have an account yet, <b><a href="/#sign_up">sign up</a></b> for free.</p>
+        <h5>Log in</h5>
+        <div th:replace="fragments/login-fragment"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="account-limit-reached" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Account limit reached</h5>
+      </div>
+      <div class="modal-body">
+        <p>You have reached the maximum number of stocks you can view in your plan.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+
+
+
+
+allowed = $("#allowed").text();
+accountType = $("#accountType").text();
+
+if ($("#allowed").text() == "false") {
+  $("#content").addClass("blurred");
+  if (accountType == "NOT_LOGGED_IN") {
+    $("#not-registered-modal").modal({backdrop: 'static', keyboard: false});
+  } else {
+    $("#account-limit-reached").modal({backdrop: 'static', keyboard: false});
+  }
+}
+
+</script>

@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.config.JwtService;
+import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.PersistentSignin;
 import com.helospark.financialdata.management.user.repository.PersistentSigninRepository;
 import com.helospark.financialdata.management.user.repository.User;
@@ -31,8 +33,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 public class LoginController {
-    private static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
-    private static final String JWT_COOKIE_NAME = "Authorization";
+    public static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
+    public static final String JWT_COOKIE_NAME = "Authorization";
     private static final int REMEMBER_ME_EXPIRY = 10 * 365 * 24 * 60 * 60;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
     private static final int JWT_EXPIRE_TIME_IN_SECONDS = 4 * 60 * 60;
@@ -109,6 +111,14 @@ public class LoginController {
         createAuthorizationCookie(httpResponse, JWT_EXPIRE_TIME_IN_SECONDS, createJWT(user));
     }
 
+    public Optional<DecodedJWT> getJwt(HttpServletRequest request) {
+        Optional<Cookie> jwtCookie = findCookie(request, JWT_COOKIE_NAME);
+        if (!jwtCookie.isPresent()) {
+            return Optional.empty();
+        }
+        return jwtService.getDecodedJwt(jwtCookie.get().getValue());
+    }
+
     @ExceptionHandler(value = UserLoginException.class)
     @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
     public LoginErrorResponse onLoginError(UserLoginException exception, HttpServletRequest httpRequest) {
@@ -149,6 +159,9 @@ public class LoginController {
     }
 
     public Optional<Cookie> findCookie(HttpServletRequest request, String value) {
+        if (request.getCookies() == null || request.getCookies().length == 0) {
+            return Optional.empty();
+        }
         return Arrays.stream(request.getCookies())
                 .filter(a -> value.equals(a.getName()))
                 .findFirst();
@@ -158,11 +171,15 @@ public class LoginController {
         Date expiration = new Date();
         expiration.setTime(expiration.getTime() + (JWT_EXPIRE_TIME_IN_SECONDS * 1000L));
         return JWT.create()
-                .withIssuer("longTermStockFundamentals")
+                .withIssuer(JwtService.ISSUER)
                 .withExpiresAt(expiration)
                 .withSubject(user.getEmail())
-                .withClaim("type", user.getAccountType().toString())
+                .withClaim(JwtService.ACCOUNT_TYPE_CLAIM, user.getAccountType().toString())
                 .sign(jwtService.getAlgorithm());
+    }
+
+    public AccountType getAccountType(DecodedJWT jwt) {
+        return AccountType.fromString(jwt.getClaim(JwtService.ACCOUNT_TYPE_CLAIM).asString());
     }
 
 }

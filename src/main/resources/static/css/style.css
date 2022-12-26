@@ -75,6 +75,29 @@ a {
     color: blue;
 }
 
+.buy-button-div {
+  text-align:center;
+  text-align: center;
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+  left: 0;
+}
+
+.feature-list li {
+  list-style-type: "✔";
+}
+
+.payment-div {
+  height: 110%;
+  position: relative;
+  overflow: auto;
+}
+
+.choose_section_2 {
+  margin-bottom: 20px;
+}
+
 .copy_text {
   font-size: 8pt;
   margin-top: 0px;

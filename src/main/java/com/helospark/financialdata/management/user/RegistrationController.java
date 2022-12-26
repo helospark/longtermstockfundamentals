@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.ValidationException;
 
 @RestController
-public class UserController {
+public class RegistrationController {
     @Autowired
-    RegisterService userService;
+    RegisterService registerService;
 
     @PostMapping("/user/register")
     public RegisterResponse registerUser(@RequestBody RegisterRequest request) {
@@ -21,7 +21,7 @@ public class UserController {
             throw new RegistrationException("Passwords must match", "register_password_verify");
         }
 
-        userService.registerUser(request);
+        registerService.registerUser(request);
 
         return new RegisterResponse(request.email);
     }

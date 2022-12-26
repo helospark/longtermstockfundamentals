@@ -45,24 +45,27 @@ const autoCompleteJS = new autoComplete({
 
 
 var stock = document.getElementById("stock").innerText;
+var stockToLoad = document.getElementById("stockToLoad").innerText;
 
 function populateProfile() {
-  let url = 'http://localhost:8080/' + stock + "/financials/profile";
+  let url = 'http://localhost:8080/' + stockToLoad + "/financials/profile";
   
   fetch(url)
           .then(res => res.json())
           .then(out => {
-            document.getElementById("stock-name").innerText = " - " + out.companyName + " (" + out.industry + ", " + out.sector + ")";
-            document.getElementById("stock-description").innerHTML = out.description.replaceAll(/\. ([A-Z])/gm, "\.<br\/>$1");
-            $("#show-description-link").click(function() {
-              $("#stock-description").toggleClass("hidden-element");
-            });
+            if (out.status == 200) {
+              document.getElementById("stock-name").innerText = out.companyName + " (" + out.industry + ", " + out.sector + ") fundamentals";
+              document.getElementById("stock-description").innerHTML = out.description.replaceAll(/\. ([A-Z])/gm, "\.<br\/>$1");
+              $("#show-description-link").click(function() {
+                $("#stock-description").toggleClass("hidden-element");
+              });
+            }
           })
           .catch(err => { throw err });
 }
 
 function addFlags() {
-  let url = 'http://localhost:8080/' + stock + "/financials/flags";
+  let url = 'http://localhost:8080/' + stockToLoad + "/financials/flags";
   var flagsDiv = document.getElementById("flags");
   fetch(url)
           .then(res => res.json())

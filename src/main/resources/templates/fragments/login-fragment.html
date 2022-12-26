@@ -1,0 +1,66 @@
+<form id="login_form">
+  <div id="login_global_error" class="invalid-feedback" style="display:none">
+  </div>
+  <div class="mb-3">
+    <label for="recipient-name" class="col-form-label">Email</label>
+    <input type="email" class="form-control" id="login_email" required>
+  </div>
+  <div class="mb-3">
+    <label for="message-text" class="col-form-label">Password</label>
+    <input type="password" class="form-control" id="login_password" required></input>
+  </div>
+  <div class="mb-3">
+       <input type="submit" id="login_button" class="btn btn-primary" value="Sign in"></input>
+  </div>
+</form>
+<script>
+$("#login_form").submit(async (e) => {
+                      e.preventDefault();
+                      form = $("#login_form").get(0);
+                      $("#login_global_error").css({"display": "none"});
+                      inputs = $("#login_form input");
+
+
+                      $("#login_form").get(0).classList.remove('was-validated');
+                      inputs = $("#login_form input");
+                      for (i = 0; i < inputs.length; ++i) {
+                        inputs.get(i).setCustomValidity("");
+                      }
+                      $("#login_global_error").css({"display": "none"});
+                      
+
+                      
+                      if (form.checkValidity()) {
+                          email = $("#login_email").val();
+                          password = $("#login_password").val();
+
+                            res = await fetch('/user/login', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                  },
+                                  body: JSON.stringify({email: email, password: password})
+                                });
+                                
+                                statusCode = res.status;
+                                
+                                console.log("Status=" + statusCode);
+                                
+                                if (statusCode == 200) {
+                                   location.reload();
+                                } else {
+                                   jsonContent = await res.json();
+                                   console.log("Content=" + jsonContent);
+                                   $("#login_global_error").text(jsonContent.errorMessage);
+                                   $("#login_global_error").css({"display": "block"});
+                                }
+                       }
+                   });
+
+$("#login_button").click(e => {
+   $("#login_form").get(0).classList.add('was-validated');
+});
+
+
+</script>
