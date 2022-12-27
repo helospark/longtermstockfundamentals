@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,11 @@ import com.helospark.financialdata.management.user.repository.UserRepository;
 public class RegisterService {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ConfirmationEmailService confirmationEmailService;
+    @Value("${email.verification.enabled}")
+    private boolean emailVerificationEnabled;
+
     BCryptPasswordEncoder bCryptPasswordEncoder;
 
     public RegisterService() {
@@ -39,5 +45,9 @@ public class RegisterService {
         user.setRegistered(new LocalDate().toString());
 
         userRepository.save(user);
+
+        if (emailVerificationEnabled) {
+            confirmationEmailService.sendConfirmationEmail(request.email);
+        }
     }
 }

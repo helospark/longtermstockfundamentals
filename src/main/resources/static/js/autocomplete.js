@@ -1,4 +1,4 @@
-if (autoCompleteJS === undefined) {
+if (typeof autoCompleteJS === 'undefined') {
 const autoCompleteJS = new autoComplete({
     placeHolder: "Search for stocks...",
     data: {
@@ -31,7 +31,6 @@ const autoCompleteJS = new autoComplete({
                 uriPart = $("#topnav").attr("data-uri");
                 const selection = event.detail.selection.value;
                 window.location.href = "/" + uriPart + "/" + selection.key
-                console.log(selection);
             }
         }
     }

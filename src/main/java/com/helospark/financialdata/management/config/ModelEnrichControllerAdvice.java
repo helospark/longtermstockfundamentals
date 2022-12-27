@@ -14,7 +14,7 @@ import com.helospark.financialdata.management.user.LoginController;
 import jakarta.servlet.http.HttpServletRequest;
 
 @ControllerAdvice
-public class LoginStatusControllerAdvice {
+public class ModelEnrichControllerAdvice {
     @Autowired
     private LoginController loginController;
 
@@ -31,7 +31,6 @@ public class LoginStatusControllerAdvice {
             model.addAttribute("loginAccountType", loginController.getAccountType(jwt).toString());
             model.addAttribute("loginAccountTypeIndex", loginController.getAccountType(jwt).ordinal());
         }
-        request.getCookies();
     }
 
 }

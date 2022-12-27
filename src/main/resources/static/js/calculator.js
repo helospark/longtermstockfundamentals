@@ -188,6 +188,7 @@
   chart=createChart("/financials/eps", "EPS", {
        additionalLabelsAtEnd: dates,
        animation: true,
+       lazyLoad: false,
        label: "past",
        runAfter: updateCalculation
   });
@@ -207,6 +208,7 @@
     revChart=createChart("/financials/revenue", "revenue", {
          additionalLabelsAtEnd: dates,
          animation: true,
+         lazyLoad: false,
          label: "past",
          runAfter: updateCalculation
     });
@@ -229,7 +231,8 @@
          additionalLabelsAtEnd: dates,
          label: "past",
          runAfter: updateCalculation,
-         animation: true
+         animation: true,
+         lazyLoad: false
     });
     
      marginChart.options.scales.x = {
@@ -247,6 +250,7 @@
       type: 'bar',
       unit: '%',
       animation: true,
+      lazyLoad: false,
       slider: {
         id: "revenue_growth_rate_xyr_moving_avg_slider",
         parameterName: "year",

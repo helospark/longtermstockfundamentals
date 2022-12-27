@@ -40,7 +40,7 @@ public class ViewController {
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         if (!symbolIndexProvider.getCompanyName(stock).isPresent()) {
-            redirectAttributes.addAttribute("error", "not_found");
+            redirectAttributes.addAttribute("generalInfo", "stock_not_found");
             return "redirect:/";
         } else {
             fillModelWithCommonStockData(stock, model, request);
@@ -62,7 +62,7 @@ public class ViewController {
     @GetMapping("/calculator/{stock}")
     public String calculator(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         if (!symbolIndexProvider.getCompanyName(stock).isPresent()) {
-            redirectAttributes.addAttribute("error", "not_found");
+            redirectAttributes.addAttribute("generalInfo", "stock_not_found");
             return "redirect:/";
         } else {
             fillModelWithCommonStockData(stock, model, request);

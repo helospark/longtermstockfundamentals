@@ -637,7 +637,7 @@ button.main_bt a:hover {
 }
 
 .send_btn{
-	width: 30%;
+	width: 100%;
 	margin: 0 auto;
 	text-align: center;
 }

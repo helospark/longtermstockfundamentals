@@ -1,0 +1,25 @@
+<div th:if="${generalMessageTitle}">
+  <div class="modal" id="general-message-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" th:utext="${generalMessageTitle}"></h2>
+        </div>
+        <div class="modal-body">
+          <p th:utext="${generalMessageBody}"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <span id="general-message-modal-redirect" style="display:none" th:text="${generalMessageRedirect}"></span>
+  <script>
+    $("#general-message-modal").modal("show");
+    $("#general-message-modal").on("hide.bs.modal", function () {
+      redirect=$("#general-message-modal-redirect").text();
+      if (redirect.startsWith("/")) {
+        window.location.href=redirect;
+      }
+    });
+  </script>
+</div>

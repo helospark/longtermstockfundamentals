@@ -8,7 +8,10 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
+import com.amazonaws.services.dynamodbv2.model.TimeToLiveSpecification;
+import com.amazonaws.services.dynamodbv2.model.UpdateTimeToLiveRequest;
 import com.helospark.financialdata.management.user.repository.AccountType;
+import com.helospark.financialdata.management.user.repository.ConfirmationEmail;
 import com.helospark.financialdata.management.user.repository.PersistentSignin;
 import com.helospark.financialdata.management.user.repository.User;
 import com.helospark.financialdata.management.user.repository.UserRepository;
@@ -30,6 +33,7 @@ public class DynamoDbInitializer {
         boolean wasUserTableCreated = createTable("User", User.class);
         createTable("PersistentSignin", PersistentSignin.class);
         createTable("ViewedStocks", ViewedStocks.class);
+        boolean wasConfirmationEmailTableCreated = createTable("ConfirmationEmail", ConfirmationEmail.class);
 
         if (wasUserTableCreated) {
             User user = new User();
@@ -39,6 +43,12 @@ public class DynamoDbInitializer {
             user.setPassword("$2a$10$a83Kk3OS5I.HUR7i8G8NkOlTOIQ6XMGk/YUUGtVr2rRm7M6345ufu");
             user.setRegistered(LocalDate.now().toString());
             userRepository.save(user);
+        }
+        if (wasConfirmationEmailTableCreated) {
+            UpdateTimeToLiveRequest ttlRequest = new UpdateTimeToLiveRequest();
+            ttlRequest.setTableName("ConfirmationEmail");
+            ttlRequest.setTimeToLiveSpecification(new TimeToLiveSpecification().withEnabled(true).withAttributeName("expiration"));
+            amazonDynamoDB.updateTimeToLive(ttlRequest);
         }
     }
 

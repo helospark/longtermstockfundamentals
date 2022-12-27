@@ -45,6 +45,7 @@ function createChart(urlPath, title, chartOptions) {
   var label = chartOptions.label === undefined ? "data" : chartOptions.label;
   var legendDisplay = chartOptions.additionalCharts === undefined ? false : true;
   var animation = chartOptions.animation === undefined ? false : chartOptions.animation;
+  var isLazyLoading = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
   
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
@@ -153,6 +154,10 @@ function createChart(urlPath, title, chartOptions) {
 
   if (chartOptions.slider !== undefined) {
     var sliderDiv = document.createElement("div")
+    sliderDiv.className="slider-div";
+    
+    var valueSpan = document.createElement("span");
+    
     var optionSlider = document.createElement("input");
     optionSlider.id=chartOptions.slider.id;
     optionSlider.min = chartOptions.slider.min;
@@ -160,7 +165,11 @@ function createChart(urlPath, title, chartOptions) {
     optionSlider.value = chartOptions.slider.default;
     optionSlider.type="range";
     
+    valueSpan.innerText = (chartOptions.slider.default + " " + chartOptions.slider.parameterName);
+    
     optionSlider.oninput = function() {
+      
+      valueSpan.innerText = (this.value + " " + chartOptions.slider.parameterName);
     
       let paramedUrl = 'http://localhost:8080/' + stockToLoad + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
   
@@ -184,12 +193,8 @@ function createChart(urlPath, title, chartOptions) {
           .catch(err => { throw err });
     }
     
-    var sliderLabel = document.createElement("label");
-    sliderLabel.htmlFor=chartOptions.slider.id;
-    sliderLabel.innerText=chartOptions.slider.parameterName;
-    
-    sliderDiv.appendChild(sliderLabel);
     sliderDiv.appendChild(optionSlider);
+    sliderDiv.appendChild(valueSpan);
     
     underChartBar.appendChild(sliderDiv);
   }
@@ -220,10 +225,31 @@ function createChart(urlPath, title, chartOptions) {
     });
     chartDiv.appendChild(sliderDiv);
   chartDiv.appendChild(canvas);
+
+  var inView = false;
   
+  function isScrolledIntoView(elem)
+  {
+      lazyLoadOffset = 1000;
+
+      var docViewTop = $(window).scrollTop() - lazyLoadOffset;
+      var docViewBottom = $(window).scrollTop() + $(window).height() + lazyLoadOffset;
   
-  let url = 'http://localhost:8080/' + stockToLoad + urlPath;
+      var elemTop = $(canvas).offset().top;
+      var elemBottom = elemTop + $(canvas).height();
   
+      return ((elemTop <= docViewBottom) && (elemBottom >= docViewTop));
+  }
+
+  function updateFunction() {
+    if (isScrolledIntoView(canvas) || !isLazyLoading) {
+        if (inView) { return; }
+        inView = true;
+        let url = 'http://localhost:8080/' + stockToLoad + urlPath;
+        
+        //console.log("Staring to load " + url);
+
+
   fetch(url)
           .then(res => res.json())
           .then(out => {
@@ -326,7 +352,12 @@ function createChart(urlPath, title, chartOptions) {
             })
             .catch(err => { throw err });
     }
-    
+  }};
+
+
+  $(window).scroll(updateFunction);
+  updateFunction();
+
   return chart;
     
 
