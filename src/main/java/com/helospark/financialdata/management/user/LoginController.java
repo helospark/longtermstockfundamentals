@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.config.JwtService;
+import com.helospark.financialdata.management.config.JwtValidatorFilter;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.PersistentSignin;
 import com.helospark.financialdata.management.user.repository.PersistentSigninRepository;
@@ -33,11 +34,12 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 public class LoginController {
+    private static final int TWO_MINUTES_IN_MS = 2 * 60 * 1000;
     public static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
     public static final String JWT_COOKIE_NAME = "Authorization";
     private static final int REMEMBER_ME_EXPIRY = 10 * 365 * 24 * 60 * 60;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
-    private static final int JWT_EXPIRE_TIME_IN_SECONDS = 4 * 60 * 60;
+    private static final int JWT_EXPIRE_TIME_IN_SECONDS = 2 * 60; // 4 * 60 * 60;
     private SecureRandom secureRandom = new SecureRandom();
     @Autowired
     private UserRepository userRepository;
@@ -49,6 +51,8 @@ public class LoginController {
     JwtService jwtService;
     @Value("${website.domain}")
     private String domain;
+    @Value("${application.httpsOnly}")
+    private boolean isHttpsOnly;
 
     @PostMapping("/user/login")
     public void login(@RequestBody LoginRequest request, HttpServletResponse httpResponse) {
@@ -73,34 +77,54 @@ public class LoginController {
 
         persistentSigninRepository.save(persistentSignin);
 
-        createRememberMeCookie(httpResponse, REMEMBER_ME_EXPIRY, persistentToken);
-        createAuthorizationCookie(httpResponse, JWT_EXPIRE_TIME_IN_SECONDS, createJWT(user));
+        addRememberMeCookie(httpResponse, REMEMBER_ME_EXPIRY, persistentToken);
+        addAuthorizationCookie(httpResponse, JWT_EXPIRE_TIME_IN_SECONDS, createJWT(user));
     }
 
     @PostMapping("/user/logout")
     public void logout(HttpServletResponse httpResponse) {
-        createRememberMeCookie(httpResponse, 0, "");
-        createAuthorizationCookie(httpResponse, 0, "");
+        addRememberMeCookie(httpResponse, 0, "");
+        addAuthorizationCookie(httpResponse, 0, "");
     }
 
     @PostMapping("/user/jwt/refresh")
     public void refreshJwt(HttpServletRequest request, HttpServletResponse httpResponse) {
-        Optional<Cookie> rememberMeCookieOptional = findCookie(request, REMEMBER_ME_COOKIE_NAME);
-        if (!rememberMeCookieOptional.isPresent()) {
-            throw new JwtRefreshException("Remember-me cookie not found");
-        }
-        String value = rememberMeCookieOptional.get().getValue();
-        if (value == null || value.isBlank()) {
-            throw new JwtRefreshException("Empty remember-me cookie");
-        }
+        Optional<DecodedJWT> currentJwt = getJwt(request);
+        boolean renewRequired = true;
 
-        Optional<PersistentSignin> previousPersistentSignin = persistentSigninRepository.getPersistentSignin(value);
-
-        if (!previousPersistentSignin.isPresent()) {
-            throw new JwtRefreshException("Not currently logged in");
+        if (currentJwt.isPresent()) {
+            long msTillExpiry = currentJwt.get().getExpiresAt().getTime() - new Date().getTime();
+            if (msTillExpiry > TWO_MINUTES_IN_MS) {
+                httpResponse.addHeader("jwt-expiry", "" + msTillExpiry);
+                renewRequired = false;
+                LOGGER.info("Renew requested, but no renew needed, since there is still {}ms till expiry", msTillExpiry);
+            }
         }
 
-        String email = previousPersistentSignin.get().getEmail();
+        if (renewRequired) {
+            Optional<Cookie> rememberMeCookieOptional = findCookie(request, REMEMBER_ME_COOKIE_NAME);
+            if (!rememberMeCookieOptional.isPresent()) {
+                throw new JwtRefreshException("Remember-me cookie not found");
+            }
+            String value = rememberMeCookieOptional.get().getValue();
+            if (value == null || value.isBlank()) {
+                throw new JwtRefreshException("Empty remember-me cookie");
+            }
+
+            Optional<PersistentSignin> previousPersistentSignin = persistentSigninRepository.getPersistentSignin(value);
+
+            if (!previousPersistentSignin.isPresent()) {
+                throw new JwtRefreshException("Not currently logged in");
+            }
+
+            String email = previousPersistentSignin.get().getEmail();
+            createAuthorizationFromEmail(httpResponse, email);
+
+            httpResponse.addHeader("jwt-expiry", "" + ((JWT_EXPIRE_TIME_IN_SECONDS * 1000L)));
+        }
+    }
+
+    public Cookie createAuthorizationFromEmail(HttpServletResponse httpResponse, String email) {
         Optional<User> optionalUser = userRepository.findByEmail(email);
 
         if (!optionalUser.isPresent()) {
@@ -108,15 +132,11 @@ public class LoginController {
         }
 
         User user = optionalUser.get();
-        createAuthorizationCookie(httpResponse, JWT_EXPIRE_TIME_IN_SECONDS, createJWT(user));
+        return addAuthorizationCookie(httpResponse, JWT_EXPIRE_TIME_IN_SECONDS, createJWT(user));
     }
 
     public Optional<DecodedJWT> getJwt(HttpServletRequest request) {
-        Optional<Cookie> jwtCookie = findCookie(request, JWT_COOKIE_NAME);
-        if (!jwtCookie.isPresent()) {
-            return Optional.empty();
-        }
-        return jwtService.getDecodedJwt(jwtCookie.get().getValue());
+        return Optional.ofNullable((DecodedJWT) request.getAttribute(JwtValidatorFilter.JWT_ATTRIBUTE));
     }
 
     @ExceptionHandler(value = UserLoginException.class)
@@ -140,22 +160,32 @@ public class LoginController {
         return new LoginErrorResponse("Unexpected error during login");
     }
 
-    public void createRememberMeCookie(HttpServletResponse httpResponse, int expiry, String value) {
+    public void addRememberMeCookie(HttpServletResponse httpResponse, int expiry, String value) {
         Cookie cookie = new Cookie(REMEMBER_ME_COOKIE_NAME, value);
         cookie.setMaxAge(expiry);
         cookie.setHttpOnly(true);
         cookie.setDomain(domain);
         cookie.setPath("/");
+        if (isHttpsOnly) {
+            cookie.setSecure(true);
+        }
+        cookie.setAttribute("SameSite", "Lax");
         httpResponse.addCookie(cookie);
     }
 
-    public void createAuthorizationCookie(HttpServletResponse httpResponse, int expiry, String value) {
+    public Cookie addAuthorizationCookie(HttpServletResponse httpResponse, int expiry, String value) {
         Cookie cookie = new Cookie(JWT_COOKIE_NAME, value);
         cookie.setMaxAge(expiry);
         cookie.setHttpOnly(true);
         cookie.setDomain(domain);
         cookie.setPath("/");
+        if (isHttpsOnly) {
+            cookie.setSecure(true);
+        }
+        cookie.setAttribute("SameSite", "Lax");
         httpResponse.addCookie(cookie);
+
+        return cookie;
     }
 
     public Optional<Cookie> findCookie(HttpServletRequest request, String value) {

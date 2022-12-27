@@ -1,5 +1,6 @@
 package com.helospark.financialdata.management.config;
 
+import java.util.Date;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,7 @@ public class LoginStatusControllerAdvice {
         if (optionalJwt.isPresent()) {
             var jwt = optionalJwt.get();
 
-            model.addAttribute("loginExpiry", jwt.getExpiresAt().toInstant());
+            model.addAttribute("loginExpiry", jwt.getExpiresAt().getTime() - new Date().getTime());
             model.addAttribute("loginEmail", jwt.getSubject());
             model.addAttribute("loginAccountType", loginController.getAccountType(jwt).toString());
             model.addAttribute("loginAccountTypeIndex", loginController.getAccountType(jwt).ordinal());

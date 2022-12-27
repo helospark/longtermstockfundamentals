@@ -26,7 +26,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-@Order(2)
+@Order(3)
 public class AllowViewStockFilter implements Filter {
     private static final Pattern FINANCIALS_URI = Pattern.compile("/(.*?)/financials/.*");
 

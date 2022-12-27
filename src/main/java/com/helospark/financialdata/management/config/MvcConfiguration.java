@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class MvcConfiguration implements WebMvcConfigurer {
     @Autowired
-    private CacheInterceptor cacheInterceptor;
+    private FinancialsCacheInterceptor cacheInterceptor;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {

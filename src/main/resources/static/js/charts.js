@@ -40,10 +40,6 @@ const autoCompleteJS = new autoComplete({
 
 
 
-
-
-
-
 var stock = document.getElementById("stock").innerText;
 var stockToLoad = document.getElementById("stockToLoad").innerText;
 
@@ -217,6 +213,7 @@ createChart("/financials/eps_growth_rate", "EPS growth annual", {type: 'bar', un
 createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS annual growth x year intervals", {
   type: 'bar',
   unit: '%',
+  animation: true,
   slider: {
     id: "eps_growth_year_slider",
     parameterName: "year",
@@ -229,6 +226,7 @@ createChart("/financials/fcf_growth_rate", "FCF growth annual", {type: 'bar', un
 createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x year intervals", {
   type: 'bar',
   unit: '%',
+  animation: true,
   slider: {
     id: "fcf_growth_year_slider",
     parameterName: "year",

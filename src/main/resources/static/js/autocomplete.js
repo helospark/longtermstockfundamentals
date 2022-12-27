@@ -1,3 +1,4 @@
+if (autoCompleteJS === undefined) {
 const autoCompleteJS = new autoComplete({
     placeHolder: "Search for stocks...",
     data: {
@@ -35,3 +36,4 @@ const autoCompleteJS = new autoComplete({
         }
     }
 });
+}

@@ -9,7 +9,6 @@ var constColorPaletteLine = [
   "rgba(0,255,0,0.8)",
 ];
 
-
 function createCheckbox(label) {
   var checkbox = document.createElement("input");
   checkbox.type="checkbox";
@@ -45,6 +44,7 @@ function createChart(urlPath, title, chartOptions) {
   var unit = chartOptions.unit !== undefined ? " " + chartOptions.unit : "";
   var label = chartOptions.label === undefined ? "data" : chartOptions.label;
   var legendDisplay = chartOptions.additionalCharts === undefined ? false : true;
+  var animation = chartOptions.animation === undefined ? false : chartOptions.animation;
   
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
@@ -70,6 +70,7 @@ function createChart(urlPath, title, chartOptions) {
       }]
     }, 
     options: {
+      animation: animation,
       responsive: true,
 
        label: {

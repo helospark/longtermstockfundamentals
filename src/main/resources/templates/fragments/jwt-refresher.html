@@ -1,0 +1,35 @@
+<div th:fragment="jwt_refresher" style="display:none" th:if="${isLoggedIn}">
+  <span id="login-expiry" th:text="${loginExpiry}" style="display:none"></span>
+  <script>
+    
+    async function refreshJwt() {
+        result = await fetch('/user/jwt/refresh', {
+                    method: 'POST',
+                    headers: {
+                      'Accept': 'application/json',
+                      'Content-Type': 'application/json'
+                    }
+                  });
+         
+         if (result.status != 200) {
+           location.reload();
+         }
+         
+         expiry = Number(result.headers.get("jwt-expiry")) - 60000;
+         if (expiry <= 1000) {
+           expiry = 1000;
+         }
+         return expiry;
+    }
+    
+    expiryTime = Number($("#login-expiry").text()) - 60000;
+    if (expiryTime < 0) {
+      expiryTime = 0;
+    }
+    let timerId = setTimeout(async function jwtRefreshTick() {
+      newTimeout = await refreshJwt();
+      timerId = setTimeout(jwtRefreshTick, newTimeout);
+    }, expiryTime);
+
+  </script>
+</div>
