@@ -162,10 +162,12 @@
                   <li>Stock DCF calculator</li>
                 </ul>
                 <div class="buy-button-div">
-                <button th:unless="${loginAccountType == 'STANDARD'}" th:text="${loginAccountTypeIndex <= 1 ? 'Upgrade' : 'Downgrade'}"
-                type="button" class="btn"
-                th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
-                onclick="something()"></button>
+                  <form action="/payment/initialize" method="post">
+                    <input name="plan" type="hidden" value="price_1MJif9GJQTr9AAAY4pTv6cqf"></input>
+                    <button th:unless="${loginAccountType == 'STANDARD'}" th:text="${loginAccountTypeIndex <= 1 ? 'Upgrade' : 'Downgrade'}"
+                    type="submit" class="btn"
+                    th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"></button>
+                  </form>
                 </div>
               </div>
             </div>
@@ -181,10 +183,13 @@
                   <li>Stock DCF calculator</li>
                 </ul>
                 <div class="buy-button-div">
-                <button th:unless="${loginAccountType == 'ADVANCED'}"
-                      th:text="${loginAccountTypeIndex <= 2 ? 'Upgrade' : 'Downgrade'}"
-                      type="button" class="btn"
-                      th:classappend="${loginAccountTypeIndex <= 2 ? 'btn-primary' : 'btn-outline-danger'}" onclick="something()"></button>
+                  <form action="/payment/initialize" method="post">
+                    <input name="plan" type="hidden" value="price_1MJigZGJQTr9AAAYfOlVOg3Q"></input>
+                    <button th:unless="${loginAccountType == 'ADVANCED'}"
+                          th:text="${loginAccountTypeIndex <= 2 ? 'Upgrade' : 'Downgrade'}"
+                          type="submit" class="btn"
+                          th:classappend="${loginAccountTypeIndex <= 2 ? 'btn-primary' : 'btn-outline-danger'}"></button>
+                  </form>
                 </div>
               </div>
             </div>

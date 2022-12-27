@@ -10,6 +10,8 @@ import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TimeToLiveSpecification;
 import com.amazonaws.services.dynamodbv2.model.UpdateTimeToLiveRequest;
+import com.helospark.financialdata.management.payment.repository.StripeUserMapping;
+import com.helospark.financialdata.management.payment.repository.UserLastPayment;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.ConfirmationEmail;
 import com.helospark.financialdata.management.user.repository.PersistentSignin;
@@ -34,6 +36,8 @@ public class DynamoDbInitializer {
         createTable("PersistentSignin", PersistentSignin.class);
         createTable("ViewedStocks", ViewedStocks.class);
         boolean wasConfirmationEmailTableCreated = createTable("ConfirmationEmail", ConfirmationEmail.class);
+        createTable("StripeUserMapping", StripeUserMapping.class);
+        createTable("UserLastPayment", UserLastPayment.class);
 
         if (wasUserTableCreated) {
             User user = new User();
