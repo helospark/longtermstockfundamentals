@@ -15,6 +15,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -88,11 +89,11 @@ public class LoginController {
     }
 
     @PostMapping("/user/jwt/refresh")
-    public void refreshJwt(HttpServletRequest request, HttpServletResponse httpResponse) {
+    public void refreshJwt(@RequestParam(name = "force", required = false, defaultValue = "false") boolean force, HttpServletRequest request, HttpServletResponse httpResponse) {
         Optional<DecodedJWT> currentJwt = getJwt(request);
         boolean renewRequired = true;
 
-        if (currentJwt.isPresent()) {
+        if (currentJwt.isPresent() && !force) {
             long msTillExpiry = currentJwt.get().getExpiresAt().getTime() - new Date().getTime();
             if (msTillExpiry > TWO_MINUTES_IN_MS) {
                 httpResponse.addHeader("jwt-expiry", "" + msTillExpiry);

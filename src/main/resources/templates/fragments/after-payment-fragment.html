@@ -1,0 +1,68 @@
+<div th:if="${afterPayment}">
+  <div class="modal" id="after-payment-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">Waiting on payment confirmation</h2>
+        </div>
+        <div class="modal-body" style="text-align:center">
+          <div id="payment-wait-spinner" class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p id="payment-description"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <span id="payment-sessionId" style="display:none" th:text="${sessionId}"></span>
+  <script>
+    $("#after-payment-modal").modal("show");
+    $("#after-payment-modal").on("hide.bs.modal", function () {
+      window.location.href="/";
+    });
+    
+    sessionId=$("#payment-sessionId").text();
+    
+    var paymentCheckCount = 0;
+    var paymentCheckInterval = setInterval(async () => {
+                    console.log("interval");
+                    res = await fetch('/payment/status?sessionId=' + sessionId, {
+                      method: 'GET',
+                      headers: {
+                        'Accept': 'application/json'
+                      },
+                    });
+                    statusCode = res.status;
+                    
+                    console.log("Status=" + statusCode);
+                    
+                    ++paymentCheckCount;
+                    if (paymentCheckCount >= 60) {
+                      clearInterval(paymentCheckInterval);
+                      $("#payment-wait-spinner").css({"display": "none"});
+                      $("#payment-description").html("Unable to get payment confirmation.<br/>Please check your payment method, or contact support.");
+                    }
+                    
+                    if (statusCode == 200) {
+                       content = await res.json();
+                       if (content.status === 'paid') {
+                          clearInterval(paymentCheckInterval);
+
+                          await fetch('/user/jwt/refresh?force=true', {
+                            method: 'POST',
+                            headers: {
+                              'Accept': 'application/json',
+                              'Content-Type': 'application/json'
+                            }
+                          });
+
+                          $("#payment-wait-spinner").css({"display": "none"});
+                          $("#payment-description").html("Received payment, enjoy your research!<br/> This page will reload in 5 seconds.");
+                          
+                          setTimeout(() => window.location.href="/", 5000);
+                       }
+                    }
+    }, 1000);
+  </script>
+</div>

@@ -23,7 +23,7 @@ public class CookieAddingWrapper extends HttpServletRequestWrapper {
             }
         }
         for (int i = 0; i < toAdd.size(); ++i) {
-            newCookies[newSize + i] = toAdd.get(i);
+            newCookies[oldCookies.length + i] = toAdd.get(i);
         }
     }
 

@@ -4,20 +4,26 @@ import java.util.Arrays;
 import java.util.Optional;
 
 public enum AccountType {
-    FREE(5),
-    STANDARD(100),
-    ADVANCED(Integer.MAX_VALUE),
-    ADMIN(Integer.MAX_VALUE);
+    FREE(5, 0),
+    STANDARD(100, 5),
+    ADVANCED(Integer.MAX_VALUE, 10),
+    ADMIN(Integer.MAX_VALUE, 0);
 
     public static int UNLIMITED_COUNT = Integer.MAX_VALUE;
     int allowedStocksPerMonth;
+    int price;
 
-    AccountType(int allowedStocksPerMonth) {
+    AccountType(int allowedStocksPerMonth, int price) {
         this.allowedStocksPerMonth = allowedStocksPerMonth;
+        this.price = price;
     }
 
     public int getAllowedStocksPerMonth() {
         return allowedStocksPerMonth;
+    }
+
+    public int getPrice() {
+        return price;
     }
 
     public static AccountType fromString(String string) {

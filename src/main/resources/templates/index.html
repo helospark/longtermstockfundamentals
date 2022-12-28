@@ -142,11 +142,14 @@
                   <li>Stock DCF calculator</li>
                 </ul>
                 <div class="buy-button-div">
-                <button th:unless="${loginAccountType == 'FREE'}"
-                  th:text="${loginAccountTypeIndex <= 0 ? 'Upgrade' : 'Downgrade'}"
-                  type="button" class="btn"
-                  th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
-                  onclick="something()"></button>
+                  <form action="/payment/initialize" method="post">
+                    <input name="plan" type="hidden" value="FREE"></input>
+                    <button th:unless="${loginAccountType == 'FREE'}"
+                      th:text="${loginAccountTypeIndex <= 0 ? 'Upgrade' : 'Downgrade'}"
+                      type="submit" class="btn"
+                      th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"></button>
+                  </form>
+                <h1 th:if="${loginAccountType == 'FREE'}">✔</h1>
                 </div>
               </div>
             </div>
@@ -167,6 +170,7 @@
                     <button th:unless="${loginAccountType == 'STANDARD'}" th:text="${loginAccountTypeIndex <= 1 ? 'Upgrade' : 'Downgrade'}"
                     type="submit" class="btn"
                     th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"></button>
+                    <h1 th:if="${loginAccountType == 'STANDARD'}">✔</h1>
                   </form>
                 </div>
               </div>
@@ -189,6 +193,7 @@
                           th:text="${loginAccountTypeIndex <= 2 ? 'Upgrade' : 'Downgrade'}"
                           type="submit" class="btn"
                           th:classappend="${loginAccountTypeIndex <= 2 ? 'btn-primary' : 'btn-outline-danger'}"></button>
+                    <h1 th:if="${loginAccountType == 'ADVANCED'}">✔</h1>
                   </form>
                 </div>
               </div>
@@ -484,6 +489,7 @@ function logout(e) {
 
 </script>
 <div th:replace="fragments/general-message-modal"></div>
+<div th:replace="fragments/after-payment-fragment"></div>
 <div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
 
 </body>
