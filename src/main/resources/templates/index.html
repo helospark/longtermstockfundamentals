@@ -130,8 +130,9 @@
 
 
 
+    <div class="contact_section_2">
     <div th:replace="fragments/plans-fragment"></div>
-
+    </div>
 
 
     <div class="contact_section_2" th:unless="${isLoggedIn}">
@@ -168,25 +169,6 @@
                           </form>
                     </div>
                     <script>
-                    function showStaticText(uri, name) {
-                      fetch(uri)
-                          .then(result => result.text())
-                          .then(result => {
-                            $("#generic-large-modal .modal-content")
-                            $("#generic-large-modal .modal-content").html(`
-                                <div class="modal-header">
-                                    <h5 class="modal-title">` + name + `</h5>
-                                </div>
-                                <div class="modal-body" id="modal-body">
-                                    ` + result + `
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                                </div>`);
-                             });
-                             $("#generic-large-modal").modal("show");
-                    }
-
                     function checkPasswordVerify() {
                           password = $("#register_password").val();
                           passwordVerify = $("#register_password_verify").val();
@@ -464,6 +446,26 @@ function logout(e) {
       }).then(res => {
         location.reload();
       });
+}
+
+function showStaticText(uri, name) {
+  fetch(uri)
+      .then(result => result.text())
+      .then(result => {
+        $("#generic-large-modal .modal-content")
+        $("#generic-large-modal .modal-content").html(`
+            <div class="modal-header">
+                <h5 class="modal-title">` + name + `</h5>
+            </div>
+            <div class="modal-body" id="modal-body">
+                ` + result + `
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>`);
+            $("#generic-large-modal").modal("show");
+         });
+         
 }
 
 </script>

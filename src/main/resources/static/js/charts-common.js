@@ -32,6 +32,10 @@ function createChart(urlPath, title, chartOptions) {
   titleDiv.innerText = title;
   titleDiv.className="chart-title";
   
+  if (chartOptions.tooltip !== undefined) {
+    toolTip = $("<a class=\"chart-tooltip-link\" data-bs-html=\"true\" title=\"" + chartOptions.tooltip + "\" data-toggle=\"tooltip\"><i class=\"far fa-question-circle\"></i></a>").get(0);
+    titleDiv.appendChild(toolTip);
+  }
   
   dropDown = $("#chart-dropdown");
   if (dropDown.length > 0) {
@@ -41,6 +45,7 @@ function createChart(urlPath, title, chartOptions) {
     titleDiv = titleLink.get(0);
     dropDown.append("<li><a class=\"dropdown-item\" href=\"#" + titleName + "\">" + title + "</a></li>");
   }
+  
   
   var element = document.getElementById("charts");
   element.appendChild(titleDiv);

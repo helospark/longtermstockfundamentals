@@ -243,6 +243,7 @@ createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS annual growth x y
   type: 'bar',
   unit: '%',
   animation: true,
+  tooltip: 'Shows the annual EPS growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized EPS growth between 2013 and 2020.',
   slider: {
     id: "eps_growth_year_slider",
     parameterName: "year",
@@ -256,6 +257,7 @@ createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x y
   type: 'bar',
   unit: '%',
   animation: true,
+  tooltip: 'Shows the annual FCF/share growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized FCF/share growth between 2013 and 2020.',
   slider: {
     id: "fcf_growth_year_slider",
     parameterName: "year",
@@ -288,3 +290,7 @@ createChart("/financials/price", "Price", {label: "price", additionalCharts: [
 createChart("/financials/price_growth_rate", "Price growth", {type: 'bar'});
 
 addFlags();
+
+$(document).ready(function(){
+  $('[data-toggle="tooltip"]').tooltip();
+});

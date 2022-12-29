@@ -112,3 +112,16 @@ body {
   width: 1.5em;
   height: 1.5em;
 }
+
+.chart-tooltip-link {
+  font-size: 14pt;
+  margin-left:4px;
+  text-decoration: none;
+  color: #000;
+  position: relative;
+  top: 2px;
+}
+
+.tooltip-inner {
+    max-width: 500px !important; 
+}
