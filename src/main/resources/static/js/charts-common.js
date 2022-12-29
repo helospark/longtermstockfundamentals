@@ -28,9 +28,19 @@ function createChart(urlPath, title, chartOptions) {
   var chartDiv = document.createElement("div");
   chartDiv.className="chartDiv";
   
-  var titleDiv = document.createElement("h4");
+  var titleDiv = document.createElement("h2");
   titleDiv.innerText = title;
   titleDiv.className="chart-title";
+  
+  
+  dropDown = $("#chart-dropdown");
+  if (dropDown.length > 0) {
+    titleName=title.toLowerCase().replace(/[^a-z0-9]+/gi, "_");
+    var titleLink = $("<a name=\"" + titleName + "\"></a>");
+    titleLink.append(titleDiv);
+    titleDiv = titleLink.get(0);
+    dropDown.append("<li><a class=\"dropdown-item\" href=\"#" + titleName + "\">" + title + "</a></li>");
+  }
   
   var element = document.getElementById("charts");
   element.appendChild(titleDiv);
@@ -297,6 +307,7 @@ function createChart(urlPath, title, chartOptions) {
                    if (chartOptions.runAfter !== undefined) {
                      chartOptions.runAfter();
                    }
+                   chart.options.animation = true; // enable animation after display
           })
           .catch(err => { throw err });
     

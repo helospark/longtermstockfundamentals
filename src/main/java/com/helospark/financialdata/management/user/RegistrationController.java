@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.helospark.financialdata.management.config.ratelimit.RateLimit;
+
 import jakarta.validation.ValidationException;
 
 @RestController
@@ -17,11 +19,17 @@ public class RegistrationController {
     private static final Logger LOGGER = LoggerFactory.getLogger(RegistrationController.class);
     @Autowired
     RegisterService registerService;
+    @Autowired
+    private RecaptchaValidationService recaptchaService;
 
     @PostMapping("/user/register")
+    @RateLimit(requestPerMinute = 10)
     public RegisterResponse registerUser(@RequestBody RegisterRequest request) {
         if (!request.password.equals(request.passwordVerify)) {
             throw new RegistrationException("Passwords must match", "register_password_verify");
+        }
+        if (!recaptchaService.isValidCaptcha(request.token, request.email)) {
+            throw new RegistrationException("Captcha not valid", null);
         }
 
         registerService.registerUser(request);

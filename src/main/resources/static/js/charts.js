@@ -49,9 +49,22 @@ function populateProfile() {
   fetch(url)
           .then(res => res.json())
           .then(out => {
-            if (out.status == 200) {
-              document.getElementById("stock-name").innerText = out.companyName + " (" + out.industry + ", " + out.sector + ") fundamentals";
-              document.getElementById("stock-description").innerHTML = out.description.replaceAll(/\. ([A-Z])/gm, "\.<br\/>$1");
+            console.log("PROFILE");
+            console.log(out);
+            console.log(out.status);
+            if (out.description !== undefined) {
+              innerHtml = "";
+              innerHtml += "<ul>";
+              innerHtml += "<li>Currency: " + out.currency + "</li>";
+              innerHtml += "<li>Industry: " + out.sector + " (" + out.industry + ")</li>";
+              innerHtml += "<li>Exchange: " + out.exchange + "</li>";
+              if (out.website !== undefined && out.website != null) {
+                innerHtml += "<li>Website: <a href=\"" + out.website + "\">" + out.website + "</a></li>";
+              }
+              innerHtml += "</ul>";
+              innerHtml += "<div class=\"description-text-div\">" + out.description.replaceAll(/\. ([A-Z])/gm, "\.<br\/>$1") + "</div>";
+
+              document.getElementById("stock-description").innerHTML = innerHtml;
               $("#show-description-link").click(function() {
                 $("#stock-description").toggleClass("hidden-element");
               });
@@ -85,7 +98,7 @@ function addFlags() {
 
 function createSeparator(title) {
   var hrElement =document.createElement("hr");
-  var hone = document.createElement("h1");
+  var hone = document.createElement("h3");
   
   hone.innerHTML = title;
   
@@ -97,6 +110,17 @@ function createSeparator(title) {
     element.appendChild(hrElement);
   }
   element.appendChild(hone);
+  
+  
+  dropDown = $("#chart-dropdown");
+  dropDownElements = $("#chart-dropdown li");
+  if (dropDown.length > 0) {
+    if (dropDownElements.length > 0) {
+      dropDown.append("<div class=\"dropdown-divider\"></div>");
+    }
+    dropDown.append("<div class=\"dropdown-header\">" + title + "</div>");
+  }
+  
   
 }
 
@@ -123,7 +147,12 @@ createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit
     "label": "Operating margin"
   }
 ]});
-createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%'});
+createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%',  label: "Net margin", additionalCharts: [
+  {
+    "url": "/financials/fcf_margin",
+    "label": "FCF margin"
+  }
+]});
 
 
 createSeparator("Price ratios")
@@ -247,7 +276,6 @@ createChart("/financials/fcf_dcf", "FCF DCF", {});
 createChart("/financials/dividend_dcf", "Dividend DCF", {});
 createChart("/financials/cash_per_share", "Cash per share", {});
 createChart("/financials/graham_number", "Graham number", {});
-createChart("/financials/revenue_projection", "Revenue projection stock price", {});
 
 
 createSeparator("Price")

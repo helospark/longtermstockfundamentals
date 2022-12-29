@@ -22,12 +22,15 @@
 <link rel="stylesheet" href="/css/autocomplete/autocomplete.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="/js/jquery.min.js"></script>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cookie">
 
 
 <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
 
 <link rel="stylesheet" type="text/css" href="/css/style.css">
+<link rel="stylesheet" type="text/css" href="/css/common-style.css">
 </head>
 <body>
 	<header id="home" class="section">
@@ -42,7 +45,6 @@
                            <div class="logo">
                               <h1 style="float:left;color:white; margin-right: 10px;margin-top:8px;"><i class="fa-solid fa-chart-simple"></i></h1>
                               <h1 style="color:white;font-family:Cookie;line-height: 0.8;letter-spacing: -2px;">LongTermStock<br/>Fundamentals</h1>
-                               
                            </div>
                         </div>
                      </div>
@@ -128,79 +130,7 @@
 
 
 
-    <div class="choose_section_2" th:if="${isLoggedIn}">
-      <div class="container">
-          <div class="row">
-            <div class="col-sm-4">
-              <div class="power payment-div">
-                <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
-                <h2 class="totaly_text">Free<br/>$0/mo</h2>
-                <ul class="feature-list">
-                  <li>View 5 stocks every month</li>
-                  <li>Financials for 40k+ companies</li>
-                  <li>~30 years of data</li>
-                  <li>Stock DCF calculator</li>
-                </ul>
-                <div class="buy-button-div">
-                  <form action="/payment/initialize" method="post">
-                    <input name="plan" type="hidden" value="FREE"></input>
-                    <button th:unless="${loginAccountType == 'FREE'}"
-                      th:text="${loginAccountTypeIndex <= 0 ? 'Upgrade' : 'Downgrade'}"
-                      type="submit" class="btn"
-                      th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"></button>
-                  </form>
-                <h1 th:if="${loginAccountType == 'FREE'}">✔</h1>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-4">
-              <div class="power payment-div">
-                <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
-                <h2 class="totaly_text">Standard<br/>$5/mo</h2>
-                <ul class="feature-list">
-                  <li>View 200 stocks every month</li>
-                  <li>No ads</li>
-                  <li>Financials for 40k+ companies</li>
-                  <li>~30 years of data</li>
-                  <li>Stock DCF calculator</li>
-                </ul>
-                <div class="buy-button-div">
-                  <form action="/payment/initialize" method="post">
-                    <input name="plan" type="hidden" value="price_1MJif9GJQTr9AAAY4pTv6cqf"></input>
-                    <button th:unless="${loginAccountType == 'STANDARD'}" th:text="${loginAccountTypeIndex <= 1 ? 'Upgrade' : 'Downgrade'}"
-                    type="submit" class="btn"
-                    th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"></button>
-                    <h1 th:if="${loginAccountType == 'STANDARD'}">✔</h1>
-                  </form>
-                </div>
-              </div>
-            </div>
-            <div class="col-sm-4">
-              <div class="power payment-div">
-                <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
-                <h2 class="totaly_text">Advanced<br/>$10/mo</h2>
-                <ul class="feature-list">
-                  <li>View unlimited stocks every month</li>
-                  <li>No ads</li>
-                  <li>Financials for 40k+ companies</li>
-                  <li>~30 years of data</li>
-                  <li>Stock DCF calculator</li>
-                </ul>
-                <div class="buy-button-div">
-                  <form action="/payment/initialize" method="post">
-                    <input name="plan" type="hidden" value="price_1MJigZGJQTr9AAAYfOlVOg3Q"></input>
-                    <button th:unless="${loginAccountType == 'ADVANCED'}"
-                          th:text="${loginAccountTypeIndex <= 2 ? 'Upgrade' : 'Downgrade'}"
-                          type="submit" class="btn"
-                          th:classappend="${loginAccountTypeIndex <= 2 ? 'btn-primary' : 'btn-outline-danger'}"></button>
-                    <h1 th:if="${loginAccountType == 'ADVANCED'}">✔</h1>
-                  </form>
-                </div>
-              </div>
-            </div>
-      </div>
-    </div>
-    </div>
+    <div th:replace="fragments/plans-fragment"></div>
 
 
 
@@ -226,7 +156,12 @@
                                   
                                 </div>
                                <div class="send_btn">
-                                 <button id="register_button" type="button" class="main_bt">Sign up</button>
+                                     <div id="recaptcha" class="g-recaptcha"
+                                        data-sitekey="6LfTPbcjAAAAAKTlJ7M_EdxPk5e2V3zNgIBQ8fsy"
+                                        data-callback="validateCaptcha"
+                                        data-size="invisible"></div>
+                                                             
+                                 <button id="register_button" type="button" class="main_bt g-recaptcha" data-sitekey="6LfTPbcjAAAAAKTlJ7M_EdxPk5e2V3zNgIBQ8fsy" data-callback="onCaptchaSolved">Sign up</button>
                                  <div id="registration-spinner" class="spinner-border" role="status" style="display:none"></div>
                                </div>
                           </form>
@@ -257,77 +192,77 @@
 
                       $("#register_password_verify").change(checkPasswordVerify);
 
+                  function validateCaptcha() {
+                          grecaptcha.execute();
+                  }
 
-                      $("#register_button").click(async () => {
-                      form = $("#register_form").get(0);
-                      $("#register_form").get(0).classList.remove('was-validated');
-                      inputs = $("#register_form input");
-                      for (i = 0; i < inputs.length; ++i) {
-                        inputs.get(i).setCustomValidity("");
-                      }
-                      
-                      if (form.checkValidity()) {
-
-                          email = $("#register_email").val();
-                          password = $("#register_password").val();
-                          passwordVerify = $("#register_password_verify").val();
-                          
-                          showRegistrationLoadSpinner(true);
-                          
-                            res = await fetch('/user/register', {
-                                  method: 'POST',
-                                  headers: {
-                                    'Accept': 'application/json',
-                                    'Content-Type': 'application/json'
-                                  },
-                                  body: JSON.stringify({email: email, password: password, passwordVerify: passwordVerify})
-                                });
+                  async function onCaptchaSolved(token) {
+                            console.log("TOKEN=" +token);
+                            form = $("#register_form").get(0);
+                            $("#register_form").get(0).classList.remove('was-validated');
+                            inputs = $("#register_form input");
+                            for (i = 0; i < inputs.length; ++i) {
+                              inputs.get(i).setCustomValidity("");
+                            }
+                            
+                            if (form.checkValidity()) {
+      
+                                email = $("#register_email").val();
+                                password = $("#register_password").val();
+                                passwordVerify = $("#register_password_verify").val();
                                 
-                                content = await res.json();
-                                statusCode = res.status;
+                                showRegistrationLoadSpinner(true);
                                 
-                                console.log("Status=" + statusCode);
-                                console.log("Content=" + content);
-                                
-                                if (statusCode != 200) {
-                                   var wrongField = content.fieldReference;
-                                   console.log("Field=" + wrongField);
-                                   console.log("contentError=" + content.errorMessage);
-                                   if (wrongField !== undefined && wrongField != null && $("#" + wrongField).length > 0) {
-                                      $("#" + wrongField).get(0).setCustomValidity(content.errorMessage);
-                                   } else {
-                                   console.log("GlobalError=" + content.errorMessage);
-                                      $("#registration_global_error").text(content.errorMessage);
-                                      $("#registration_global_error").css({"display": "block"});
-                                   }
-                                   showRegistrationLoadSpinner(false);
-                                } else {
-                                  // login
-                                  console.log("login");
-                                  
-                                  res = await fetch('/user/login', {
-                                      method: 'POST',
-                                      headers: {
-                                        'Accept': 'application/json',
-                                        'Content-Type': 'application/json'
-                                      },
-                                      body: JSON.stringify({email: email, password: password})
-                                  });
-                                  statusCode = res.status;
-                                  
-                                  $("#registration-result-modal").modal('show');
-                                  
-                                  console.log("Login status=" + statusCode);
-                                  
-                                }
-                                
-                                console.log(content);
-                                
-                      } else {
-                        console.log("Form invalid");
-                      }
-                      $("#register_form").get(0).classList.add('was-validated');
-                      });
+                                  res = await fetch('/user/register', {
+                                        method: 'POST',
+                                        headers: {
+                                          'Accept': 'application/json',
+                                          'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({email: email, password: password, passwordVerify: passwordVerify, token: token})
+                                      });
+                                      
+                                      content = await res.json();
+                                      statusCode = res.status;
+                                      
+                                      console.log("Status=" + statusCode);
+                                      console.log("Content=" + content);
+                                      
+                                      if (statusCode != 200) {
+                                         var wrongField = content.fieldReference;
+                                         if (wrongField !== undefined && wrongField != null && $("#" + wrongField).length > 0) {
+                                            $("#" + wrongField).get(0).setCustomValidity(content.errorMessage);
+                                         } else {
+                                         console.log("GlobalError=" + content.errorMessage);
+                                            $("#registration_global_error").text(content.errorMessage);
+                                            $("#registration_global_error").css({"display": "block"});
+                                         }
+                                         showRegistrationLoadSpinner(false);
+                                      } else {
+                                        res = await fetch('/user/login', {
+                                            method: 'POST',
+                                            headers: {
+                                              'Accept': 'application/json',
+                                              'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({email: email, password: password})
+                                        });
+                                        statusCode = res.status;
+                                        
+                                        $("#registration-result-modal").modal('show');
+                                        $("#registration-result-modal").on("hide.bs.modal", function () { 
+                                          location.reload() ;
+                                        });
+                                        
+                                      }
+                                      
+                                      console.log(content);
+                                      
+                            } else {
+                              console.log("Form invalid");
+                            }
+                            $("#register_form").get(0).classList.add('was-validated');
+                     }
                     </script>
     			</div>
     			<div class="col-md-6">
@@ -442,7 +377,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Registration successful</h5>
+        <h5 class="modal-title">Registration successful</h5>
         <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -468,6 +403,13 @@
     </div>
   </div>
 </div>
+<div id="generic-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+
 
 <script>
 

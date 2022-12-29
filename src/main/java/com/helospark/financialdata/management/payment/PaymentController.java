@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.view.RedirectView;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.payment.repository.StripeUserMapping;
 import com.helospark.financialdata.management.payment.repository.StripeUserMappingRepository;
 import com.helospark.financialdata.management.payment.repository.UserLastPayment;
@@ -83,13 +84,14 @@ public class PaymentController {
     }
 
     @PostMapping("/payment/initialize")
+    @RateLimit(requestPerMinute = 5)
     public Object onPayment(@RequestParam(PLAN_METADATA) String plan, HttpServletRequest servletRequest, Model model) {
         Stripe.apiKey = stripeSecretKey;
         Optional<DecodedJWT> optionalJwt = loginController.getJwt(servletRequest);
 
         if (!optionalJwt.isPresent()) {
             model.addAttribute("generalMessageTitle", "Not logged in.");
-            model.addAttribute("generalMessageBody", "In order to subscribe to this plan, you have to log in.");
+            model.addAttribute("generalMessageBody", "You have to login to subscribe to this plan.");
             model.addAttribute("generalMessageRedirect", "/");
             return "index";
         } else {

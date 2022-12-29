@@ -12,12 +12,13 @@
                   });
          
          if (result.status != 200) {
-           location.reload();
-         }
-         
-         expiry = Number(result.headers.get("jwt-expiry")) - 60000;
-         if (expiry <= 1000) {
-           expiry = 1000;
+           console.log("[ERROR] Unable to refresh JWT");
+           return 60000; // try again in 1 minute
+         } else {
+           expiry = Number(result.headers.get("jwt-expiry")) - 60000;
+           if (expiry <= 1000) {
+             expiry = 1000;
+           }
          }
          return expiry;
     }

@@ -23,6 +23,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.config.JwtService;
 import com.helospark.financialdata.management.config.JwtValidatorFilter;
+import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.PersistentSignin;
 import com.helospark.financialdata.management.user.repository.PersistentSigninRepository;
@@ -56,6 +57,7 @@ public class LoginController {
     private boolean isHttpsOnly;
 
     @PostMapping("/user/login")
+    @RateLimit(requestPerMinute = 10)
     public void login(@RequestBody LoginRequest request, HttpServletResponse httpResponse) {
         Optional<User> optionalUser = userRepository.findByEmail(request.email);
 
@@ -89,6 +91,7 @@ public class LoginController {
     }
 
     @PostMapping("/user/jwt/refresh")
+    @RateLimit(requestPerMinute = 30)
     public void refreshJwt(@RequestParam(name = "force", required = false, defaultValue = "false") boolean force, HttpServletRequest request, HttpServletResponse httpResponse) {
         Optional<DecodedJWT> currentJwt = getJwt(request);
         boolean renewRequired = true;
@@ -115,6 +118,7 @@ public class LoginController {
             Optional<PersistentSignin> previousPersistentSignin = persistentSigninRepository.getPersistentSignin(value);
 
             if (!previousPersistentSignin.isPresent()) {
+                addRememberMeCookie(httpResponse, 0, "");
                 throw new JwtRefreshException("Not currently logged in");
             }
 
@@ -143,14 +147,14 @@ public class LoginController {
     @ExceptionHandler(value = UserLoginException.class)
     @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
     public LoginErrorResponse onLoginError(UserLoginException exception, HttpServletRequest httpRequest) {
-        LOGGER.info("Login failed for ip='{}', cause='{}'", httpRequest.getRemoteAddr(), exception.getMessage());
+        LOGGER.warn("Login failed for ip='{}', cause='{}'", httpRequest.getRemoteAddr(), exception.getMessage());
         return new LoginErrorResponse("Bad email or password");
     }
 
     @ExceptionHandler(value = JwtRefreshException.class)
     @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
-    public LoginErrorResponse onJwtRefreshError(JwtRefreshException exception, HttpServletRequest httpRequest) {
-        LOGGER.info("JWT refresh failed for ip='{}', cause='{}'", httpRequest.getRemoteAddr(), exception.getMessage());
+    public LoginErrorResponse onJwtRefreshError(JwtRefreshException exception, HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        LOGGER.warn("JWT refresh failed for ip='{}', cause='{}'", httpRequest.getRemoteAddr(), exception.getMessage(), exception);
         return new LoginErrorResponse("Unable to refresh JWT due to '" + exception.getMessage() + "'");
     }
 

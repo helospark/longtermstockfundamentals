@@ -2,7 +2,7 @@
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Sign in to view this stock</h5>
+        <h3 class="modal-title">Sign in to view this stock</h3>
       </div>
       <div class="modal-body">
         <p>If you don't have an account yet, <b><a href="/#sign_up">sign up</a></b> for free.</p>
@@ -14,13 +14,14 @@
 </div>
 
 <div class="modal" id="account-limit-reached" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Account limit reached</h5>
+        <h3 class="modal-title">Account limit reached</h3>
       </div>
       <div class="modal-body">
         <p>You have reached the maximum number of stocks you can view in your plan.</p>
+        <div th:replace="fragments/plans-fragment"></div>
       </div>
     </div>
   </div>
@@ -37,6 +38,7 @@ accountType = $("#accountType").text();
 
 if ($("#allowed").text() == "false") {
   $("#content").addClass("blurred");
+  $("body").css({"overflow": "hidden"});
   if (accountType == "NOT_LOGGED_IN") {
     $("#not-registered-modal").modal({backdrop: 'static', keyboard: false});
   } else {

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.stripe.Stripe;
 import com.stripe.model.checkout.Session;
 
@@ -32,6 +33,7 @@ public class PaymentResultController {
 
     @GetMapping("/payment/status")
     @ResponseBody
+    @RateLimit(requestPerMinute = 100)
     public PaymentStatus getResult(String sessionId) {
         try {
             Stripe.apiKey = stripeSecretKey;

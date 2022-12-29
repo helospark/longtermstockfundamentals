@@ -1,9 +1,11 @@
 package com.helospark.financialdata.management.config;
 
 import java.util.Date;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -17,6 +19,8 @@ import jakarta.servlet.http.HttpServletRequest;
 public class ModelEnrichControllerAdvice {
     @Autowired
     private LoginController loginController;
+    @Value("#{${stripe.accountType}}")
+    private Map<String, String> planToPriceMap;
 
     @ModelAttribute
     public void enrichModel(Model model, HttpServletRequest request) {
@@ -30,6 +34,10 @@ public class ModelEnrichControllerAdvice {
             model.addAttribute("loginEmail", jwt.getSubject());
             model.addAttribute("loginAccountType", loginController.getAccountType(jwt).toString());
             model.addAttribute("loginAccountTypeIndex", loginController.getAccountType(jwt).ordinal());
+        }
+
+        for (var entry : planToPriceMap.entrySet()) {
+            model.addAttribute("account_" + entry.getKey(), entry.getValue());
         }
     }
 

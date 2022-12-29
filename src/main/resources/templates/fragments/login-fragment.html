@@ -52,6 +52,7 @@ $("#login_form").submit(async (e) => {
                                 } else {
                                    jsonContent = await res.json();
                                    console.log("Content=" + jsonContent);
+                                   console.log("Content2=" + jsonContent.errorMessage);
                                    $("#login_global_error").text(jsonContent.errorMessage);
                                    $("#login_global_error").css({"display": "block"});
                                 }

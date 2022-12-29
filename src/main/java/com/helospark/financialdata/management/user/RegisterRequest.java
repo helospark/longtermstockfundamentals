@@ -22,6 +22,10 @@ public class RegisterRequest {
     @NotEmpty
     public String passwordVerify;
 
+    @NotNull
+    @NotEmpty
+    public String token;
+
     @Override
     public String toString() {
         return "RegisterRequest [email=" + email + "]";

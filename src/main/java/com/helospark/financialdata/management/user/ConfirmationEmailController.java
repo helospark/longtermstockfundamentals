@@ -8,6 +8,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import com.helospark.financialdata.management.config.ratelimit.RateLimit;
+
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
@@ -20,6 +22,7 @@ public class ConfirmationEmailController {
     private ConfirmationEmailService confirmationEmailService;
 
     @GetMapping(ACTIVATE_URI)
+    @RateLimit(requestPerMinute = 10)
     public String activeAccount(@RequestParam("token") @NotNull @NotEmpty String token, Model model) {
         try {
             confirmationEmailService.activeAccount(token);

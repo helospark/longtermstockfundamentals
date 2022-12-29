@@ -85,6 +85,11 @@ public class FinancialsController {
         return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.revenue));
     }
 
+    @GetMapping("/fcf_margin")
+    public List<SimpleDataElement> getFcfMargin(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.revenue));
+    }
+
     @GetMapping("/pe_ratio")
     public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock) {
         return getIncomeData(stock, financialsTtm -> financialsTtm.price / financialsTtm.incomeStatementTtm.eps);

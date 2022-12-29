@@ -1,0 +1,109 @@
+    <div class="choose_section_2" th:if="${isLoggedIn}">
+      <div class="container">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="power payment-div">
+                <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
+                <h2 class="totaly_text">Free<br/>$0/mo</h2>
+                <ul class="feature-list">
+                  <li>View 5 stocks every month</li>
+                  <li>Financials for 40k+ companies</li>
+                  <li>~30 years of data</li>
+                  <li>Stock DCF calculator</li>
+                </ul>
+                <div class="buy-button-div">
+                  <form id="subscribe-free-form" action="/payment/initialize" method="post">
+                    <input name="plan" type="hidden" th:value="${account_FREE}"></input>
+                    <button th:unless="${loginAccountType == 'FREE'}"
+                      th:text="${loginAccountTypeIndex <= 0 ? 'Upgrade' : 'Downgrade'}"
+                      type="button" class="btn"
+                      th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
+                      onclick="onSubscriptionRequested('subscribe-free-form', 'free')"></button>
+                  </form>
+                <h1 class="currently-selected-plan" th:if="${loginAccountType == 'FREE'}">✔</h1>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="power payment-div">
+                <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
+                <h2 class="totaly_text">Standard<br/>$5/mo</h2>
+                <ul class="feature-list">
+                  <li>View 200 stocks every month</li>
+                  <li>No ads</li>
+                  <li>Financials for 40k+ companies</li>
+                  <li>~30 years of data</li>
+                  <li>Stock DCF calculator</li>
+                </ul>
+                <div class="buy-button-div">
+                  <form id="subscribe-standard-form" action="/payment/initialize" method="post">
+                    <input name="plan" type="hidden" th:value="${account_STANDARD}"></input>
+                    <button th:unless="${loginAccountType == 'STANDARD'}" th:text="${loginAccountTypeIndex <= 1 ? 'Upgrade' : 'Downgrade'}"
+                    type="button" class="btn"
+                    th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
+                    onclick="onSubscriptionRequested('subscribe-standard-form', 'standard')"></button>
+                    <h1 class="currently-selected-plan" th:if="${loginAccountType == 'STANDARD'}">✔</h1>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="power payment-div">
+                <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
+                <h2 class="totaly_text">Advanced<br/>$10/mo</h2>
+                <ul class="feature-list">
+                  <li>View unlimited stocks every month</li>
+                  <li>No ads</li>
+                  <li>Financials for 40k+ companies</li>
+                  <li>~30 years of data</li>
+                  <li>Stock DCF calculator</li>
+                </ul>
+                <div class="buy-button-div">
+                  <form id="subscribe-advanced-form" action="/payment/initialize" method="post">
+                    <input name="plan" type="hidden" th:value="${account_ADVANCED}"></input>
+                    <button th:unless="${loginAccountType == 'ADVANCED'}"
+                          th:text="${loginAccountTypeIndex <= 2 ? 'Upgrade' : 'Downgrade'}"
+                          type="button" class="btn"
+                          th:classappend="${loginAccountTypeIndex <= 2 ? 'btn-primary' : 'btn-outline-danger'}"
+                          onclick="onSubscriptionRequested('subscribe-advanced-form', 'advanced')"></button>
+                    <h1 class="currently-selected-plan" th:if="${loginAccountType == 'ADVANCED'}">✔</h1>
+                  </form>
+                </div>
+              </div>
+            </div>
+      </div>
+    </div>
+    </div>
+    <span id="loginAccountType" th:text="${loginAccountType}" style="display:none"></span>
+    <script>
+      function onSubscriptionRequested(formName, toAccount) {
+        accountType = $("#loginAccountType").text();
+        form = $("#" + formName);
+        if (accountType != "FREE") {
+          button = $("#" + formName + " button");
+          operation = button.text().toLowerCase();
+          $("#generic-modal .modal-content").html(`
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm subscription change.</h5>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    Are you sure you want to ` + operation + ` subscription to ` + toAccount + `.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <a href="#" id="confirm-submit" class="btn btn-success success">` + button.text() + `</a>
+                </div>
+          `);
+          $("#generic-modal").modal("show");
+          
+          $('#confirm-submit').click(function(){
+              $("#generic-modal").modal("hide");
+              //alert('submitting');
+              $("#" + formName).submit();
+          });
+        } else {
+          //alert('submitting');
+          $("#" + formName).submit();
+        }
+      }
+    </script>
