@@ -42,3 +42,6 @@ mvnw.cmd
 ## Secrets
 src/main/resources/jwt
 src/main/resources/application-secret.properties
+
+## Logs
+logs/

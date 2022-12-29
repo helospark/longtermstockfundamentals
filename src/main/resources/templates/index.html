@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/css/autocomplete/autocomplete.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="/js/jquery.min.js"></script>
-<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script src="https://www.google.com/recaptcha/api.js?render=6LeQp7gjAAAAAFG5IeYaWKoVre0o1dAhlNCvYQxO"></script>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cookie">
 
@@ -107,21 +107,21 @@
     			    <div class="power">
     				    <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
     				    <h2 class="totaly_text">Long term trends</h2>
-    				    <p class="making">Seeing long term fundamental data trends can help you to make better investment decisions.</p>
+    				    <p class="making">Seeing long term fundamental trends can help you to make better investment decisions.</p>
     			    </div>
     		    </div>
     		    <div class="col-sm-4">
     			    <div class="power">
     				    <div class="icon"><a href="#"><img src="/images/optimised-icon.png"></a></div>
     				    <h2 class="totaly_text">Risk checks</h2>
-    				    <p class="making">We provide checks for red flags, that can help you avoid companies with weak fundamentals.</p>
+    				    <p class="making">We provide checks, that can help you avoid companies with weak fundamentals.</p>
     			    </div>
     		    </div>
     		    <div class="col-sm-4">
     			    <div class="power">
     				    <div class="icon"><a href="#"><img src="/images/icon-3.png"></a></div>
     				    <h2 class="totaly_text">Value analysis</h2>
-    				    <p class="making">We provide several tools that can help you to find undervalued stocks with great value.</p>
+    				    <p class="making">We provide DCF calculator that can help you find undervalued stocks with great value.</p>
     			    </div>
     		    </div>
     	    </div>    		
@@ -151,22 +151,42 @@
                                 <div class="form-group">
                                   <input id="register_password_verify" type="password" class="form-control email-bt" placeholder="Password confirm" name="password2" minLength="5" maxLength="100" required>
                                 </div>
+                                <div class="form-group"  id="register-terms-and-conditions-div">
+                                  <input class="form-check-input" type="checkbox" id="accept_terms" name="accept_terms">
+                                  <label class="form-check-label" for="accept_terms">
+                                    Accept <a href="javascript:;" onclick="showStaticText('/text/terms-and-conditions.html', 'Terms and conditions')">terms and conditions</a> and <a href="javascript:;" onclick="showStaticText('/text/privacy-policy.html', 'Privacy policy')">privacy policy</a>
+                                  </label>
+                                </div>
                                </div>
                                 <div id="registration_global_error" class="invalid-feedback" style="display:none">
                                   
                                 </div>
                                <div class="send_btn">
-                                     <div id="recaptcha" class="g-recaptcha"
-                                        data-sitekey="6LfTPbcjAAAAAKTlJ7M_EdxPk5e2V3zNgIBQ8fsy"
-                                        data-callback="validateCaptcha"
-                                        data-size="invisible"></div>
-                                                             
-                                 <button id="register_button" type="button" class="main_bt g-recaptcha" data-sitekey="6LfTPbcjAAAAAKTlJ7M_EdxPk5e2V3zNgIBQ8fsy" data-callback="onCaptchaSolved">Sign up</button>
+                                 <button id="register_button" type="button" class="main_bt" onclick="onRegisterSubmit()">Sign up</button>
                                  <div id="registration-spinner" class="spinner-border" role="status" style="display:none"></div>
                                </div>
                           </form>
                     </div>
                     <script>
+                    function showStaticText(uri, name) {
+                      fetch(uri)
+                          .then(result => result.text())
+                          .then(result => {
+                            $("#generic-large-modal .modal-content")
+                            $("#generic-large-modal .modal-content").html(`
+                                <div class="modal-header">
+                                    <h5 class="modal-title">` + name + `</h5>
+                                </div>
+                                <div class="modal-body" id="modal-body">
+                                    ` + result + `
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                                </div>`);
+                             });
+                             $("#generic-large-modal").modal("show");
+                    }
+
                     function checkPasswordVerify() {
                           password = $("#register_password").val();
                           passwordVerify = $("#register_password_verify").val();
@@ -179,37 +199,51 @@
                           $("#register_password").addClass("was-validated");
                       }
                       
+                      function checkAcceptTerms() {
+                            acceptTerms = $("#accept_terms").prop('checked');
+                            
+                            console.log("ACCEPT_TERMS=" + acceptTerms);
+                            if (acceptTerms != true) {
+                              $("#accept_terms").get(0).setCustomValidity("Must accept terms and conditions.");
+                            } else {
+                              $("#accept_terms").get(0).setCustomValidity("");
+                            }
+                            $("#accept_terms").addClass("was-validated");
+                        }
+                      
                       function showRegistrationLoadSpinner(show) {
                           if (show) {
-                            $("#registration-spinner").css({"display":"block"});
+                            $("#registration-spinner").css({"display":"inline"});
                             $("#register_button").css({"display":"none"});
                           } else {
                             $("#registration-spinner").css({"display":"none"});
-                            $("#register_button").css({"display":"block"});
+                            $("#register_button").css({"display":"inline"});
                           }
                       
                       }
 
                       $("#register_password_verify").change(checkPasswordVerify);
 
-                  function validateCaptcha() {
-                          grecaptcha.execute();
-                  }
 
-                  async function onCaptchaSolved(token) {
-                            console.log("TOKEN=" +token);
+                  function onRegisterSubmit() {
+                          grecaptcha.ready(function() {
+                            grecaptcha.execute('6LeQp7gjAAAAAFG5IeYaWKoVre0o1dAhlNCvYQxO', {action: 'submit'}).then(async function(token) {
+                  
                             form = $("#register_form").get(0);
                             $("#register_form").get(0).classList.remove('was-validated');
                             inputs = $("#register_form input");
                             for (i = 0; i < inputs.length; ++i) {
                               inputs.get(i).setCustomValidity("");
                             }
+                            console.log("checking validity");
+                            checkAcceptTerms();
                             
                             if (form.checkValidity()) {
-      
+                                console.log("Validity check passed");
                                 email = $("#register_email").val();
                                 password = $("#register_password").val();
                                 passwordVerify = $("#register_password_verify").val();
+                                acceptTerms = $("#accept_terms").prop('checked');
                                 
                                 showRegistrationLoadSpinner(true);
                                 
@@ -219,14 +253,11 @@
                                           'Accept': 'application/json',
                                           'Content-Type': 'application/json'
                                         },
-                                        body: JSON.stringify({email: email, password: password, passwordVerify: passwordVerify, token: token})
+                                        body: JSON.stringify({email: email, password: password, passwordVerify: passwordVerify, token: token, acceptTerms: acceptTerms})
                                       });
                                       
                                       content = await res.json();
                                       statusCode = res.status;
-                                      
-                                      console.log("Status=" + statusCode);
-                                      console.log("Content=" + content);
                                       
                                       if (statusCode != 200) {
                                          var wrongField = content.fieldReference;
@@ -235,7 +266,7 @@
                                          } else {
                                          console.log("GlobalError=" + content.errorMessage);
                                             $("#registration_global_error").text(content.errorMessage);
-                                            $("#registration_global_error").css({"display": "block"});
+                                            $("#registration_global_error").css({"display": "inline"});
                                          }
                                          showRegistrationLoadSpinner(false);
                                       } else {
@@ -262,6 +293,8 @@
                               console.log("Form invalid");
                             }
                             $("#register_form").get(0).classList.add('was-validated');
+                          });
+                       });
                      }
                     </script>
     			</div>
@@ -273,43 +306,41 @@
     		</div>
     	</div>
     </div>
-    <!--
+    
     <div class="contact_section_3">
     	<div class="container">
     		<div class="contact_product">
     			<div class="row">
-    				<div class="col-sm-6 col-md-6 col-lg-2">
-    					<div class="footer-logo"><img src="/images/footer-logo.png" style="max-width: 100%;"></div>
-    				</div>
-    				<div class="col-sm-6 col-md-6 col-lg-4">
-    					<h1 class="useful_text">USEFUL LINK</h1>
-    				<div class="menu">
-    					<ul>
-    						<li><a href="#home"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Home</a></li>
-    						<li><a href="#about"><img src="/images/bulit-icon.png" style="padding-right: 10px;">About</a></li>
-    						<li><a href="#service"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Services</a></li>
-    						<li><a href="#contact"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Contact Us</a></li>
-    					</ul>
-    				</div>	
-    				</div>
-    				<div class="col-sm-12 col-md-12 col-lg-6">
-    					<h1 class="useful_text">PRODUCT</h1>
-    					<div class="menu multi_column_menu">
-    					   <ul>
-    						  <li class="footer_menu"><a href="#"><img src="/images/bulit-icon.png" class="footer_menu">Webhosting</a></li>
-    						  <li class="footer_menu"><a href="#"><img src="/images/bulit-icon.png" class="footer_menu">Reseler Hosting</a></li>
-    						  <li class="footer_menu"><a href="#"><img src="/images/bulit-icon.png" class="footer_menu">VPS Hosting</a></li>
-    						  <li class="footer_menu"><a href="#"><img src="/images/bulit-icon.png" class="footer_menu">Wordpress Hosting</a></li>
-    						  <li class="footer_menu"><a href="#"><img src="/images/bulit-icon.png" class="footer_menu">Dedicated hosting</a></li>
-    						  <li class="footer_menu"><a href="#"><img src="/images/bulit-icon.png" class="footer_menu">Windows</a></li>
-    					   </ul>
-    				    </div>
-    				</div>
-    			</div>
+            <div class="col-sm-4">
+              <div class="menu">
+                <ul>
+                  <li><a href="#service"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Plans</a></li>
+                  <li><a href="#contact"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Contact Us</a></li>
+                </ul>
+              </div>  
+            </div>
+            <div class="col-sm-4">
+              <div class="menu">
+                <ul>
+                  <li><a href="javascript:;" onclick="showStaticText('/text/terms-and-conditions.html', 'Terms and conditions')"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Terms and conditions</a></li>
+                  <li><a href="javascript:;" onclick="showStaticText('/text/privacy-policy.html', 'Privacy policy')"><img src="/images/bulit-icon.png" style="padding-right: 10px;" >Privacy policy</a></li>
+                  <li><a href="javascript:;" onclick="showStaticText('/text/cookie-policy.html', 'Cookie policy')"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Cookie policy</a></li>
+                </ul>
+              </div>  
+            </div>
+            <div class="col-sm-4">
+              <div class="menu">
+                <ul>
+                  <li><a href="#contact"><img src="/images/bulit-icon.png" style="padding-right: 10px;">FAQ</a></li>
+                  <li><a href="#service"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Site map</a></li>
+                </ul>
+              </div>  
+            </div>
+          </div>
     		</div>
     	</div>
     </div>
-    -->
+    
     <div class="copyright_main">
     	<div class="container">
     		<p class="copy_text">© 2023 All Rights Reserved.</p>
@@ -405,6 +436,12 @@
 </div>
 <div id="generic-modal" class="modal fade" role="dialog">
     <div class="modal-dialog">
+        <div class="modal-content">
+        </div>
+    </div>
+</div>
+<div id="generic-large-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
         </div>
     </div>

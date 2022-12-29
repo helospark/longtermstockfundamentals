@@ -32,6 +32,8 @@ public class GoogleResponse {
     @JsonProperty("error-codes")
     private ErrorCode[] errorCodes;
 
+    private double score;
+
     public boolean isSuccess() {
         return success;
     }
@@ -55,9 +57,17 @@ public class GoogleResponse {
         }
     }
 
+    public double getScore() {
+        return score;
+    }
+
+    public void setScore(double score) {
+        this.score = score;
+    }
+
     @Override
     public String toString() {
-        return "GoogleResponse [success=" + success + ", challengeTs=" + challengeTs + ", hostname=" + hostname + ", errorCodes=" + Arrays.toString(errorCodes) + "]";
+        return "GoogleResponse [success=" + success + ", challengeTs=" + challengeTs + ", hostname=" + hostname + ", errorCodes=" + Arrays.toString(errorCodes) + ", score=" + score + "]";
     }
 
 }

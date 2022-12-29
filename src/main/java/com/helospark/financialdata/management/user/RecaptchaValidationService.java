@@ -32,8 +32,8 @@ public class RecaptchaValidationService {
 
         GoogleResponse googleResponse = restTemplate.getForObject(verifyUri, GoogleResponse.class);
 
-        if (!googleResponse.isSuccess()) {
-            LOGGER.warn("Invalid captcha, response='{}', email={}", googleResponse);
+        if (!googleResponse.isSuccess() || googleResponse.getScore() < 0.2) {
+            LOGGER.warn("Invalid captcha, response='{}', email={}", googleResponse, email);
         }
         return googleResponse.isSuccess();
     }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.jboss.logging.MDC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,7 @@ public class JwtValidatorFilter implements Filter {
                     loginController.addAuthorizationCookie(httpResponse, 0, "");
                 } else {
                     request.setAttribute(JWT_ATTRIBUTE, decodedJwt.get());
+                    MDC.put("email", decodedJwt.get().getSubject());
                 }
             } else {
                 try {

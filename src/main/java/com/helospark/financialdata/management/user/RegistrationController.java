@@ -31,6 +31,9 @@ public class RegistrationController {
         if (!recaptchaService.isValidCaptcha(request.token, request.email)) {
             throw new RegistrationException("Captcha not valid", null);
         }
+        if (request.acceptTerms == null || !request.acceptTerms) {
+            throw new RegistrationException("You must accept terms and privacy policy", "accept_terms");
+        }
 
         registerService.registerUser(request);
 

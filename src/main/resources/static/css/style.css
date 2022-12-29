@@ -16,7 +16,6 @@
 @import url(animate.min.css);
 @import url(normalize.css);
 @import url(meanmenu.css);
-@import url(owl.carousel.min.css);
 @import url(slick.css);
 @import url(jquery-ui.css);
 @import url(nice-select.css);
@@ -42,7 +41,6 @@ body {
 }
 
 a {
-     color: #1f1f1f;
      text-decoration: none !important;
      outline: none !important;
      -webkit-transition: all .3s ease-in-out;
@@ -152,9 +150,12 @@ p {
 }
 
 a {
-     color: #ffffff;
      text-decoration: none;
      outline: none !important;
+}
+
+.get_bg {
+  color: #fff
 }
 
 .layout_padding {
@@ -249,7 +250,13 @@ nav.main-menu {
     margin-right: 25px;
 }
 
-a:hover {
+#register-terms-and-conditions-div {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  margin-left. 5px;
+}
+
+.get_bg:hover {
     color: #fff;}
 
 .get_bga:hover {
@@ -260,6 +267,13 @@ a:hover {
     border-color: #171a1d;
 }
 
+.contact_section_3 a {
+  color: #fff;
+}
+
+.contact_section_3 a:hover {
+  color: #fff;
+}
 
 button.btn.btn-primary, button.btn.btn-primary:hover, button.btn.btn-primary:focus {
     background: #136af8;
@@ -607,7 +621,9 @@ button.main_bt a:hover {
 	background-color: #2c2c2c;
 	padding-bottom: 30px;	
 	padding-top: 30px;
-    margin-top: -80px;}
+  margin-top: -110px;
+  margin-bottom: -30px;
+}
 
 .contact_taital{
 	width: 100%;

@@ -26,9 +26,11 @@ public class RegisterRequest {
     @NotEmpty
     public String token;
 
+    public Boolean acceptTerms;
+
     @Override
     public String toString() {
-        return "RegisterRequest [email=" + email + "]";
+        return "RegisterRequest [email=" + email + ", token=" + token + ", acceptTerms=" + acceptTerms + "]";
     }
 
 }
