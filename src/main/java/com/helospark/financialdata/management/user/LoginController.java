@@ -39,9 +39,7 @@ public class LoginController {
     private static final int TWO_MINUTES_IN_MS = 2 * 60 * 1000;
     public static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
     public static final String JWT_COOKIE_NAME = "Authorization";
-    private static final int REMEMBER_ME_EXPIRY = 10 * 365 * 24 * 60 * 60;
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
-    private static final int JWT_EXPIRE_TIME_IN_SECONDS = 2 * 60; // 4 * 60 * 60;
     private SecureRandom secureRandom = new SecureRandom();
     @Autowired
     private UserRepository userRepository;
@@ -53,8 +51,12 @@ public class LoginController {
     JwtService jwtService;
     @Value("${website.domain}")
     private String domain;
-    @Value("${application.httpsOnly}")
+    @Value("${website.https}")
     private boolean isHttpsOnly;
+    @Value("${auth.jwt.expirySeconds}")
+    private int jwtExpiry;
+    @Value("${auth.rememberme.expirySeconds}")
+    private int rememberMeExpiry;
 
     @PostMapping("/user/login")
     @RateLimit(requestPerMinute = 10)
@@ -80,8 +82,8 @@ public class LoginController {
 
         persistentSigninRepository.save(persistentSignin);
 
-        addRememberMeCookie(httpResponse, REMEMBER_ME_EXPIRY, persistentToken);
-        addAuthorizationCookie(httpResponse, JWT_EXPIRE_TIME_IN_SECONDS, createJWT(user));
+        addRememberMeCookie(httpResponse, rememberMeExpiry, persistentToken);
+        addAuthorizationCookie(httpResponse, jwtExpiry, createJWT(user));
     }
 
     @PostMapping("/user/logout")
@@ -125,7 +127,7 @@ public class LoginController {
             String email = previousPersistentSignin.get().getEmail();
             createAuthorizationFromEmail(httpResponse, email);
 
-            httpResponse.addHeader("jwt-expiry", "" + ((JWT_EXPIRE_TIME_IN_SECONDS * 1000L)));
+            httpResponse.addHeader("jwt-expiry", "" + ((jwtExpiry * 1000L)));
         }
     }
 
@@ -137,7 +139,7 @@ public class LoginController {
         }
 
         User user = optionalUser.get();
-        return addAuthorizationCookie(httpResponse, JWT_EXPIRE_TIME_IN_SECONDS, createJWT(user));
+        return addAuthorizationCookie(httpResponse, jwtExpiry, createJWT(user));
     }
 
     public Optional<DecodedJWT> getJwt(HttpServletRequest request) {
@@ -204,7 +206,7 @@ public class LoginController {
 
     public String createJWT(User user) {
         Date expiration = new Date();
-        expiration.setTime(expiration.getTime() + (JWT_EXPIRE_TIME_IN_SECONDS * 1000L));
+        expiration.setTime(expiration.getTime() + (jwtExpiry * 1000L));
         return JWT.create()
                 .withIssuer(JwtService.ISSUER)
                 .withExpiresAt(expiration)

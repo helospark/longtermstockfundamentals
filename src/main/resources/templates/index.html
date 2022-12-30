@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/css/autocomplete/autocomplete.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <script src="/js/jquery.min.js"></script>
-<script src="https://www.google.com/recaptcha/api.js?render=6LeQp7gjAAAAAFG5IeYaWKoVre0o1dAhlNCvYQxO"></script>
+<script th:src="'https://www.google.com/recaptcha/api.js?render=' + ${recaptchaSiteKey}"></script>
 
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cookie">
 
@@ -100,7 +100,7 @@
     		</div>
     	</div>
     </div>
-    <div class="choose_section_2" th:unless="${isLoggedIn}">
+    <div class="" th:unless="${isLoggedIn}">
     	<div class="container">
     	    <div class="row">
     		    <div class="col-sm-4">
@@ -130,8 +130,8 @@
 
 
 
-    <div class="contact_section_2">
-    <div th:replace="fragments/plans-fragment"></div>
+    <div id="plans-div" class="contact_section_2" th:if="${isLoggedIn}">
+      <div th:replace="fragments/plans-fragment"></div>
     </div>
 
 
@@ -168,6 +168,7 @@
                                </div>
                           </form>
                     </div>
+                    <span id="recaptcha-site-key" th:text="${recaptchaSiteKey}" style="display:none"></span>
                     <script>
                     function checkPasswordVerify() {
                           password = $("#register_password").val();
@@ -195,21 +196,20 @@
                       
                       function showRegistrationLoadSpinner(show) {
                           if (show) {
-                            $("#registration-spinner").css({"display":"inline"});
+                            $("#registration-spinner").css({"display":"block"});
                             $("#register_button").css({"display":"none"});
                           } else {
                             $("#registration-spinner").css({"display":"none"});
                             $("#register_button").css({"display":"inline"});
                           }
-                      
                       }
 
                       $("#register_password_verify").change(checkPasswordVerify);
 
-
                   function onRegisterSubmit() {
                           grecaptcha.ready(function() {
-                            grecaptcha.execute('6LeQp7gjAAAAAFG5IeYaWKoVre0o1dAhlNCvYQxO', {action: 'submit'}).then(async function(token) {
+                            siteKey = $("#recaptcha-site-key").text();
+                            grecaptcha.execute(siteKey, {action: 'submit'}).then(async function(token) {
                   
                             form = $("#register_form").get(0);
                             $("#register_form").get(0).classList.remove('was-validated');
@@ -296,8 +296,8 @@
             <div class="col-sm-4">
               <div class="menu">
                 <ul>
-                  <li><a href="#service"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Plans</a></li>
-                  <li><a href="#contact"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Contact Us</a></li>
+                  <li><a href="javascript:;" onclick="showPlans()"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Plans</a></li>
+                  <li><a href="javascript:;" onclick="showContact()"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Contact Us</a></li>
                 </ul>
               </div>  
             </div>
@@ -313,7 +313,7 @@
             <div class="col-sm-4">
               <div class="menu">
                 <ul>
-                  <li><a href="#contact"><img src="/images/bulit-icon.png" style="padding-right: 10px;">FAQ</a></li>
+                  <li><a href="/faq"><img src="/images/bulit-icon.png" style="padding-right: 10px;">FAQ</a></li>
                   <li><a href="#service"><img src="/images/bulit-icon.png" style="padding-right: 10px;">Site map</a></li>
                 </ul>
               </div>  
@@ -347,7 +347,7 @@
             placeHolder: "Search for stocks...",
             data: {
                 src: async (query) => {
-                  let url = "http://localhost:8080/suggest?search=" + query;
+                  let url = "/suggest?search=" + query;
                   
                   result = [];
                   suggestions = await fetch(url)
@@ -403,6 +403,21 @@
   </div>
 </div>
 
+<div th:unless="${isLoggedIn}" id="plans-modal" class="modal fade" role="dialog">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content"><div class="modal-header">
+            <h5 class="modal-title">Plans</h5>
+            <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modal-body">
+              <div th:replace="fragments/plans-fragment"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="modal fade" id="login-modal" tabindex="-1" aria-labelledby="login-modal" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -463,9 +478,31 @@ function showStaticText(uri, name) {
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
             </div>`);
-            $("#generic-large-modal").modal("show");
-         });
-         
+        $("#generic-large-modal").modal("show");
+     });
+}
+
+function showContact() {
+  $("#generic-large-modal .modal-content")
+  $("#generic-large-modal .modal-content").html(`
+      <div class="modal-header">
+          <h5 class="modal-title">Contact</h5>
+      </div>
+      <div class="modal-body" id="modal-body">
+          Email: <a href="mailto: support@longtermstockfundamentals.com">support@longtermstockfundamentals.com</a>
+      </div>
+      <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>`);
+   $("#generic-large-modal").modal("show");
+}
+
+function showPlans() {
+    if ($("#plans-modal").length > 0) {
+      $("#plans-modal").modal("show");
+    } else {
+      $("#plans-div").get(0).scrollIntoView();
+    }
 }
 
 </script>

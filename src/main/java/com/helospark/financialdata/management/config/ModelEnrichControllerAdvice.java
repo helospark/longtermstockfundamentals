@@ -21,6 +21,8 @@ public class ModelEnrichControllerAdvice {
     private LoginController loginController;
     @Value("#{${stripe.accountType}}")
     private Map<String, String> planToPriceMap;
+    @Value("${recaptcha.site-key}")
+    private String recaptchaSiteKey;
 
     @ModelAttribute
     public void enrichModel(Model model, HttpServletRequest request) {
@@ -39,6 +41,8 @@ public class ModelEnrichControllerAdvice {
         for (var entry : planToPriceMap.entrySet()) {
             model.addAttribute("account_" + entry.getKey(), entry.getValue());
         }
+
+        model.addAttribute("recaptchaSiteKey", recaptchaSiteKey);
     }
 
 }

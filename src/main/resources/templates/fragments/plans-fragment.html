@@ -1,9 +1,9 @@
-    <div class="choose_section_2" th:if="${isLoggedIn}">
+    <div class="choose_section_2">
       <div class="container">
           <div class="row">
             <div class="col-md-4">
               <div class="power payment-div">
-                <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
+                <div class="icon"><a name="payment_plan"><img src="/images/icon-trends.png"></a></div>
                 <h2 class="totaly_text">Free<br/>$0/mo</h2>
                 <ul class="feature-list">
                   <li>View 5 stocks every month</li>
@@ -11,7 +11,7 @@
                   <li>~30 years of data</li>
                   <li>Stock DCF calculator</li>
                 </ul>
-                <div class="buy-button-div">
+                <div class="buy-button-div" th:if="${isLoggedIn}">
                   <form id="subscribe-free-form" action="/payment/initialize" method="post">
                     <input name="plan" type="hidden" th:value="${account_FREE}"></input>
                     <button th:unless="${loginAccountType == 'FREE'}"
@@ -29,13 +29,13 @@
                 <div class="icon"><a href="#"><img src="/images/icon-trends.png"></a></div>
                 <h2 class="totaly_text">Standard<br/>$5/mo</h2>
                 <ul class="feature-list">
-                  <li>View 200 stocks every month</li>
+                  <li>View 100 stocks every month</li>
                   <li>No ads</li>
                   <li>Financials for 40k+ companies</li>
                   <li>~30 years of data</li>
                   <li>Stock DCF calculator</li>
                 </ul>
-                <div class="buy-button-div">
+                <div class="buy-button-div"  th:if="${isLoggedIn}">
                   <form id="subscribe-standard-form" action="/payment/initialize" method="post">
                     <input name="plan" type="hidden" th:value="${account_STANDARD}"></input>
                     <button th:unless="${loginAccountType == 'STANDARD'}" th:text="${loginAccountTypeIndex <= 1 ? 'Upgrade' : 'Downgrade'}"
@@ -58,7 +58,7 @@
                   <li>~30 years of data</li>
                   <li>Stock DCF calculator</li>
                 </ul>
-                <div class="buy-button-div">
+                <div class="buy-button-div"  th:if="${isLoggedIn}">
                   <form id="subscribe-advanced-form" action="/payment/initialize" method="post">
                     <input name="plan" type="hidden" th:value="${account_ADVANCED}"></input>
                     <button th:unless="${loginAccountType == 'ADVANCED'}"
@@ -87,7 +87,8 @@
                     <h5 class="modal-title">Confirm subscription change.</h5>
                 </div>
                 <div class="modal-body" id="modal-body">
-                    Are you sure you want to ` + operation + ` subscription to ` + toAccount + `.
+                    Are you sure you want to ` + operation + ` subscription to ` + toAccount + `.<br/>
+                    Please note we use <a href="/faq#proration">prorate payment</a>.
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>

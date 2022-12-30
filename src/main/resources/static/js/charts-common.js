@@ -186,7 +186,7 @@ function createChart(urlPath, title, chartOptions) {
       
       valueSpan.innerText = (this.value + " " + chartOptions.slider.parameterName);
     
-      let paramedUrl = 'http://localhost:8080/' + stockToLoad + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
+      let paramedUrl = '/' + stockToLoad + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
   
       fetch(paramedUrl)
           .then(res => res.json())
@@ -260,7 +260,7 @@ function createChart(urlPath, title, chartOptions) {
     if (isScrolledIntoView(canvas) || !isLazyLoading) {
         if (inView) { return; }
         inView = true;
-        let url = 'http://localhost:8080/' + stockToLoad + urlPath;
+        let url = '/' + stockToLoad + urlPath;
         
         //console.log("Staring to load " + url);
 
@@ -318,7 +318,7 @@ function createChart(urlPath, title, chartOptions) {
     
     
     function addAdditionalChart(element) {
-          localUri  = 'http://localhost:8080/' + stockToLoad + element.url;
+          localUri  = '/' + stockToLoad + element.url;
           fetch(localUri)
             .then(res => res.json())
             .then(out => {

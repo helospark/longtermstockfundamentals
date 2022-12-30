@@ -30,7 +30,7 @@ public class ConfirmationEmailService {
     private EmailSender emailSender;
     @Value("${website.domain}")
     private String domain;
-    @Value("${application.httpsOnly}")
+    @Value("${website.https}")
     private boolean https;
     @Value("${website.port:0}")
     private int port;

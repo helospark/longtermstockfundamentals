@@ -5,8 +5,12 @@
   <property name="log.filename.prefix" value="appLog" />
   <property name="pattern" value="%-5p %d{yyyy-MM-dd HH:mm:ss.SSS} %c [thread=%thread] [ip=%X{clientIp}] [requestId=%X{requestId}] [email=%X{email}] %msg %ex%n" />
 
-  <appender name="CONSOLE"
-    class="ch.qos.logback.core.ConsoleAppender">
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+        <level>INFO</level>
+        <onMatch>ACCEPT</onMatch>
+        <onMismatch>DENY</onMismatch>
+    </filter>
     <layout class="ch.qos.logback.classic.PatternLayout">
       <Pattern>
          ${pattern}
@@ -14,8 +18,12 @@
     </layout>
   </appender>
 
-  <appender name="FILE-ROLLING"
-    class="ch.qos.logback.core.rolling.RollingFileAppender">
+  <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+        <level>INFO</level>
+        <onMatch>ACCEPT</onMatch>
+        <onMismatch>DENY</onMismatch>
+    </filter>
     <file>${log.path}/${log.filename.prefix}.log</file>
 
     <rollingPolicy
@@ -32,6 +40,11 @@
   </appender>
 
   <appender name="ASYNC_FILE_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
+      <filter class="ch.qos.logback.classic.filter.LevelFilter">
+          <level>DEBUG</level>
+          <onMatch>ACCEPT</onMatch>
+          <onMismatch>DENY</onMismatch>
+      </filter>
       <appender-ref ref="FILE-ROLLING" />
       <discardingThreshold>0</discardingThreshold>
       <queueSize>256</queueSize>
@@ -39,15 +52,45 @@
       <includeCallerData>false</includeCallerData>
   </appender>
 
+  <appender name="PAYMENT-FILE-ROLLING"
+    class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${log.path}/${log.filename.prefix}-payment.log</file>
+
+    <rollingPolicy
+      class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+      <fileNamePattern>${log.path}/archive/year_%d{yyyy, aux}/month_%d{MM,aux}/${log.filename.prefix}-payment.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+      <maxFileSize>10MB</maxFileSize>
+      <totalSizeCap>10GB</totalSizeCap>
+      <maxHistory>3653</maxHistory>
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>${pattern}</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="ASYNC_FILE_APPENDER_PAYMENT" class="ch.qos.logback.classic.AsyncAppender">
+      <appender-ref ref="PAYMENT-FILE-ROLLING" />
+      <discardingThreshold>0</discardingThreshold>
+      <queueSize>256</queueSize>
+      <neverBlock>false</neverBlock>
+      <includeCallerData>false</includeCallerData>
+  </appender>
+
   <springProfile name="!prod">
-    <root level="INFO">
+    <logger name="com.helospark.financialdata.management.payment.PaymentController" level="DEBUG" additivity="true">
+      <appender-ref ref="ASYNC_FILE_APPENDER_PAYMENT" />
+    </logger>
+    <root level="DEBUG">
       <appender-ref ref="CONSOLE" />
-      <appender-ref ref="ASYNC_FILE_APPENDER" />
     </root>
   </springProfile>
 
   <springProfile name="prod">
-    <root level="INFO">
+    <logger name="com.helospark.financialdata.management.payment.PaymentController" level="DEBUG" additivity="true">
+      <appender-ref ref="ASYNC_FILE_APPENDER_PAYMENT" />
+    </logger>
+    <root level="DEBUG">
       <appender-ref ref="ASYNC_FILE_APPENDER" />
     </root>
   </springProfile>

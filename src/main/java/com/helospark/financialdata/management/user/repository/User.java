@@ -54,4 +54,9 @@ public class User {
         this.registered = registered;
     }
 
+    @Override
+    public String toString() {
+        return "User [email=" + email + ", activated=" + activated + ", registered=" + registered + ", accountType=" + accountType + "]";
+    }
+
 }

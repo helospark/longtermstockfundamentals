@@ -1,3 +1,6 @@
+
+  var currencySymbol = "";
+
   function pad(num, size) {
       num = num.toString();
       while (num.length < size) num = "0" + num;
@@ -163,9 +166,9 @@
          endPrice = (eps * endMultiple);
          expectedGrowth = Math.pow(epsSum / currentPrice, (1.0 / years)) - 1.0;
          
-         $("#fair_value").text("Value: " + value.toFixed(2));
-         $("#current_price").html("Current price: " + currentPrice.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
-               + "price in ten years: <b>" + endPrice.toFixed(2) + "</b>)");
+         $("#fair_value").text("Value: " + currencySymbol + value.toFixed(2));
+         $("#current_price").html("Current price: " + currencySymbol + currentPrice.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
+               + "price in ten years: <b>" + currencySymbol + endPrice.toFixed(2) + "</b>)");
       }
       
 
@@ -185,6 +188,21 @@
    
   var stock = document.getElementById("stock").innerText;
   var stockToLoad = document.getElementById("stock").innerText;
+
+
+  let url = '/' + stockToLoad + "/financials/profile";
+  fetch(url)
+          .then(res => res.json())
+          .then(out => {
+             if (out.currencySymbol !== undefined) {
+               currencySymbol = out.currencySymbol;
+               updateCalculation();
+             }
+          });
+
+
+
+
   chart=createChart("/financials/eps", "EPS", {
        additionalLabelsAtEnd: dates,
        animation: true,
@@ -192,7 +210,10 @@
        label: "past",
        runAfter: updateCalculation
   });
-  
+
+
+
+
    chart.options.scales.x = {
           display: true,
                 type: 'time',

@@ -13,16 +13,34 @@
   </div>
   
   <span id="general-message-modal-redirect" style="display:none" th:text="${generalMessageRedirect}"></span>
+  <span id="general-message-modal-redirect-immediately" style="display:none" th:text="${generalMessageRedirectImmediately}"></span>
   <span id="general-message-modal-refresh-jwt" style="display:none" th:text="${generalMessageRefreshJwt}"></span>
 
   <script>
+    redirectImmediately = $("#general-message-modal-redirect-immediately").text();
+    refreshNeeded=$("#general-message-modal-refresh-jwt").text()
+    console.log("REDIRECT=" + redirectImmediately);
+    if (redirectImmediately.startsWith("/")) {
+       if (refreshNeeded == "true") {
+          fetch('/user/jwt/refresh?force=true', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          }).then(() => {
+            window.location.href=redirectImmediately;
+          });
+      } else {
+        window.location.href=redirectImmediately;
+      }
+    }
     $("#general-message-modal").modal("show");
     $("#general-message-modal").on("hide.bs.modal",  async function () {
       redirect=$("#general-message-modal-redirect").text();
-      refreshNeeded=$("#general-message-modal-refresh-jwt").text()
       if (redirect.startsWith("/")) {
         if (refreshNeeded == "true") {
-            await fetch('/user/jwt/refresh?force=true', {
+            fetch('/user/jwt/refresh?force=true', {
               method: 'POST',
               headers: {
                 'Accept': 'application/json',

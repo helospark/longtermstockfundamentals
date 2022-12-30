@@ -62,6 +62,10 @@ a {
   z-index: 100;
 }
 
+#registration-spinner {
+  margin: auto;
+}
+
 .autoComplete, .autoComplete_wrapper {
   width:100%;
   max-width: 700px;
@@ -78,12 +82,31 @@ a {
   padding-bottom: 60px;
 }
 
+#plans-modal .choose_section_2 {
+  margin-bottom: 5px;
+  padding-bottom: 5px;
+}
+
+.faq-question {
+  font-size: 16pt;
+  font-weight: 800;
+}
+
 .copy_text {
   font-size: 8pt;
   margin-top: 0px;
   margin-bottom: 0px;
 }
 
+.faq-card {
+  width: 100%;
+  background-color: rgba(255.0, 255.0, 255.0, 0.6);
+  padding: 20px;
+  border-radius: 20px;
+  margin-bottom: 20px;
+  box-shadow: 5px 5px 5px 5px rgba(0,0,0,0.5);
+  backdrop-filter: blur(5px);
+}
 
 *,
 *::after,
@@ -553,7 +576,8 @@ button.btn.btn-primary, button.btn.btn-primary:hover, button.btn.btn-primary:foc
 	background-size: cover;
 	margin-top: 2px;
 	z-index: 5;
-    position: relative;
+  position: relative;
+  background-size: 100% 100%;
 }
 
 .section_right{

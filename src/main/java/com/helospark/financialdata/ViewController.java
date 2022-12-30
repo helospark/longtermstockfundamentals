@@ -59,6 +59,11 @@ public class ViewController {
         return "index";
     }
 
+    @GetMapping("/faq")
+    public String faq(Model model) {
+        return "faq";
+    }
+
     @GetMapping("/calculator/{stock}")
     public String calculator(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         if (!symbolIndexProvider.getCompanyName(stock).isPresent()) {
@@ -109,12 +114,16 @@ public class ViewController {
             boolean allowed = viewedStocksService.getAndUpdateAllowViewStocks(jwt.getSubject(), accountType, stock);
 
             model.addAttribute("accountType", accountType.toString());
-            model.addAttribute("viewLimit", viewedStocksService.getAllowedViewCount(accountType));
+            int viewLimit = viewedStocksService.getAllowedViewCount(accountType);
+            model.addAttribute("viewLimit", viewLimit);
             if (!allowed) {
                 model.addAttribute("allowed", false);
             } else {
                 model.addAttribute("allowed", true);
             }
+            model.addAttribute("viewLimitText", viewLimit == Integer.MAX_VALUE ? "∞" : Integer.toString(viewLimit));
+            model.addAttribute("currentlyViewText", viewedStocksService.getViewCount(jwt.getSubject()));
+            model.addAttribute("haveLimitedStocksCount", accountType.equals(AccountType.STANDARD) || accountType.equals(AccountType.FREE));
         } else {
             List<String> freeSockList = freeStockRepository.getFreeSockList();
             model.addAttribute("accountType", "NOT_LOGGED_IN");

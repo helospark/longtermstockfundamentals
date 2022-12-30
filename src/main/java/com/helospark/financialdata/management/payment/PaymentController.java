@@ -70,7 +70,7 @@ public class PaymentController {
 
     @Value("${website.domain}")
     private String domain;
-    @Value("${application.httpsOnly}")
+    @Value("${website.https}")
     private boolean https;
     @Value("${website.port:0}")
     private int port;
@@ -90,8 +90,9 @@ public class PaymentController {
         Optional<DecodedJWT> optionalJwt = loginController.getJwt(servletRequest);
 
         if (!optionalJwt.isPresent()) {
-            model.addAttribute("generalMessageTitle", "Not logged in.");
-            model.addAttribute("generalMessageBody", "You have to login to subscribe to this plan.");
+            LOGGER.info("User not logged in");
+            model.addAttribute("generalMessageTitle", "Not logged in");
+            model.addAttribute("generalMessageBody", "You have to login to or <a href=\"/#sign_up\">sign up</a> to this plan.");
             model.addAttribute("generalMessageRedirect", "/");
             return "index";
         } else {
@@ -102,7 +103,7 @@ public class PaymentController {
             StripeUserMapping stripeUserMapping;
             AccountType accountType = getAccountTypeFromPayment(plan);
             if (userToStripeOptional.isEmpty()) {
-                String customerId = createUser(jwt);
+                String customerId = createCustomer(jwt);
                 stripeUserMapping = new StripeUserMapping();
                 stripeUserMapping.setEmail(jwt.getSubject());
                 stripeUserMapping.setStripeCustomerId(customerId);
@@ -120,7 +121,8 @@ public class PaymentController {
                 if (stripeUserMapping.getCurrentSubscriptionId() != null) {
                     cancelSubsciption(customerId, stripeUserMapping, jwt.getSubject());
                     model.addAttribute("generalMessageTitle", "Subscription cancelled");
-                    model.addAttribute("generalMessageBody", "Succesfully updated to FREE plan.");
+                    model.addAttribute("generalMessageBody",
+                            "Successfully cancelled the plan, you will not be charged anymore. However you may still enjoy your paid account until the end of your payment period.");
                     model.addAttribute("generalMessageRedirect", "/");
                     model.addAttribute("generalMessageRefreshJwt", true);
                     return "index";
@@ -169,7 +171,6 @@ public class PaymentController {
             } else {
                 SubscriptionUpdateParams params = SubscriptionUpdateParams.builder()
                         .setCancelAtPeriodEnd(true)
-                        .setProrationBehavior(SubscriptionUpdateParams.ProrationBehavior.ALWAYS_INVOICE)
                         .setDescription("Cancelling subscription")
                         .build();
 
@@ -209,12 +210,11 @@ public class PaymentController {
                 model.addAttribute("generalMessageRefreshJwt", true);
             } else {
                 String managementUrl = createManagementUrl(customerId);
-                model.addAttribute("generalMessageTitle", "Subscription is not yet updated");
+                model.addAttribute("generalMessageTitle", "Subscription update is pending");
                 model.addAttribute("generalMessageBody",
-                        "Status of Stripe payment is " + updatedSubscription.getStatus()
-                                + ", this could be due to wrong payment method or additional authentication needed.<br/>"
-                                + "Please finish payement here: <a href=\"" + managementUrl + "\">" + managementUrl
-                                + "</a>");
+                        "Your Stripe payment status is '" + updatedSubscription.getStatus()
+                                + "', this is most likely due to an additional 3DS authentication requirements, or it could be due to payment failure.<br/>"
+                                + "To finish payment, please navigate to <a href=\"" + managementUrl + "\">Stripe customer portal</a>, and pay your 'open' invoice.<br/>");
                 model.addAttribute("generalMessageRedirect", "/");
                 model.addAttribute("generalMessageRefreshJwt", true);
             }
@@ -250,7 +250,7 @@ public class PaymentController {
 
     @PostMapping("/stripe/webhook")
     private ResponseEntity<String> stripeWebhook(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sigHeader) {
-        LOGGER.info("Webhook payment event received: payload='{}', signature='{}'", payload, sigHeader);
+        LOGGER.debug("Webhook payment event received: payload='{}', signature='{}'", payload, sigHeader);
         Event event = null;
 
         try {
@@ -259,88 +259,120 @@ public class PaymentController {
             LOGGER.error("Invalid stripe signature", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("");
         }
+        String eventType = event.getType();
+        LOGGER.info("[{}] Received webhook event", eventType);
 
-        String customerId = getCustomerId(event, payload);
+        try {
+            String customerId = getCustomerId(event, payload);
 
-        if (customerId == null) {
-            LOGGER.info("Skipping event '{}', because it doesn't have any customerId", event.getType());
-            return ResponseEntity.status(HttpStatus.OK).body("");
-        }
+            LOGGER.info("[{}] Event customerId={}", eventType, customerId);
 
-        Optional<StripeUserMapping> optionalUserMapping = stripeUserMappingRepository.getStripeUserMapping(customerId);
-        if (!optionalUserMapping.isPresent()) {
-            LOGGER.error("Unknown account {}", customerId);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("");
-        }
-        Optional<User> optionalUser = userRepository.findByEmail(optionalUserMapping.get().getEmail());
-        if (!optionalUser.isPresent()) {
-            LOGGER.error("User doesn't exist {}", optionalUserMapping.get().getEmail());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("");
-        }
-        var user = optionalUser.get();
-
-        switch (event.getType()) {
-            case "checkout.session.completed": {
-                Session session = ((Session) event.getDataObjectDeserializer().getObject().get());
-                AccountType newAccount = getAccountType(session.getSubscription(), optionalUserMapping.get());
-                LOGGER.info("User '{}' changed to {} account from {}", user.getEmail(), newAccount, user.getAccountType());
-
-                var userMapping = optionalUserMapping.get();
-                userMapping.setCurrentSubscriptionId(session.getSubscription());
-                stripeUserMappingRepository.save(userMapping);
-
-                //                user.setAccountType(newAccount); // wait until invoice.paid
-                //                userRepository.save(user);
-
-                updateLastPaymentDate(user);
-
-                break;
+            if (customerId == null) {
+                LOGGER.info("[{}] Skipping event '{}', because it doesn't have any customerId", eventType, event.getId());
+                return ResponseEntity.status(HttpStatus.OK).body("");
             }
-            case "customer.subscription.deleted": {
-                LOGGER.info("User '{}' changed to FREE account, because subscription was deleted", user.getEmail());
-                var userMapping = optionalUserMapping.get();
-                userMapping.setCurrentSubscriptionId(null);
-                stripeUserMappingRepository.save(userMapping);
 
-                user.setAccountType(AccountType.FREE);
-                userRepository.save(user);
+            Optional<StripeUserMapping> optionalUserMapping = stripeUserMappingRepository.getStripeUserMapping(customerId);
+            if (!optionalUserMapping.isPresent()) {
+                LOGGER.warn("[{}] Unable to find customerId->email mapping customerId={}, trying to find user by email", eventType, customerId);
+                String customerEmail = getCustomerEmail(event, payload);
+                if (customerEmail != null) {
+                    Optional<User> optionalUser = userRepository.findByEmail(customerEmail);
+                    if (optionalUser.isPresent()) {
+                        StripeUserMapping stripeUserMapping = new StripeUserMapping();
+                        stripeUserMapping.setEmail(optionalUser.get().getEmail());
+                        stripeUserMapping.setStripeCustomerId(customerId);
+                        stripeUserMappingRepository.save(stripeUserMapping);
+                        optionalUserMapping = Optional.of(stripeUserMapping);
 
-                break;
-            }
-            case "invoice.paid": {
-                updateLastPaymentDate(user);
-
-                Invoice invoice = ((Invoice) event.getDataObjectDeserializer().getObject().get());
-                Long amountPaid = invoice.getAmountPaid();
-                AccountType newAccount = getNewAccountType(invoice, optionalUserMapping.get().getCurrentSubscriptionId());
-                LOGGER.info("User '{}' paid subscription for {} account", user.getEmail(), newAccount);
-
-                if (!user.getAccountType().equals(newAccount)) {
-                    LOGGER.info("Received invoice paid, updating user={}, from={}, to={}", user.getEmail(), user.getAccountType(), newAccount);
-                    user.setAccountType(newAccount);
-                    userRepository.save(user);
-                }
-
-                if (amountPaid == null) {
-                    LOGGER.warn("Amount paid is null");
-                } else {
-                    int amountPaidInDollars = (int) (amountPaid / 100);
-                    if (amountPaidInDollars != user.getAccountType().getPrice()) {
-                        LOGGER.warn("User '{}' paid {} but their account ({}) requires {}", user.getEmail(), amountPaidInDollars, user.getAccountType(), user.getAccountType().getPrice());
+                        LOGGER.info("[{}] Succesfully recovered, email={}, customerId={}", eventType, stripeUserMapping.getEmail(), stripeUserMapping.getStripeCustomerId());
                     }
                 }
-                break;
+
+                if (!optionalUserMapping.isPresent()) {
+                    LOGGER.error("Unknown account {}", customerId);
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("");
+                }
             }
-            case "invoice.payment_failed": {
-                Invoice invoice = ((Invoice) event.getDataObjectDeserializer().getObject().get());
-                LOGGER.error("Payment failed attempts={}", invoice.getAttemptCount());
-                // The payment failed or the customer does not have a valid payment method.
-                // The subscription becomes past_due. Notify your customer and send them to the
-                // customer portal to update their payment information.
-                break;
+            LOGGER.info("[{}] Event email={}", eventType, optionalUserMapping.get().getEmail());
+            Optional<User> optionalUser = userRepository.findByEmail(optionalUserMapping.get().getEmail());
+            if (!optionalUser.isPresent()) {
+                LOGGER.error("[{}] User doesn't exist {}", eventType, optionalUserMapping.get().getEmail());
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("");
             }
-            default:
-                LOGGER.info("Unhandled event received for user={}, eventType={}", user.getEmail(), event.getType());
+            var user = optionalUser.get();
+            LOGGER.info("[{}] Event user={}", eventType, user);
+
+            switch (eventType) {
+                case "checkout.session.completed": {
+                    Session session = ((Session) event.getDataObjectDeserializer().getObject().get());
+                    var userMapping = optionalUserMapping.get();
+                    userMapping.setCurrentSubscriptionId(session.getSubscription());
+                    stripeUserMappingRepository.save(userMapping);
+                    LOGGER.info("[{}] Added event subscription={}", eventType, session.getSubscription());
+
+                    break;
+                }
+                case "customer.subscription.created": {
+                    Subscription session = ((Subscription) event.getDataObjectDeserializer().getObject().get());
+                    var userMapping = optionalUserMapping.get();
+                    userMapping.setCurrentSubscriptionId(session.getId());
+                    stripeUserMappingRepository.save(userMapping);
+                    LOGGER.info("[{}] Added event subscription={}", eventType, session.getId());
+
+                    break;
+                }
+                case "customer.subscription.deleted": {
+                    var userMapping = optionalUserMapping.get();
+                    LOGGER.info("[{}] User '{}' changed from '{}' to FREE account, because subscription was deleted", eventType, user.getEmail(), user.getAccountType());
+
+                    userMapping.setCurrentSubscriptionId(null);
+                    stripeUserMappingRepository.save(userMapping);
+
+                    user.setAccountType(AccountType.FREE);
+                    userRepository.save(user);
+
+                    break;
+                }
+                case "invoice.paid": {
+                    updateLastPaymentDate(user);
+
+                    Invoice invoice = ((Invoice) event.getDataObjectDeserializer().getObject().get());
+                    Long amountPaid = invoice.getAmountPaid();
+                    AccountType newAccount = getNewAccountType(invoice, optionalUserMapping.get().getCurrentSubscriptionId());
+                    LOGGER.info("[{}] User '{}' paid subscription for {} account", eventType, user.getEmail(), newAccount);
+
+                    if (!user.getAccountType().equals(newAccount)) {
+                        LOGGER.info("[{}] Received invoice paid, updating user={}, from={}, to={}", eventType, user.getEmail(), user.getAccountType(), newAccount);
+                        user.setAccountType(newAccount);
+                        userRepository.save(user);
+                    }
+
+                    if (amountPaid == null) {
+                        LOGGER.warn("[{}] Amount paid is null", eventType);
+                    } else {
+                        int amountPaidInDollars = (int) (amountPaid / 100);
+                        if (amountPaidInDollars != user.getAccountType().getPrice()) {
+                            LOGGER.warn("[{}] User '{}' paid {} but their account ({}) requires {}", eventType, user.getEmail(), amountPaidInDollars, user.getAccountType(),
+                                    user.getAccountType().getPrice());
+                        }
+                    }
+                    break;
+                }
+                case "invoice.payment_failed": {
+                    Invoice invoice = ((Invoice) event.getDataObjectDeserializer().getObject().get());
+                    LOGGER.error("[{}] Payment failed for user={}, attempts={}", eventType, user, invoice.getAttemptCount());
+                    // The payment failed or the customer does not have a valid payment method.
+                    // The subscription becomes past_due. Notify your customer and send them to the
+                    // customer portal to update their payment information.
+                    break;
+                }
+                default:
+                    LOGGER.info("[{}] Unhandled event received for user={}", eventType, user.getEmail());
+            }
+        } catch (RuntimeException e) {
+            LOGGER.error("[{}] Error while handling event", eventType, e);
+            throw e;
         }
 
         return ResponseEntity.status(HttpStatus.OK).body("");
@@ -367,7 +399,13 @@ public class PaymentController {
             return newAccount;
         } catch (Exception e) {
             LOGGER.warn("Unable to read metadata", e);
-            return stripeUserMapping.getLastRequestedAccountType();
+            AccountType lastAccountType = stripeUserMapping.getLastRequestedAccountType();
+            if (lastAccountType != null) {
+                return lastAccountType;
+            } else {
+                LOGGER.error("Unable to determine what user paid subscription for");
+                return AccountType.STANDARD;
+            }
         }
     }
 
@@ -384,6 +422,24 @@ public class PaymentController {
                 return ((PaymentIntent) object).getCustomer();
             } else if (object instanceof Subscription) {
                 return ((Subscription) object).getCustomer();
+            }
+        }
+        return null;
+    }
+
+    private String getCustomerEmail(Event event, String payload) {
+        if (event.getDataObjectDeserializer().getObject().isPresent()) {
+            StripeObject object = event.getDataObjectDeserializer().getObject().get();
+            if (object instanceof Session) {
+                return ((Session) object).getCustomerEmail();
+            } else if (object instanceof Invoice) {
+                return ((Invoice) object).getCustomerEmail();
+            } else if (object instanceof Customer) {
+                return ((Customer) object).getEmail();
+            } else if (object instanceof PaymentIntent) {
+                return ((PaymentIntent) object).getCustomerObject().getEmail();
+            } else if (object instanceof Subscription) {
+                return ((Subscription) object).getCustomerObject().getEmail();
             }
         }
         return null;
@@ -453,7 +509,7 @@ public class PaymentController {
         return url;
     }
 
-    private String createUser(DecodedJWT jwt) {
+    private String createCustomer(DecodedJWT jwt) {
         try {
             String email = jwt.getSubject();
 

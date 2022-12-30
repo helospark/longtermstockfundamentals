@@ -2,7 +2,7 @@ const autoCompleteJS = new autoComplete({
     placeHolder: "Search for stocks...",
     data: {
         src: async (query) => {
-          let url = "http://localhost:8080/suggest?search=" + query;
+          let url = "/suggest?search=" + query;
           
           result = [];
           suggestions = await fetch(url)
@@ -44,7 +44,7 @@ var stock = document.getElementById("stock").innerText;
 var stockToLoad = document.getElementById("stockToLoad").innerText;
 
 function populateProfile() {
-  let url = 'http://localhost:8080/' + stockToLoad + "/financials/profile";
+  let url = '/' + stockToLoad + "/financials/profile";
   
   fetch(url)
           .then(res => res.json())
@@ -53,9 +53,11 @@ function populateProfile() {
             console.log(out);
             console.log(out.status);
             if (out.description !== undefined) {
+              symbolText = out.currencySymbol == "" ? "" : "(" + out.currencySymbol + ")";
               innerHtml = "";
               innerHtml += "<ul>";
-              innerHtml += "<li>Currency: " + out.currency + "</li>";
+              innerHtml += "<li>Reporting currency: " + out.reportedCurrency + " " + symbolText + "</li>";
+              innerHtml += "<li>Trading currency: " + out.currency + "</li>";
               innerHtml += "<li>Industry: " + out.sector + " (" + out.industry + ")</li>";
               innerHtml += "<li>Exchange: " + out.exchange + "</li>";
               if (out.website !== undefined && out.website != null) {
@@ -74,7 +76,7 @@ function populateProfile() {
 }
 
 function addFlags() {
-  let url = 'http://localhost:8080/' + stockToLoad + "/financials/flags";
+  let url = '/' + stockToLoad + "/financials/flags";
   var flagsDiv = document.getElementById("flags");
   fetch(url)
           .then(res => res.json())

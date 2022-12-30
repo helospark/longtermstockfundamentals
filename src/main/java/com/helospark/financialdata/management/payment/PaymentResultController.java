@@ -26,6 +26,13 @@ public class PaymentResultController {
         return "index";
     }
 
+    @GetMapping("/payment/return-from-management-portal")
+    public String onPaymentSuccess(Model model) {
+        model.addAttribute("generalMessageRedirectImmediately", "/");
+        model.addAttribute("generalMessageRefreshJwt", true);
+        return "index";
+    }
+
     @GetMapping(PAYMENT_CANCEL_URI)
     public String onPaymentCancelled() {
         return "redirect:/";

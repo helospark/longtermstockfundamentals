@@ -21,6 +21,8 @@ public class RegistrationController {
     RegisterService registerService;
     @Autowired
     private RecaptchaValidationService recaptchaService;
+    @Autowired
+    private DisposableEmailPredicate disposableEmailPredicate;
 
     @PostMapping("/user/register")
     @RateLimit(requestPerMinute = 10)
@@ -33,6 +35,9 @@ public class RegistrationController {
         }
         if (request.acceptTerms == null || !request.acceptTerms) {
             throw new RegistrationException("You must accept terms and privacy policy", "accept_terms");
+        }
+        if (disposableEmailPredicate.isDisposableEmail(request.email)) {
+            throw new RegistrationException("You cannot use a disposable email", "register_email");
         }
 
         registerService.registerUser(request);

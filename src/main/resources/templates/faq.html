@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- basic -->
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!-- mobile metas -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="initial-scale=1, maximum-scale=1">
+<!-- site metas -->
+<title>Long term stock fundamentals</title>
+<meta name="keywords" content="stock, fundamentals, long-term, long term, trends, risk, analysis, research">
+<meta name="description" content="Long term stock fundamentals">
+<!-- style css -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+<!-- Responsive-->
+<link rel="stylesheet" href="/css/responsive.css">
+<!-- Scrollbar Custom CSS -->
+<link rel="stylesheet" href="/css/jquery.mCustomScrollbar.min.css">
+<!-- Tweaks for older IEs-->
+<link rel="stylesheet" href="https://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
+<link rel="stylesheet" href="/css/autocomplete/autocomplete.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<script src="/js/jquery.min.js"></script>
+<script th:src="'https://www.google.com/recaptcha/api.js?render=' + ${recaptchaSiteKey}"></script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cookie">
+
+
+<script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+
+<link rel="stylesheet" type="text/css" href="/css/style.css">
+<link rel="stylesheet" type="text/css" href="/css/common-style.css">
+</head>
+<body>
+	<header id="home" class="section">
+	<div class="header_main">
+         <!-- header inner -->
+         <div class="header">
+            <div class="container">
+               <div class="row">
+                  <div class="col-lg-5 col logo_section">
+                     <div class="full">
+                        <div class="center-desk">
+                           <a href="/">
+                             <div class="logo">
+                                <h1 style="float:left;color:white; margin-right: 10px;margin-top:8px;"><i class="fa-solid fa-chart-simple"></i></h1>
+                                <h1 style="color:white;font-family:Cookie;line-height: 0.8;letter-spacing: -2px;">LongTermStock<br/>Fundamentals</h1>
+                             </div>
+                           </a>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <!-- end header inner -->
+      <section >
+      	<div class="bannen_inner">
+            <div class="container">
+                <div class="row marginii">
+                    <div class="">
+                        <h1 class=""><strong>Frequently asked questions</strong></h1>
+                        
+                        <div class="faq-card">
+                        <a name="about"><h2 class="faq-question">What is this site about?</h2></a>
+                        <p class="faq-answer">
+                        Finding and visualizing information on a company's long term fundamentals can be challenging, this site is here to help simplify that.
+                        <p>
+                        It is intended for long term investors who want to find good value in the stock market.
+                        </p>
+                        </div>
+
+                        <div class="faq-card">
+                        <a name="is_financial_advice"><h2  class="faq-question">Is this investment advice?</h2></a>
+                        <p>No, this site is purely displaying information on stocks, no information on this site should be taken as fincancial advice.<br/>
+                        You have to know your own risk tolerance, financial position, financial goals and you have to do your own due diligence before investing in anything.
+                        </p>
+                        </div>
+
+                        <div class="faq-card">
+                        <a name="email"><h2  class="faq-question">Will you spam me with emails after I sign up?</h2></a>
+                        <p>
+                        No, we ask for email only to prevent duplicate accounts and to send important account/payment related emails.<br/>
+                        We do not send marketing emails or newsletter to you. 
+                        </p>
+                        </div>
+
+
+                        <div class="faq-card">
+                        <a name="free_plan"><h2  class="faq-question">Is the free plan really free?</h2></a>
+                        <p>
+                        Yes, it is free. When registering free plan, you do not have to give any credit card or any payment information.<br/>
+                        However the free plan has limited functionality. You can only view 5 different stocks per month.<br/>
+                        On the 1st of every month the view counter resets, and you may view 5 more stocks.
+                        </p>
+                        </div>
+                        
+                        <div class="faq-card">
+                        <a name="more_than_one_account"><h2  class="faq-question">Can I register multiple account with multiple emails?</h2></a>
+                        <p>
+                        Only one account per user is permitted.
+                        </p>
+                        </div>
+                        
+                        <div class="faq-card">
+                        <a name="payment_secure"><h2 class="faq-question">Is payment secure?</h2></a>
+                        <p>Yes, payment is provided securely by our payment gateway <a href="https://stripe.com/">Stripe</a>. We do not store or handle credit cards.</p>
+                        </div>
+                        
+                        
+                        
+                        <div class="faq-card">
+                        <a name="proration"><h2 class="faq-question">I have upgraded/downgraded the plan, and find the charged amount strange. What is up with that?</h2></a>
+                        <p>We use <a href="https://stripe.com/docs/billing/subscriptions/prorations">prorate pricing</a>, which is the most fair pricing model, since you are not wasting any money if you upgrade/downgrade, but the charge may be a little surprising.
+                        <p>For example if you ugrade from $5 plan to $10 plan in the middle of your payment period, you have to pay half of the $10 plan = $5 (since you will use this for half a month before your next payment), but you get back 
+                        $2.5 credit as you have half a month of unused $5 plan payment. So overall you will immediately be charged $5-$2.5 = $2.5, then from that point on, you will be charged the $10/month for your new plan.
+                        <p>Similarly, if you downgrade from $10 plan to $5 plan at the half way point, you have $5 unused credit, so you won't be charged immediately, and in the next billing period you will also not be charged (you have $5 credit and you subscribed to a $5 plan), then you are charged as normal $5/mo.
+                        </p>
+                        </div>
+                        
+
+                        <div class="faq-card">
+                        <a name="cancel"><h2 class="faq-question">Can I cancel any time?</h2></a>
+                        <p>Yes, you can cancel any time.</p>
+                        </div>
+                        
+                        <div class="faq-card">
+                        <a name="how_to_cancel"><h2 class="faq-question">How can I cancel my subscription?</h2></a>
+                        <p>On the home page click the downgrade button on free plan. You will not be charged any more, but you can still enjoy your paid plan until the end of your payment term.</p>
+                        </div>
+                        
+                        <div class="faq-card">
+                        <a name="refund"><h2 class="faq-question">Can I get a refund if I cancel before end of payment term?</h2></a>
+                        <p>No, we do not offer refunds it this time. If you cancel, you can still use your subscription until the end of the term.</p>
+                        </div>
+                        
+                        <div class="faq-card">
+                        <a name="contact"><h2 class="faq-question">I have some question, suggestion or concern, who to contact?</h2></a>
+                        <p>
+                        Please use support@longtermstockfundamentals.com email address to contact us.
+                        </p>
+                        </div>
+
+                    </div>
+            </div>
+           </div>
+
+     </div>
+    </div>
+    </section>
+	</header>
+</body>
+</html>
+
+
+

@@ -80,4 +80,8 @@ public class ViewedStocksService {
     public int getAllowedViewCount(AccountType accountType) {
         return accountType.getAllowedStocksPerMonth();
     }
+
+    public void clearCache() {
+        viewedStocksCache.invalidateAll();
+    }
 }

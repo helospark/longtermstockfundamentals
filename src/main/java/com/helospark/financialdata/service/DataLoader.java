@@ -12,7 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Currency;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +23,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
@@ -44,6 +49,7 @@ import com.helospark.financialdata.domain.TresuryRate;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 
 public class DataLoader {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DataLoader.class);
     private static final String CACHE_SAVE_FILE = "/tmp/cache.ser";
     private static Striped<Lock> duplicateLoadLocks = Striped.lock(1000);
 
@@ -111,12 +117,24 @@ public class DataLoader {
         } else {
             profile = profiles.get(0);
         }
+        if (incomeStatement.size() > 0) {
+            profile.reportedCurrency = incomeStatement.get(0).reportedCurrency;
+            profile.currencySymbol = getCurrencySymbol(incomeStatement);
+        }
 
         CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, remoteRatios, enterpriseValues, historicalPrice, keyMetrics, profile);
 
         cache.put(symbol, result);
 
         return result;
+    }
+
+    public static String getCurrencySymbol(List<IncomeStatement> incomeStatement) {
+        try {
+            return Currency.getInstance(incomeStatement.get(0).reportedCurrency).getSymbol();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static CompanyFinancials createToTtm(String symbol, List<BalanceSheet> balanceSheets, List<IncomeStatement> incomeStatements, List<CashFlow> cashFlows, List<RemoteRatio> remoteRatios,
@@ -362,21 +380,43 @@ public class DataLoader {
                 date = LocalDate.of(2022, 12, 30);
             }
         }
-        Optional<FxRatesResponse> ratesResponse = loadFxFile(fromCurrency, date);
-        if (ratesResponse.isPresent()) {
-            Double conversionValue = getConversionValue(toCurrency, date, ratesResponse.get());
+
+        var oneYearRate = loadFxFile(fromCurrency, date);
+        if (oneYearRate.isPresent()) {
+            var simpleConversion = findClosesConversionRate(value, toCurrency, date, oneYearRate.get().rates);
+            if (simpleConversion.isPresent()) {
+                return simpleConversion;
+            }
+        }
+        // sometimes there are no conversion rates in the entire rate, try finding the closes one on the surrounding 10 years
+        Map<String, Map<String, Double>> rates = new LinkedHashMap<>();
+        for (int i = 10; i >= -10; --i) {
+            LocalDate newDate = date.plusYears(i);
+            Optional<FxRatesResponse> ratesResponse = loadFxFile(fromCurrency, newDate);
+            if (ratesResponse.isPresent()) {
+                rates.putAll(ratesResponse.get().rates);
+            }
+        }
+        return findClosesConversionRate(value, toCurrency, date, rates);
+    }
+
+    public static Optional<Double> findClosesConversionRate(double value, String toCurrency, LocalDate date, Map<String, Map<String, Double>> rates) {
+        if (rates.size() > 0) {
+            Double conversionValue = getConversionValue(toCurrency, date, rates);
             if (conversionValue != null) {
                 return Optional.of(value * conversionValue);
             } else {
+                LOGGER.warn("No currency conversion for " + toCurrency + " at date " + date);
                 return Optional.empty();
             }
         } else {
+            LOGGER.warn("No currency conversion for " + toCurrency + " at date " + date);
             return Optional.empty();
         }
     }
 
-    private static Double getConversionValue(String toCurrency, LocalDate date, FxRatesResponse fxRatesResponse) {
-        Map<String, Double> conversions = getConversionValueAtDate(date, fxRatesResponse, toCurrency);
+    private static Double getConversionValue(String toCurrency, LocalDate date, Map<String, Map<String, Double>> rates) {
+        Map<String, Double> conversions = getConversionValueAtDate(date, rates, toCurrency);
         if (conversions == null) {
             return null;
         }
@@ -384,14 +424,14 @@ public class DataLoader {
         return conversionValue;
     }
 
-    private static Map<String, Double> getConversionValueAtDate(LocalDate date, FxRatesResponse fxRatesResponse, String toCurrency) {
-        Map<String, Double> result = fxRatesResponse.rates.get(date.toString());
+    private static Map<String, Double> getConversionValueAtDate(LocalDate date, Map<String, Map<String, Double>> rates, String toCurrency) {
+        Map<String, Double> result = rates.get(date.toString());
         if (result != null && result.containsKey(toCurrency)) {
             return result;
         }
         result = null;
         long minDays = Integer.MAX_VALUE;
-        for (var entry : fxRatesResponse.rates.entrySet()) {
+        for (var entry : rates.entrySet()) {
             LocalDate entryDate = LocalDate.parse(entry.getKey());
             if (entry.getValue().containsKey(toCurrency) && (result == null || Helpers.daysBetween(entryDate, date) < minDays)) {
                 result = entry.getValue();

@@ -3,7 +3,7 @@ const autoCompleteJS = new autoComplete({
     placeHolder: "Search for stocks...",
     data: {
         src: async (query) => {
-          let url = "http://localhost:8080/suggest?search=" + query;
+          let url = "/suggest?search=" + query;
           
           result = [];
           suggestions = await fetch(url)

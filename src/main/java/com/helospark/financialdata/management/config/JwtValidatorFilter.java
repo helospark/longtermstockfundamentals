@@ -47,16 +47,19 @@ public class JwtValidatorFilter implements Filter {
         if (!isExcludedUri(httpRequest)) {
             Optional<Cookie> jwtCookie = loginController.findCookie(httpRequest, LoginController.JWT_COOKIE_NAME);
 
+            boolean loggedIn = false;
             if (jwtCookie.isPresent()) {
                 Optional<DecodedJWT> decodedJwt = jwtService.getDecodedJwt(jwtCookie.get().getValue());
                 if (!decodedJwt.isPresent()) {
-                    request = new CookieRemovingWrapper(httpRequest, Set.of(LoginController.JWT_COOKIE_NAME));
+                    httpRequest = new CookieRemovingWrapper(httpRequest, Set.of(LoginController.JWT_COOKIE_NAME));
                     loginController.addAuthorizationCookie(httpResponse, 0, "");
                 } else {
-                    request.setAttribute(JWT_ATTRIBUTE, decodedJwt.get());
+                    httpRequest.setAttribute(JWT_ATTRIBUTE, decodedJwt.get());
                     MDC.put("email", decodedJwt.get().getSubject());
+                    loggedIn = true;
                 }
-            } else {
+            }
+            if (!loggedIn) {
                 try {
                     Optional<Cookie> rememberMeCookie = loginController.findCookie(httpRequest, LoginController.REMEMBER_ME_COOKIE_NAME);
                     if (rememberMeCookie.isPresent()) {
@@ -68,8 +71,8 @@ public class JwtValidatorFilter implements Filter {
                             Optional<DecodedJWT> decodedJwt = jwtService.getDecodedJwt(cookie.getValue());
 
                             if (decodedJwt.isPresent()) {
-                                request.setAttribute(JWT_ATTRIBUTE, decodedJwt.get());
-                                request = new CookieAddingWrapper(httpRequest, List.of(cookie));
+                                httpRequest.setAttribute(JWT_ATTRIBUTE, decodedJwt.get());
+                                httpRequest = new CookieAddingWrapper(httpRequest, List.of(cookie));
                             }
                         } else {
                             LOGGER.warn("Persistent signin cookie present, but data not available in DB");
@@ -82,6 +85,7 @@ public class JwtValidatorFilter implements Filter {
         }
 
         chain.doFilter(request, response);
+
     }
 
     private boolean isExcludedUri(HttpServletRequest httpRequest) {

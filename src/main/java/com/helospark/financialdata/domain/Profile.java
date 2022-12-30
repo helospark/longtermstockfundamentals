@@ -39,4 +39,6 @@ public class Profile {
     public boolean isActivelyTrading; //true,
     public boolean isAdr; //true,
     public boolean isFund; //false
+    public String reportedCurrency;
+    public String currencySymbol;
 }
