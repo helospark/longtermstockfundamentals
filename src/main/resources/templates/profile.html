@@ -70,12 +70,18 @@
                             <div class="col-md-3" th:text="${loginEmail}">
                             </div>
                           </div>
-                          <div class="row profile-row">
+                          <div class="row profile-row" th:unless="${viewLimitText == '∞'}">
                             <div class="col-md-4">
                               Stocks viewed
                             </div>
                             <div class="col-md-3" th:text="${currentlyViewText} + ' / ' + ${viewLimitText}">
-                              Email
+                            </div>
+                          </div>
+                          <div class="row profile-row" th:if="${viewLimitText == '∞'}">
+                            <div class="col-md-4">
+                              Account limit
+                            </div>
+                            <div class="col-md-3" th:text="${viewLimitText}">
                             </div>
                           </div>
                           <div class="row profile-row" th:unless="${accountType == 'FREE'}">
@@ -191,7 +197,7 @@
                         result = json.errorMessage;
                         redirectTo = "/profile";
                       }
-                      
+
                       $("#generic-modal .modal-content").html(`
                           <div class="modal-header">
                               <h5 class="modal-title">Delete account</h5>

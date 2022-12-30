@@ -24,6 +24,8 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
+import com.helospark.financialdata.management.email.EmailSender;
+import com.helospark.financialdata.management.email.EmailTemplateReader;
 import com.helospark.financialdata.management.payment.repository.StripeUserMapping;
 import com.helospark.financialdata.management.payment.repository.StripeUserMappingRepository;
 import com.helospark.financialdata.management.payment.repository.UserLastPayment;
@@ -62,6 +64,10 @@ public class PaymentController {
     private UserRepository userRepository;
     @Autowired
     private UserLastPaymentRepository userLastPaymentRepository;
+    @Autowired
+    private EmailSender emailSender;
+    @Autowired
+    private EmailTemplateReader emailTemplateReader;
 
     @Value("${stripe.key.secret}")
     private String stripeSecretKey;
@@ -74,6 +80,8 @@ public class PaymentController {
     private boolean https;
     @Value("${website.port:0}")
     private int port;
+    @Value("${payment.failed.email-enabled}")
+    private boolean sendEmailOnFailure;
 
     private Map<AccountType, String> accountToPriceMap = new HashMap<>();
 
@@ -234,6 +242,8 @@ public class PaymentController {
 
     public String createManagementUrlWithReturn(String customerId, String returnUri) {
         try {
+            Stripe.apiKey = stripeSecretKey;
+
             com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
                     .setReturnUrl(returnUri)
                     .setCustomer(customerId)
@@ -258,6 +268,7 @@ public class PaymentController {
 
     @PostMapping("/stripe/webhook")
     private ResponseEntity<String> stripeWebhook(@RequestBody String payload, @RequestHeader("Stripe-Signature") String sigHeader) {
+        Stripe.apiKey = stripeSecretKey;
         LOGGER.debug("Webhook payment event received: payload='{}', signature='{}'", payload, sigHeader);
         Event event = null;
 
@@ -330,6 +341,16 @@ public class PaymentController {
 
                     break;
                 }
+                case "customer.created": {
+                    Customer customer = ((Customer) event.getDataObjectDeserializer().getObject().get());
+                    var userMapping = optionalUserMapping.get();
+                    stripeUserMappingRepository.removeAllEntriesWithEmail(userMapping.getEmail()); // when an account is recreated
+                    userMapping.setStripeCustomerId(customer.getId());
+                    stripeUserMappingRepository.save(userMapping);
+                    LOGGER.info("[{}] Customer created with id={}", eventType, customer.getId());
+
+                    break;
+                }
                 case "customer.subscription.deleted": {
                     var userMapping = optionalUserMapping.get();
                     LOGGER.info("[{}] User '{}' changed from '{}' to FREE account, because subscription was deleted", eventType, user.getEmail(), user.getAccountType());
@@ -370,9 +391,14 @@ public class PaymentController {
                 case "invoice.payment_failed": {
                     Invoice invoice = ((Invoice) event.getDataObjectDeserializer().getObject().get());
                     LOGGER.error("[{}] Payment failed for user={}, attempts={}", eventType, user, invoice.getAttemptCount());
-                    // The payment failed or the customer does not have a valid payment method.
-                    // The subscription becomes past_due. Notify your customer and send them to the
-                    // customer portal to update their payment information.
+
+                    if (sendEmailOnFailure) {
+                        String customerPortal = createManagementUrl(customerId);
+
+                        String email = emailTemplateReader.readTemplate("declined-email-template.html", Map.of("STRIPE_CUSTOMER_PORTAL", customerPortal));
+
+                        emailSender.sendEmail(email, "Payment declined for LongTermStockFundamentals subscription", user.getEmail());
+                    }
                     break;
                 }
                 default:

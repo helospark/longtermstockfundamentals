@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.helospark.financialdata.management.email.EmailSender;
+import com.helospark.financialdata.management.email.EmailTemplateReader;
 import com.helospark.financialdata.management.helper.SimpleTemplater;
 import com.helospark.financialdata.management.user.repository.ConfirmationEmail;
 import com.helospark.financialdata.management.user.repository.ConfirmationEmailRepository;
@@ -36,6 +37,8 @@ public class ConfirmationEmailService {
     private int port;
     @Autowired
     private SimpleTemplater simpleTemplater;
+    @Autowired
+    private EmailTemplateReader emailTemplateReader;
 
     public void sendConfirmationEmail(String email) {
         byte[] bytes = new byte[30];
@@ -53,18 +56,10 @@ public class ConfirmationEmailService {
 
         String confirmationUrl = buildConfirmationUrl(confirmationToken);
 
-        Map<String, String> templates = Map.of("URL", confirmationUrl);
+        String subject = "Confirm your email for LongTermStockFundamentals";
+        String emailHtml = emailTemplateReader.readTemplate("confirm-email.html", Map.of("CONFIRM_URL", confirmationUrl));
 
-        String subject = "LongTermStockFundamentals - Activate account";
-        String message = "Hello!"
-                + "<p>You are receiving this message, because you have signed up to <a href=\"longtermstockfundamentals.com\">longtermstockfundamentals.com</a> with this email address.<br/>"
-                + "Click on this link to activate your account:<br/>"
-                + "<a href=\"{{URL}}\">{{URL}}</a>"
-                + "</p><br/>"
-                + "<p>If you have not signed up, you can safely ignore this message.</p>"
-                + "Regards,<br/>LongTermStocksFundamentals.com team";
-
-        emailSender.sendEmail(simpleTemplater.template(message, templates), subject, email);
+        emailSender.sendEmail(emailHtml, subject, email);
     }
 
     public void activeAccount(String token) {

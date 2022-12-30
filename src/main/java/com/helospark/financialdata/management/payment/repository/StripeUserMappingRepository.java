@@ -22,6 +22,16 @@ public class StripeUserMappingRepository {
     }
 
     public Optional<StripeUserMapping> findStripeUserMappingByEmail(String email) {
+        PaginatedScanList<StripeUserMapping> result = findAllStripeUsersWithEmail(email);
+
+        if (result != null && result.size() > 0) {
+            return Optional.of(result.get(0));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public PaginatedScanList<StripeUserMapping> findAllStripeUsersWithEmail(String email) {
         Map<String, AttributeValue> eav = new HashMap<String, AttributeValue>();
         eav.put(":val1", new AttributeValue().withS(email));
 
@@ -30,12 +40,11 @@ public class StripeUserMappingRepository {
                 .withExpressionAttributeValues(eav);
 
         PaginatedScanList<StripeUserMapping> result = mapper.scan(StripeUserMapping.class, scanExpression);
+        return result;
+    }
 
-        if (result != null && result.size() > 0) {
-            return Optional.of(result.get(0));
-        } else {
-            return Optional.empty();
-        }
+    public void removeAllEntriesWithEmail(String email) {
+        findAllStripeUsersWithEmail(email).forEach(entry -> mapper.delete(entry));
     }
 
     public void removeConfirmationEmail(String value) {

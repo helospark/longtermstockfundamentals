@@ -65,7 +65,7 @@ public class User {
 
     @Override
     public String toString() {
-        return "User [email=" + email + ", password=" + password + ", activated=" + activated + ", registered=" + registered + ", accountType=" + accountType + ", cancelling=" + cancelling + "]";
+        return "User [email=" + email + ", activated=" + activated + ", registered=" + registered + ", accountType=" + accountType + ", cancelling=" + cancelling + "]";
     }
 
 }

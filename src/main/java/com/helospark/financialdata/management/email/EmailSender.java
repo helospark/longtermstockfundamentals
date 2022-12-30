@@ -10,17 +10,22 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class EmailSender {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmailSender.class);
     @Value("${smtp.username}")
     String userName;
     @Value("${smtp.password}")
     String password;
     @Value("${smtp.from}")
     String from;
+    @Value("${smtp.debug}")
+    boolean debug;
 
     public void sendEmail(String htmlMessage, String subject, String email) {
         String to = email;
@@ -45,8 +50,9 @@ public class EmailSender {
 
         });
 
-        // Used to debug SMTP issues
-        session.setDebug(true);
+        if (debug) {
+            session.setDebug(true);
+        }
 
         try {
             MimeMessage message = new MimeMessage(session);
@@ -55,11 +61,10 @@ public class EmailSender {
             message.setSubject(subject);
             message.setContent(htmlMessage,
                     "text/html; charset=utf-8");
-            System.out.println("sending...");
+            LOGGER.info("Sending email to {} with title '{}'", email, subject);
             Transport.send(message);
-            System.out.println("Sent message successfully....");
         } catch (MessagingException mex) {
-            mex.printStackTrace();
+            LOGGER.error("Unable to send email", mex);
         }
 
     }
