@@ -19,7 +19,7 @@
   <script>
     redirectImmediately = $("#general-message-modal-redirect-immediately").text();
     refreshNeeded=$("#general-message-modal-refresh-jwt").text()
-    console.log("REDIRECT=" + redirectImmediately);
+    console.log("REDIRECT_IMMEDIATELY=" + redirectImmediately);
     if (redirectImmediately.startsWith("/")) {
        if (refreshNeeded == "true") {
           fetch('/user/jwt/refresh?force=true', {

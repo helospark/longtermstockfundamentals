@@ -36,6 +36,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 public class LoginController {
+    public static final String CANCELLING_CLAIM = "cancelling";
     private static final int TWO_MINUTES_IN_MS = 2 * 60 * 1000;
     public static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
     public static final String JWT_COOKIE_NAME = "Authorization";
@@ -212,6 +213,7 @@ public class LoginController {
                 .withExpiresAt(expiration)
                 .withSubject(user.getEmail())
                 .withClaim(JwtService.ACCOUNT_TYPE_CLAIM, user.getAccountType().toString())
+                .withClaim(CANCELLING_CLAIM, user.isCancelling())
                 .sign(jwtService.getAlgorithm());
     }
 

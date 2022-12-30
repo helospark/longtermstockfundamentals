@@ -116,6 +116,7 @@
                         <p>For example if you ugrade from $5 plan to $10 plan in the middle of your payment period, you have to pay half of the $10 plan = $5 (since you will use this for half a month before your next payment), but you get back 
                         $2.5 credit as you have half a month of unused $5 plan payment. So overall you will immediately be charged $5-$2.5 = $2.5, then from that point on, you will be charged the $10/month for your new plan.
                         <p>Similarly, if you downgrade from $10 plan to $5 plan at the half way point, you have $5 unused credit, so you won't be charged immediately, and in the next billing period you will also not be charged (you have $5 credit and you subscribed to a $5 plan), then you are charged as normal $5/mo.
+                        <p>During cancel you can still use the service until the end of your payment period (1 month after your last payment), during this time plans will show your plan as "Cancelling...". You will not be charged anymore.
                         </p>
                         </div>
                         
@@ -150,6 +151,8 @@
     </div>
     </section>
 	</header>
+  <div th:replace="fragments/general-message-modal"></div>
+  <div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
 </body>
 </html>
 

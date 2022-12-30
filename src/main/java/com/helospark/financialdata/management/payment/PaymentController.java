@@ -175,6 +175,10 @@ public class PaymentController {
                         .build();
 
                 subscription.update(params);
+
+                User user = userRepository.findByEmail(email).get();
+                user.setCancelling(true);
+                userRepository.save(user);
             }
         } catch (Exception e) {
             throw new PaymentException("Unable to cancel subscription", e);
@@ -225,9 +229,13 @@ public class PaymentController {
     }
 
     private String createManagementUrl(String customerId) {
+        return createManagementUrlWithReturn(customerId, buildBaseUrl());
+    }
+
+    public String createManagementUrlWithReturn(String customerId, String returnUri) {
         try {
             com.stripe.param.billingportal.SessionCreateParams params = new com.stripe.param.billingportal.SessionCreateParams.Builder()
-                    .setReturnUrl(buildBaseUrl())
+                    .setReturnUrl(returnUri)
                     .setCustomer(customerId)
                     .build();
             com.stripe.model.billingportal.Session portalSession = com.stripe.model.billingportal.Session.create(params);
@@ -524,6 +532,38 @@ public class PaymentController {
         } catch (Exception e) {
             throw new PaymentException("Unable to create user on Stripe", e);
         }
+    }
+
+    @PostMapping("/payment/customerportal")
+    public Object redirectToCustomerPortal(HttpServletRequest request, Model model) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(request);
+
+        if (!jwt.isPresent()) {
+            model.addAttribute("generalMessageTitle", "You are not logged in");
+            model.addAttribute("generalMessageBody", "You must be logged in to view customer portal");
+            model.addAttribute("generalMessageRedirect", "/");
+            return "index";
+        }
+
+        Optional<StripeUserMapping> optionalUserMapping = stripeUserMappingRepository.findStripeUserMappingByEmail(jwt.get().getSubject());
+
+        if (!optionalUserMapping.isPresent()) {
+            model.addAttribute("generalMessageTitle", "You do not have subscription");
+            model.addAttribute("generalMessageBody", "No subscription found for your account");
+            model.addAttribute("generalMessageRedirect", "/");
+            return "index";
+        }
+
+        String url = buildBaseUrl() + "/profile";
+        String managementUrl = createManagementUrlWithReturn(optionalUserMapping.get().getStripeCustomerId(), url);
+
+        RedirectView redirectView = new RedirectView(managementUrl);
+        redirectView.setStatusCode(HttpStatus.SEE_OTHER);
+        return redirectView;
+    }
+
+    public String getStripeSecretKey() {
+        return stripeSecretKey;
     }
 
 }

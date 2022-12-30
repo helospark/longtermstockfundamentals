@@ -39,4 +39,5 @@ public class ViewedStocksRepository {
             clearViewedStocks(element.getEmail());
         });
     }
+
 }

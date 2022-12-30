@@ -20,4 +20,8 @@ public class UserRepository {
         mapper.save(user);
     }
 
+    public void delete(User user) {
+        mapper.delete(user);
+    }
+
 }

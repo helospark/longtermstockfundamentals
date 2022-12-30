@@ -73,6 +73,7 @@
                          
                           <div th:if="${isLoggedIn}">
                              <a class="btn btn-lg btn-dark" href="javascript:;" onclick="logout(e)" role="button">Sign out</a>
+                             <a class="btn btn-lg btn-success" href="/profile" role="button">Profile</a>
                           </div>
                           <div th:unless="${isLoggedIn}">
                              <a class="get_bg" href="#sign_up" role="button">Sign up</a>
@@ -509,8 +510,8 @@ function showPlans() {
 
 </script>
 <div th:replace="fragments/general-message-modal"></div>
-<div th:replace="fragments/after-payment-fragment"></div>
 <div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
+<div th:replace="fragments/after-payment-fragment"></div>
 
 </body>
 </html>

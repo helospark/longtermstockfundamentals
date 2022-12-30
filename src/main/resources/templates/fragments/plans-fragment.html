@@ -18,7 +18,7 @@
                       th:text="${loginAccountTypeIndex <= 0 ? 'Upgrade' : 'Downgrade'}"
                       type="button" class="btn"
                       th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
-                      onclick="onSubscriptionRequested('subscribe-free-form', 'free')"></button>
+                      onclick="onSubscriptionRequested('subscribe-free-form', 'free')" th:disabled="${cancelling == 'true'}"></button>
                   </form>
                 <h1 class="currently-selected-plan" th:if="${loginAccountType == 'FREE'}">✔</h1>
                 </div>
@@ -42,7 +42,10 @@
                     type="button" class="btn"
                     th:classappend="${loginAccountTypeIndex <= 1 ? 'btn-primary' : 'btn-outline-danger'}"
                     onclick="onSubscriptionRequested('subscribe-standard-form', 'standard')"></button>
-                    <h1 class="currently-selected-plan" th:if="${loginAccountType == 'STANDARD'}">✔</h1>
+                    <h1 class="currently-selected-plan" th:if="${loginAccountType == 'STANDARD'}">
+                      <span th:unless="${cancelling == 'true'}">✔</span>
+                      <span style="font-size:16pt" th:if="${cancelling == 'true'}">Cancelling...</span>
+                    </h1>
                   </form>
                 </div>
               </div>
@@ -66,7 +69,10 @@
                           type="button" class="btn"
                           th:classappend="${loginAccountTypeIndex <= 2 ? 'btn-primary' : 'btn-outline-danger'}"
                           onclick="onSubscriptionRequested('subscribe-advanced-form', 'advanced')"></button>
-                    <h1 class="currently-selected-plan" th:if="${loginAccountType == 'ADVANCED'}">✔</h1>
+                    <h1 class="currently-selected-plan" th:if="${loginAccountType == 'ADVANCED'}">
+                      <span th:unless="${cancelling == 'true'}">✔</span>
+                      <span style="font-size:16pt" th:if="${cancelling == 'true'}">Cancelling...</span>
+                    </h1>
                   </form>
                 </div>
               </div>

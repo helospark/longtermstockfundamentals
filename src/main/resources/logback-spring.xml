@@ -6,10 +6,8 @@
   <property name="pattern" value="%-5p %d{yyyy-MM-dd HH:mm:ss.SSS} %c [thread=%thread] [ip=%X{clientIp}] [requestId=%X{requestId}] [email=%X{email}] %msg %ex%n" />
 
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
         <level>INFO</level>
-        <onMatch>ACCEPT</onMatch>
-        <onMismatch>DENY</onMismatch>
     </filter>
     <layout class="ch.qos.logback.classic.PatternLayout">
       <Pattern>
@@ -19,10 +17,8 @@
   </appender>
 
   <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
         <level>INFO</level>
-        <onMatch>ACCEPT</onMatch>
-        <onMismatch>DENY</onMismatch>
     </filter>
     <file>${log.path}/${log.filename.prefix}.log</file>
 
@@ -40,11 +36,9 @@
   </appender>
 
   <appender name="ASYNC_FILE_APPENDER" class="ch.qos.logback.classic.AsyncAppender">
-      <filter class="ch.qos.logback.classic.filter.LevelFilter">
-          <level>DEBUG</level>
-          <onMatch>ACCEPT</onMatch>
-          <onMismatch>DENY</onMismatch>
-      </filter>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+        <level>DEBUG</level>
+    </filter>
       <appender-ref ref="FILE-ROLLING" />
       <discardingThreshold>0</discardingThreshold>
       <queueSize>256</queueSize>

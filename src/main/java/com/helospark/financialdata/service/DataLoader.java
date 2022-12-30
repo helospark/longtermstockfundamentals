@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.stream.Collectors;
@@ -31,6 +30,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.util.concurrent.Striped;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
@@ -55,8 +56,9 @@ public class DataLoader {
 
     static ObjectMapper objectMapper = new ObjectMapper();
 
-    static Map<String, CompanyFinancials> cache = new ConcurrentHashMap<>();
-    static Map<String, FxRatesResponse> fxCache = new ConcurrentHashMap<>();
+    static Cache<String, CompanyFinancials> cache;
+
+    static Cache<String, FxRatesResponse> fxCache;
     static List<TresuryRate> tresuryRateCache;
 
     static {
@@ -66,6 +68,19 @@ public class DataLoader {
     private static void init() {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.registerModule(new JSR310Module());
+
+        int cacheSize = getConfig("STOCK_CACHE_SIZE", 50000);
+        int fcCacheSize = getConfig("FX_CACHE_SIZE", 10000);
+
+        cache = Caffeine.newBuilder()
+                .expireAfterWrite(1, TimeUnit.DAYS)
+                .maximumSize(cacheSize)
+                .build();
+
+        fxCache = Caffeine.newBuilder()
+                .expireAfterWrite(1, TimeUnit.DAYS)
+                .maximumSize(fcCacheSize)
+                .build();
 
         //        File cacheFile = new File(CACHE_SAVE_FILE);
         //        if (cacheFile.exists()) {
@@ -78,8 +93,17 @@ public class DataLoader {
         //        }
     }
 
+    public static int getConfig(String config, int defaultValue) {
+        String cacheSizeInt = System.getProperty(config);
+        int cacheSize = defaultValue;
+        if (cacheSizeInt != null) {
+            cacheSize = Integer.parseInt(cacheSizeInt);
+        }
+        return cacheSize;
+    }
+
     public static CompanyFinancials readFinancials(String symbol) {
-        CompanyFinancials cachedResult = cache.get(symbol);
+        CompanyFinancials cachedResult = cache.getIfPresent(symbol);
         if (cachedResult != null) {
             return cachedResult;
         }
@@ -95,7 +119,7 @@ public class DataLoader {
     }
 
     private static CompanyFinancials loadData(String symbol) {
-        CompanyFinancials cachedResult = cache.get(symbol);
+        CompanyFinancials cachedResult = cache.getIfPresent(symbol);
         if (cachedResult != null) {
             return cachedResult;
         }
@@ -359,8 +383,8 @@ public class DataLoader {
     public static Optional<FxRatesResponse> loadFxFile(String fromCurrency, LocalDate date) {
         String fileName = fromCurrency + "_" + date.getYear() + ".json";
         try {
-            if (fxCache.containsKey(fileName)) {
-                return Optional.of(fxCache.get(fileName));
+            if (fxCache.getIfPresent(fileName) != null) {
+                return Optional.of(fxCache.getIfPresent(fileName));
             } else {
                 FxRatesResponse result = objectMapper.readValue(new File(FX_BASE_FOLDER + "/" + fileName), FxRatesResponse.class);
                 fxCache.put(fileName, result);

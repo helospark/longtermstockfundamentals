@@ -34,6 +34,7 @@ public class ModelEnrichControllerAdvice {
 
             model.addAttribute("loginExpiry", jwt.getExpiresAt().getTime() - new Date().getTime());
             model.addAttribute("loginEmail", jwt.getSubject());
+            model.addAttribute("cancelling", String.valueOf(jwt.getClaim(LoginController.CANCELLING_CLAIM)));
             model.addAttribute("loginAccountType", loginController.getAccountType(jwt).toString());
             model.addAttribute("loginAccountTypeIndex", loginController.getAccountType(jwt).ordinal());
         }

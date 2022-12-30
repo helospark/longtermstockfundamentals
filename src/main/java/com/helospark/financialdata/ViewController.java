@@ -67,6 +67,22 @@ public class ViewController {
         return "faq";
     }
 
+    @GetMapping("/profile")
+    public String profile(Model model, HttpServletRequest request) {
+        Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+
+        if (!jwtOptional.isPresent()) {
+            return "redirect:/";
+        }
+        var jwt = jwtOptional.get();
+        AccountType accountType = loginController.getAccountType(jwt);
+        int viewLimit = viewedStocksService.getAllowedViewCount(accountType);
+        model.addAttribute("viewLimitText", viewLimit == Integer.MAX_VALUE ? "∞" : Integer.toString(viewLimit));
+        model.addAttribute("currentlyViewText", viewedStocksService.getViewCount(jwt.getSubject()));
+
+        return "profile";
+    }
+
     @GetMapping("/site-map")
     public String siteMap(Model model) {
         List<Pair> exchanges = new ArrayList<>();
