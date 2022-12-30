@@ -18,7 +18,7 @@ public class FinancialsCacheInterceptor implements HandlerInterceptor {
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         if (cachingEnabled) {
             if (response.getStatus() >= 200 && response.getStatus() < 300 && request.getRequestURI() != null && request.getRequestURI().length() < 100) {
-                if (request.getRequestURI().matches("/.*?/financials/.*")) {
+                if (request.getRequestURI().matches("/.*?/financials/.*") || request.getRequestURI().matches("/site-map/.*")) {
                     response.addHeader("Cache-Control", "max-age=" + cachePeriod + ", private, no-transform");
                 }
             }

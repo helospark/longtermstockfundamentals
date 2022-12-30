@@ -1,7 +1,9 @@
 package com.helospark.financialdata;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -22,6 +24,7 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.MarginCalculator;
 import com.helospark.financialdata.service.SymbolIndexProvider;
+import com.helospark.financialdata.service.exchanges.Exchanges;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -62,6 +65,43 @@ public class ViewController {
     @GetMapping("/faq")
     public String faq(Model model) {
         return "faq";
+    }
+
+    @GetMapping("/site-map")
+    public String siteMap(Model model) {
+        List<Pair> exchanges = new ArrayList<>();
+        for (var exchange : Exchanges.values()) {
+            exchanges.add(new Pair(exchange.name(), exchange.getName()));
+        }
+        model.addAttribute("exchanges", exchanges);
+        return "sitemap";
+    }
+
+    @GetMapping("/site-map/exchange/{exchange}")
+    public String siteMap(Model model, @PathVariable("exchange") String exchangeString) {
+        List<Pair> stocks = new ArrayList<>();
+        var exchange = Exchanges.fromString(exchangeString);
+
+        Set<String> symbols = DataLoader.provideSymbolsIn(Set.of(exchange));
+
+        for (var symbol : symbols) {
+            String name = symbolIndexProvider.getCompanyName(symbol).orElse("");
+            stocks.add(new Pair(symbol, name));
+        }
+
+        model.addAttribute("stocks", stocks);
+        return "sitemap";
+    }
+
+    static class Pair {
+        public String symbol;
+        public String name;
+
+        public Pair(String symbol, String name) {
+            this.symbol = symbol;
+            this.name = name;
+        }
+
     }
 
     @GetMapping("/calculator/{stock}")

@@ -23,7 +23,7 @@ public enum Exchanges {
     TWO("Taipei Exchange", ExchangeRegion.TAIWAN),
     MIL("Milan", ExchangeRegion.EUROPE),
     JKT("Jakarta Stock Exchange", ExchangeRegion.ASIA_SOUTH_EAST),
-    HKSE("HKSE", ExchangeRegion.CHINA),
+    HKSE("Hong Kong Stock Exchange", ExchangeRegion.CHINA),
     TSX("Toronto Stock Exchange", ExchangeRegion.CANADA),
     AMEX("New York Stock Exchange Arca", ExchangeRegion.US),
     MEX("Mexico", ExchangeRegion.LATIN_AMERICA),
@@ -82,5 +82,18 @@ public enum Exchanges {
 
     public static Set<Exchanges> getExchangesByType(MarketType type) {
         return getExchangesByType(Set.of(type));
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public static Exchanges fromString(String exchange) {
+        for (var value : values()) {
+            if (value.name().equals(exchange)) {
+                return value;
+            }
+        }
+        throw new RuntimeException("No such exchange");
     }
 }

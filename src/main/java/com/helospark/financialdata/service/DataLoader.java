@@ -205,14 +205,14 @@ public class DataLoader {
         }
         if (dataQualityIssue > 7) {
             //    System.out.println("Rejected: " + symbol);
-            return new CompanyFinancials();
+            // return new CompanyFinancials();
         }
         if (result.isEmpty()) {
-            return new CompanyFinancials(0.0, result, profile);
+            return new CompanyFinancials(0.0, result, profile, dataQualityIssue);
         }
 
         double price = prices.isEmpty() ? 0 : prices.get(0).close;
-        return new CompanyFinancials(convertCurrencyIfNeeded(price, result.get(0), profile), result, profile);
+        return new CompanyFinancials(convertCurrencyIfNeeded(price, result.get(0), profile), result, profile, dataQualityIssue);
     }
 
     private static double convertCurrencyIfNeeded(double price, FinancialsTtm currentTtm, Profile profile) {

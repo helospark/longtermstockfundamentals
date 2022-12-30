@@ -72,7 +72,7 @@ function populateProfile() {
               });
             }
           })
-          .catch(err => { throw err });
+          .catch(err => { console.log(err); });
 }
 
 function addFlags() {
