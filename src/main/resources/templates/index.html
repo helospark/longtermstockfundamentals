@@ -127,7 +127,7 @@
     				    <p class="making">We provide DCF calculator that can help you find undervalued stocks with great value.</p>
     			    </div>
     		    </div>
-    	    </div>    		
+    	    </div>
     	</div>
     </div>
 
@@ -170,6 +170,7 @@
                                  <div id="registration-spinner" class="spinner-border" role="status" style="display:none"></div>
                                </div>
                           </form>
+                          <div th:replace="fragments/sign-in-with-google-fragment"></div>
                     </div>
                     <span id="recaptcha-site-key" th:text="${recaptchaSiteKey}" style="display:none"></span>
                     <script>
@@ -271,8 +272,6 @@
                                         });
                                         
                                       }
-                                      
-                                      console.log(content);
                                       
                             } else {
                               console.log("Form invalid");

@@ -12,6 +12,7 @@ public class User {
     private String registered;
     private AccountType accountType;
     private boolean cancelling;
+    private RegistrationSource registeredWith;
 
     @DynamoDBHashKey
     public String getEmail() {
@@ -63,9 +64,18 @@ public class User {
         this.cancelling = cancelling;
     }
 
+    public RegistrationSource getRegisteredWith() {
+        return registeredWith;
+    }
+
+    public void setRegisteredWith(RegistrationSource registeredWith) {
+        this.registeredWith = registeredWith;
+    }
+
     @Override
     public String toString() {
-        return "User [email=" + email + ", activated=" + activated + ", registered=" + registered + ", accountType=" + accountType + ", cancelling=" + cancelling + "]";
+        return "User [email=" + email + ", activated=" + activated + ", registered=" + registered + ", accountType=" + accountType + ", cancelling=" + cancelling + ", registeredWith=" + registeredWith
+                + "]";
     }
 
 }

@@ -1,0 +1,40 @@
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<div style="text-align:center; width:100%;">OR</div>
+<div class="signin-with-google">
+<div id="g_id_onload"
+     th:attr="data-client_id=${googleAuthClientId}"
+     data-context="signup"
+     data-ux_mode="popup"
+     data-callback="loginWithGoogle"
+     data-auto_prompt="false">
+</div>
+
+<div class="g_id_signin"
+     data-type="standard"
+     data-shape="rectangular"
+     data-theme="outline"
+     data-text="signin_with"
+     data-size="large"
+     data-logo_alignment="left">
+</div>
+<div id="google_signin_global_error" class="invalid-feedback" style="display:none"></div>
+</div>
+<script>
+  function loginWithGoogle(data) {
+           res = fetch('/user/login/google', {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(data)
+            }).then(res => {
+              if (res.status == 200) {
+                location.reload();
+              } else {
+                  $("#google_signin_global_error").text(content.errorMessage);
+                  $("#google_signin_global_error").css({"display": "inline"});
+              }
+            });
+  }
+</script>

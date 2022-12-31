@@ -3,6 +3,7 @@ package com.helospark.financialdata.management.user;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 
@@ -21,6 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.helospark.financialdata.management.config.JwtService;
 import com.helospark.financialdata.management.config.JwtValidatorFilter;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
@@ -49,6 +55,8 @@ public class LoginController {
     @Autowired
     BCryptPasswordEncoder passwordEncoder;
     @Autowired
+    private RegisterService registerService;
+    @Autowired
     JwtService jwtService;
     @Value("${website.domain}")
     private String domain;
@@ -58,6 +66,8 @@ public class LoginController {
     private int jwtExpiry;
     @Value("${auth.rememberme.expirySeconds}")
     private int rememberMeExpiry;
+    @Value("${auth.google.client-id}")
+    private String googleClientId;
 
     @PostMapping("/user/login")
     @RateLimit(requestPerMinute = 10)
@@ -73,6 +83,10 @@ public class LoginController {
             throw new UserLoginException("Wrong password for user " + user.getEmail());
         }
 
+        signInUserAfterVerification(httpResponse, user);
+    }
+
+    public void signInUserAfterVerification(HttpServletResponse httpResponse, User user) {
         byte[] bytes = new byte[60];
         secureRandom.nextBytes(bytes);
         String persistentToken = new String(Base64.getEncoder().encode(bytes));
@@ -85,6 +99,38 @@ public class LoginController {
 
         addRememberMeCookie(httpResponse, rememberMeExpiry, persistentToken);
         addAuthorizationCookie(httpResponse, jwtExpiry, createJWT(user));
+    }
+
+    @PostMapping("/user/login/google")
+    @RateLimit(requestPerMinute = 10)
+    public void loginWithGoogle(@RequestBody GoogleLoginRequest request, HttpServletResponse httpResponse) {
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
+                .setAudience(Collections.singletonList(googleClientId))
+                .build();
+
+        GoogleIdToken idToken;
+        try {
+            idToken = verifier.verify(request.credential);
+        } catch (Exception e) {
+            LOGGER.error("Unable to verify Google token", e);
+            throw new UserLoginException("Unable to verify token");
+        }
+        if (idToken == null) {
+            LOGGER.error("Unable to verify Google token");
+            throw new UserLoginException("Unable to verify token");
+        }
+        Payload payload = idToken.getPayload();
+
+        String email = payload.getEmail();
+
+        Optional<User> optionalUser = userRepository.findByEmail(email);
+
+        if (optionalUser.isPresent()) {
+            signInUserAfterVerification(httpResponse, optionalUser.get());
+        } else {
+            registerService.registerUserWithGoogle(email);
+            signInUserAfterVerification(httpResponse, optionalUser.get());
+        }
     }
 
     @PostMapping("/user/logout")

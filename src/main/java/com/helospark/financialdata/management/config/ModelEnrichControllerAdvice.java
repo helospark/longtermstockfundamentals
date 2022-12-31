@@ -23,6 +23,8 @@ public class ModelEnrichControllerAdvice {
     private Map<String, String> planToPriceMap;
     @Value("${recaptcha.site-key}")
     private String recaptchaSiteKey;
+    @Value("${auth.google.client-id}")
+    private String googleAuthClientId;
 
     @ModelAttribute
     public void enrichModel(Model model, HttpServletRequest request) {
@@ -44,6 +46,7 @@ public class ModelEnrichControllerAdvice {
         }
 
         model.addAttribute("recaptchaSiteKey", recaptchaSiteKey);
+        model.addAttribute("googleAuthClientId", googleAuthClientId);
     }
 
 }

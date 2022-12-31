@@ -141,3 +141,9 @@ body {
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
+.signin-with-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

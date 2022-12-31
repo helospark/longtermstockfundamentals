@@ -12,6 +12,8 @@
   <div class="mb-3">
        <input type="submit" id="login_button" class="btn btn-primary" value="Sign in"></input>
   </div>
+  <div th:replace="fragments/sign-in-with-google-fragment"></div>
+
 </form>
 <script>
 $("#login_form").submit(async (e) => {

@@ -10,6 +10,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.helospark.financialdata.management.user.repository.AccountType;
+import com.helospark.financialdata.management.user.repository.RegistrationSource;
 import com.helospark.financialdata.management.user.repository.User;
 import com.helospark.financialdata.management.user.repository.UserRepository;
 
@@ -43,11 +44,30 @@ public class RegisterService {
         user.setEmail(request.email);
         user.setPassword(encodedPassword);
         user.setRegistered(new LocalDate().toString());
+        user.setRegisteredWith(RegistrationSource.EMAIL);
 
         userRepository.save(user);
 
         if (emailVerificationEnabled) {
             confirmationEmailService.sendConfirmationEmail(request.email);
         }
+    }
+
+    public void registerUserWithGoogle(String email) {
+        Optional<User> existingUser = userRepository.findByEmail(email);
+
+        if (existingUser.isPresent()) {
+            throw new RegistrationException("User '" + email + "' is already used", "register_email");
+        }
+
+        User user = new User();
+        user.setAccountType(AccountType.FREE);
+        user.setActivated(false);
+        user.setEmail(email);
+        user.setPassword("****");
+        user.setRegistered(new LocalDate().toString());
+        user.setRegisteredWith(RegistrationSource.GOOGLE);
+
+        userRepository.save(user);
     }
 }
