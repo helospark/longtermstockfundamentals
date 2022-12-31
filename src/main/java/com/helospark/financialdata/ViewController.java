@@ -16,6 +16,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.domain.CompanyFinancials;
+import com.helospark.financialdata.management.inspire.InspirationProvider;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.ViewedStocksService;
 import com.helospark.financialdata.management.user.repository.AccountType;
@@ -39,6 +40,8 @@ public class ViewController {
     private ViewedStocksService viewedStocksService;
     @Autowired
     private FreeStockRepository freeStockRepository;
+    @Autowired
+    private InspirationProvider inspirationProvider;
 
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
@@ -65,6 +68,15 @@ public class ViewController {
     @GetMapping("/faq")
     public String faq(Model model) {
         return "faq";
+    }
+
+    @GetMapping("/inspire/{stock}")
+    public String inspire(Model model, @PathVariable("stock") String stock, HttpServletRequest request) {
+        fillModelWithCommonStockData(stock, model, request);
+
+        model.addAttribute("inspirations", inspirationProvider.getAvailablePortfolios());
+
+        return "inspire";
     }
 
     @GetMapping("/profile")

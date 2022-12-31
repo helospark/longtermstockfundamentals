@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/common-style.css">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+  <script src="../js/charts-common.js"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="../js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <link rel="stylesheet" href="../css/charts_style.css">
+  <title>Stock inspiration</title>
+</head>
+<body>
+
+<div th:replace="fragments/navbar :: my_fragment(active='inspire')"></div>
+<div class="clearFloat"></div>
+
+<div id="content">
+    <ul class="nav nav-tabs">
+      <li class="nav-item" th:each="inspiration : ${inspirations}" >
+        <a class="nav-link" href="javascript:;" th:text="${inspiration.value}" th:attr="data-link=${inspiration.key}"></a>
+      </li>
+    </ul>
+    <div id="tab-content" style="width:100%">
+    
+    </div>
+    <div class="inspiration-warning">Please note that past performance is no guarantee on future returns.</div>
+</div>
+
+<script>
+
+function loadPage(element) {
+    console.log(element) ;
+    $(".nav-link").each(function () {  $(this).removeClass("active")});
+    $(element).addClass("active"); 
+    var uri = $(element).attr("data-link");
+    
+    console.log("uri=" + uri);
+    
+    fetch(uri, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+       resultHtml = `
+       <div class="inspiration-description">` + data.description + `</div>
+       <div style="position:relative"><table class="table table-striped" id="tab-main-table">
+                        <thead>
+                          <tr>`;
+       for (i = 0; i < data.columns.length; ++i) {
+         resultHtml += `<th scope="col">` + data.columns[i] + `</th>`;
+       }
+       resultHtml += "</tr> </thead>";
+       
+       resultHtml += "<tbody>";
+       
+       if (data.authorizationError === undefined ||  data.authorizationError == null || data.authorizationError.length == 0) { 
+         for (i = 0; i < data.portfolio.length; ++i) {
+           resultHtml += "<tr>";
+           for (j = 0; j < data.columns.length; ++j) {
+              var value = data.portfolio[i][data.columns[j]];
+              resultHtml += "<td>" + value + "</td>";
+           }
+           resultHtml += "</tr>";
+         }
+       } else {
+         for (i = 0; i < 5; ++i) {
+           resultHtml += "<tr>";
+           for (j = 0; j < data.columns.length; ++j) {
+              var value = "FAKE";
+              resultHtml += "<td>" + value + "</td>";
+           }
+           resultHtml += "</tr>";
+         }
+       }
+       if (data.authorizationError !== undefined && data.authorizationError != null && data.authorizationError.length > 0) { 
+          resultHtml += "<div class=\"authorization-error-table-overlay\">" + data.authorizationError + "</div>";
+       }
+       resultHtml += "</tbody></table>";
+       resultHtml += "</div>";
+       
+
+       $("#tab-content").html(resultHtml);
+       if (data.authorizationError !== undefined && data.authorizationError != null && data.authorizationError.length > 0) { 
+          $("#tab-main-table tbody").css({"filter": "blur(10px)"});
+       }
+    });
+}
+loadPage($(".nav-link").first());
+$(".nav-link").click(function () { loadPage($(this))});
+
+</script>
+
+<span id="allowed" style="display:none" th:text="${allowed}"></span>
+<span id="accountType" style="display:none" th:text="${accountType}"></span>
+<span id="viewLimit" style="display:none" th:text="${viewLimit}"></span>
+<div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
+<div th:replace="fragments/content-blocking-modal"></div>
+<div th:replace="fragments/general-message-modal"></div>
+
+
+<script src="../js/autocomplete.js"></script>
+
+</body>
+</html>

@@ -1,12 +1,12 @@
 var constColorPalette = [
   "rgba(0,0,255,0.3)",
   "rgba(255,0,0,0.3)",
-  "rgba(0,255,0,0.3)",
+  "rgba(75,200,32,0.3)",
 ];
 var constColorPaletteLine = [
   "rgba(0,0,255,0.8)",
   "rgba(255,0,0,0.8)",
-  "rgba(0,255,0,0.8)",
+  "rgba(75,200,32,0.8)",
 ];
 
 function createCheckbox(label) {

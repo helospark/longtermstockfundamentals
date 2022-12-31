@@ -125,3 +125,19 @@ body {
 .tooltip-inner {
     max-width: 500px !important; 
 }
+
+.authorization-error-table-overlay {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #000;
+  z-index: 1000;
+  font-weight: 800;
+  font-size: 16pt;
+}
+
+.inspiration-description {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}

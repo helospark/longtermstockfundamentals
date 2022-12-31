@@ -21,7 +21,6 @@ import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
 import com.helospark.financialdata.util.analyzer.parameter.IncrementStepStrategy;
-import com.helospark.financialdata.util.analyzer.parameter.LimitedRandomStrategy;
 import com.helospark.financialdata.util.analyzer.parameter.Parameter;
 import com.helospark.financialdata.util.analyzer.parameter.TestParameterProvider;
 
@@ -31,9 +30,9 @@ public class HighRoicScreenerBacktest2 {
     public void analyze(Set<String> symbols) {
         long start = System.currentTimeMillis();
         TestParameterProvider param = new TestParameterProvider();
-        param.registerParameter(new Parameter("roic", 0.05, new LimitedRandomStrategy(15, 0.15, 0.75)));
-        param.registerParameter(new Parameter("peg", 0.8, new LimitedRandomStrategy(15, 0.8, 2.5)));
-        param.registerParameter(new Parameter("pyr", 0.8, new IncrementStepStrategy(3, 10, 1.0)));
+        //        param.registerParameter(new Parameter("roic", 0.05, new LimitedRandomStrategy(20, 0.15, 0.75)));
+        //        param.registerParameter(new Parameter("peg", 0.8, new LimitedRandomStrategy(20, 0.8, 2.5)));
+        param.registerParameter(new Parameter("altman", -4.0, new IncrementStepStrategy(-4.0, 10.0, 0.3)));
         boolean finished = false;
 
         List<TestParameterProvider> providerList = new ArrayList<>();
@@ -73,9 +72,10 @@ public class HighRoicScreenerBacktest2 {
             if (providerQueue.size() % 10 == 0) {
                 System.out.println(providerQueue.size());
             }
-            double roicLimit = param.getValue("roic");
-            double pegLimit = param.getValue("peg");
-            double profitableYearLimit = param.getValue("pyr");
+            double roicLimit = 0.32; // param.getValue("roic");
+            double pegLimit = 1.3; // param.getValue("peg");
+            double profitableYear = 4.0; // param.getValue("pyr");
+            double almanLimit = param.getValue("altman");
 
             double growthSum = 0.0;
             double benchmarkSum = 0.0;
@@ -95,10 +95,10 @@ public class HighRoicScreenerBacktest2 {
                     }
                     double latestPriceThen = financials.get(index).price;
 
-                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, profitableYearLimit + yearsAgo, yearsAgo);
-                    double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), company.latestPrice);
+                    boolean continouslyProfitable = isProfitableEveryYearSince(financials, profitableYear + yearsAgo, yearsAgo);
+                    double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
 
-                    if (altmanZ > 2.0 && continouslyProfitable) {
+                    if (altmanZ > almanLimit && continouslyProfitable) {
                         Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
                         Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
 

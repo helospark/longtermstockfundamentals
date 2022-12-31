@@ -14,13 +14,20 @@ public class TrailingPegCalculator {
         if (i >= company.financials.size()) {
             return Optional.empty();
         }
+        return calculateTrailingPegWithLatestPrice(company, i, company.financials.get(i).price);
+    }
+
+    public static Optional<Double> calculateTrailingPegWithLatestPrice(CompanyFinancials company, int i, double latestPrice) {
+        if (i >= company.financials.size()) {
+            return Optional.empty();
+        }
         FinancialsTtm financialsTtm = company.financials.get(i);
         double growthRate = getPastGrowthRate(company, i);
         double eps = financialsTtm.incomeStatementTtm.eps;
         if (eps <= 0.0) {
             return Optional.empty();
         }
-        double value = ((financialsTtm.price / eps) / growthRate);
+        double value = ((latestPrice / eps) / growthRate);
 
         if (!Double.isFinite(value)) {
             return Optional.empty();

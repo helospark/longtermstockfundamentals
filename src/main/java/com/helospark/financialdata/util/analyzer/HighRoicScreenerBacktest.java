@@ -18,6 +18,7 @@ public class HighRoicScreenerBacktest {
     private static final double PEG = 1.3;
     private static final double ROIC = 0.32;
     private static final double PROFITABLE = 4.0;
+    private static final double ALTMAN = 5.2;
 
     //    private static final double PEG = 1.3;
     //    private static final double ROIC = 0.32;
@@ -29,7 +30,7 @@ public class HighRoicScreenerBacktest {
         int count = 0;
         int beats = 0;
         System.out.printf("Symbol\t\tROIC\tPEG\tCorr\tGrowth%% (from->to)\tCompany\n");
-        for (int index = 0; index <= 25 * 4; ++index) {
+        for (int index = 3 * 4; index <= 28 * 4; ++index) {
             double yearsAgo = (index / 4.0);
             double yearGrowthSum = 0.0;
             double yearBenchmarkSum = 0.0;
@@ -45,9 +46,9 @@ public class HighRoicScreenerBacktest {
 
                 boolean continouslyProfitable = isProfitableEveryYearSince(financials, PROFITABLE + yearsAgo, yearsAgo);
                 //                boolean continouslyProfitableFcf = GrowthAnalyzer.isCashFlowProfitableEveryYearSince(financials, 7.0 + yearsAgo, yearsAgo);
-                double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), company.latestPrice);
+                double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
 
-                if (altmanZ > 2.0 && continouslyProfitable) {
+                if (altmanZ > ALTMAN && continouslyProfitable) {
                     Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
                     Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
                     //                    double marketCap = financials.get(index).keyMetrics.enterpriseValue / (1000.0 * 1000.0 * 1000.0);

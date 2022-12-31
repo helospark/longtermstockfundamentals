@@ -183,7 +183,7 @@ public class DataLoader {
             int historicalPriceIndex = findIndexWithOrBeforeDateSafe(enterpriseValue, incomeStatementDate);
             int keyMetricsIndex = findIndexWithOrBeforeDateSafe(keyMetrics, incomeStatementDate);
 
-            if (cashFlowIndex == -1 || balanceSheetIndex == -1 ||
+            if (cashFlowIndex == -1 || balanceSheetIndex == -1 || keyMetricsIndex == -1 ||
                     cashFlowIndex + 3 >= cashFlows.size() ||
                     balanceSheetIndex + 3 >= balanceSheets.size()) {
                 break;
@@ -425,11 +425,11 @@ public class DataLoader {
             if (conversionValue != null) {
                 return Optional.of(value * conversionValue);
             } else {
-                LOGGER.warn("No currency conversion for " + toCurrency + " at date " + date);
+                //LOGGER.warn("No currency conversion for " + toCurrency + " at date " + date);
                 return Optional.empty();
             }
         } else {
-            LOGGER.warn("No currency conversion for " + toCurrency + " at date " + date);
+            //LOGGER.warn("No currency conversion for " + toCurrency + " at date " + date);
             return Optional.empty();
         }
     }

@@ -184,7 +184,7 @@ public class StockDataDownloader {
 
         //https://financialmodelingprep.com/api/v3/form-thirteen-date/0001035674?apikey=API_KEY
         //https://financialmodelingprep.com/api/v3/form-thirteen/0001067983?date=2022-12-10&apikey=API_KEY
-        downloadUrlIfNeeded("info/portfolios/warren_buffet.json", "/v3/form-thirteen/0001067983", Map.of("date", "2022-09-30"));
+        downloadUrlIfNeeded("info/portfolios/warren_buffett.json", "/v3/form-thirteen/0001067983", Map.of("date", "2022-09-30"));
         downloadUrlIfNeeded("info/portfolios/seth_klarman.json", "/v3/form-thirteen/0001061768", Map.of("date", "2022-09-30"));
         downloadUrlIfNeeded("info/portfolios/li_lu.json", "/v3/form-thirteen/0001709323", Map.of("date", "2022-09-30"));
         downloadUrlIfNeeded("info/portfolios/li_lu.json", "/v3/form-thirteen/0001709323", Map.of("date", "2022-09-30"));

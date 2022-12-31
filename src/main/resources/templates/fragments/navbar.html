@@ -2,6 +2,7 @@
   <div class="menu"><a th:attr="class=${active == 'home' ? 'active' : ''}"  href="/">Home</a></div>
   <div class="menu"><a th:attr="class=${active == 'stock' ? 'active' : ''}" th:href="'/stock/'+${stock}">Charts</a></div>
   <div class="menu"><a th:attr="class=${active == 'calculator' ? 'active' : ''}" th:href="'/calculator/' + ${stock}">Calculator</a></div>
+  <div class="menu"><a th:attr="class=${active == 'inspire' ? 'active' : ''}" th:href="'/inspire/' + ${stock}">Inspire</a></div>
   <input id="autoComplete">
   <div th:if="${haveLimitedStocksCount}" style="float:right"><span th:text="${currentlyViewText} + '/' + ${viewLimitText}"></span></div>
 </div> 

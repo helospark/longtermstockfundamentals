@@ -120,6 +120,7 @@
       epses = [];
       revenues = [];
       margins = [];
+      shareCounts = [];
       
 
       
@@ -143,6 +144,7 @@
             epses.push({x: dates[i], y: eps});
             revenues.push({x: dates[i], y: previousRevenue});
             margins.push({x: dates[i], y: currentMargin * 100.0});
+            shareCounts.push({x: dates[i], y: previousShareCount});
             epsSum += eps;
             
             console.log(1.0 + discount);
@@ -175,6 +177,7 @@
       updateChart(chart, epses);
       updateChart(revChart, revenues);
       updateChart(marginChart, margins);
+      updateChart(shareCountChart, shareCounts);
   }
 
   $('#dcf_form input').each(
@@ -227,6 +230,14 @@
          lazyLoad: false
     });
     
+    shareCountChart = createChart("/financials/share_count", "Share count", {
+         additionalLabelsAtEnd: dates,
+         label: "past",
+         runAfter: updateCalculation,
+         animation: true,
+         lazyLoad: false
+     });
+    
     createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {
       type: 'bar',
       unit: '%',
@@ -239,3 +250,4 @@
         max: 10,
         default: 7
     }});
+    
