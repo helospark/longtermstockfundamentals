@@ -29,6 +29,7 @@ import com.helospark.financialdata.service.DividendCalculator;
 import com.helospark.financialdata.service.FedRateProvider;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
+import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.RevenueProjector;
 import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.TrailingPegCalculator;
@@ -77,7 +78,7 @@ public class FinancialsController {
 
     @GetMapping("/gross_margin")
     public List<SimpleDataElement> getGrossMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.grossProfit / financialsTtm.incomeStatementTtm.revenue));
+        return getIncomeData(stock, financialsTtm -> toPercent(RatioCalculator.calculateGrossProfitMargin(financialsTtm)));
     }
 
     @GetMapping("/net_margin")
@@ -92,7 +93,7 @@ public class FinancialsController {
 
     @GetMapping("/pe_ratio")
     public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.price / financialsTtm.incomeStatementTtm.eps);
+        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculatePriceToEarningsRatio(financialsTtm));
     }
 
     @GetMapping("/expected_return")
@@ -145,7 +146,7 @@ public class FinancialsController {
 
     @GetMapping("/p2g_ratio")
     public List<SimpleDataElement> getP2gMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.priceToBookRatio);
+        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculatePriceToBookRatio(financialsTtm));
     }
 
     @GetMapping("/fed_rate")
@@ -153,14 +154,9 @@ public class FinancialsController {
         return getIncomeData(stock, financialsTtm -> FedRateProvider.getFedFundsRate(financialsTtm.getDate()));
     }
 
-    @GetMapping("/tax_rate")
-    public List<SimpleDataElement> getTaxRate(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.remoteRatio.effectiveTaxRate));
-    }
-
     @GetMapping("/quick_ratio")
     public List<SimpleDataElement> getQuickRatio(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.remoteRatio.quickRatio);
+        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculateQuickRatio(financialsTtm));
     }
 
     @GetMapping("/short_term_coverage_ratio")
@@ -489,7 +485,7 @@ public class FinancialsController {
 
     @GetMapping("/dividend_payout_ratio")
     public List<SimpleDataElement> getPayoutRatio(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.netIncome));
+        return getIncomeData(stock, financialsTtm -> toPercent(RatioCalculator.calculatePayoutRatio(financialsTtm)));
     }
 
     @GetMapping("/dividend_payout_ratio_with_fcf")

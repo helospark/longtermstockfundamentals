@@ -37,19 +37,23 @@ public class PietroskyScoreCalculator {
         if (nowFinancials.balanceSheet.longTermDebt < oneYearAgoFinancials.balanceSheet.longTermDebt) {
             ++result;
         }
-        if (nowFinancials.remoteRatio.currentRatio != null && oneYearAgoFinancials.remoteRatio.currentRatio != null
-                && nowFinancials.remoteRatio.currentRatio > oneYearAgoFinancials.remoteRatio.currentRatio) {
+        Double nowCurrentRatio = RatioCalculator.calculateCurrentRatio(nowFinancials);
+        Double thenCurrentRatio = RatioCalculator.calculateCurrentRatio(oneYearAgoFinancials);
+        if (nowCurrentRatio != null && nowCurrentRatio != null && nowCurrentRatio > thenCurrentRatio) {
             ++result;
         }
         if (nowFinancials.incomeStatementTtm.weightedAverageShsOutDil <= oneYearAgoFinancials.incomeStatementTtm.weightedAverageShsOutDil) {
             ++result;
         }
-        if (nowFinancials.remoteRatio.grossProfitMargin != null && oneYearAgoFinancials.remoteRatio.grossProfitMargin != null
-                && nowFinancials.remoteRatio.grossProfitMargin > oneYearAgoFinancials.remoteRatio.grossProfitMargin) {
+        double nowGrossMargin = RatioCalculator.calculateGrossProfitMargin(nowFinancials);
+        double thenGrossMargin = RatioCalculator.calculateGrossProfitMargin(oneYearAgoFinancials);
+        if (nowGrossMargin > thenGrossMargin) {
             ++result;
         }
-        if (nowFinancials.remoteRatio.assetTurnover != null && oneYearAgoFinancials.remoteRatio.assetTurnover != null
-                && nowFinancials.remoteRatio.assetTurnover > oneYearAgoFinancials.remoteRatio.assetTurnover) {
+
+        double nowAssetTurnover = RatioCalculator.calculateAssetTurnover(nowFinancials);
+        double thenAssetTurnover = RatioCalculator.calculateAssetTurnover(oneYearAgoFinancials);
+        if (nowAssetTurnover > thenAssetTurnover) {
             ++result;
         }
 

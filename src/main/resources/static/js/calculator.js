@@ -219,8 +219,9 @@
                 type: 'time',
                 time: {
                     displayFormats: {
-                        quarter: 'YYYY-MM-DD'
-                    }
+                        quarter: 'yyyy-MM-dd'
+                    },
+                    tooltipFormat: 'yyyy-MM-dd'
                 }
         }
     chart.update();
@@ -239,8 +240,9 @@
                 type: 'time',
                 time: {
                     displayFormats: {
-                        quarter: 'YYYY-MM-DD'
-                    }
+                        quarter: 'yyyy-MM-dd'
+                    },
+                    tooltipFormat: 'yyyy-MM-dd'
                 }
         }
     revChart.update();
@@ -261,8 +263,9 @@
                 type: 'time',
                 time: {
                     displayFormats: {
-                        quarter: 'YYYY-MM-DD'
-                    }
+                        quarter: 'yyyy-MM-dd'
+                    },
+                    tooltipFormat: 'yyyy-MM-dd'
                 }
         }
     marginChart.update();

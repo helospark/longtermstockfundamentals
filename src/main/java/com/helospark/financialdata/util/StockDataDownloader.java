@@ -243,7 +243,7 @@ public class StockDataDownloader {
         // https://financialmodelingprep.com/api/v3/cash-flow-statement/AAPL?limit=120&apikey=API_KEY
         downloadUrlIfNeeded("fundamentals/" + symbol + "/cash-flow.json", "/v3/cash-flow-statement/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/ratios/AAPL?limit=40&apikey=API_KEY
-        downloadUrlIfNeeded("fundamentals/" + symbol + "/ratios.json", "/v3/ratios/" + symbol, queryMap);
+        //        downloadUrlIfNeeded("fundamentals/" + symbol + "/ratios.json", "/v3/ratios/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/enterprise-values/AAPL?limit=40&apikey=API_KEY
         downloadUrlIfNeeded("fundamentals/" + symbol + "/enterprise-values.json", "/v3/enterprise-values/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/key-metrics/AAPL?limit=40&apikey=API_KEY

@@ -16,6 +16,7 @@ import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.GrowthAnalyzer;
 import com.helospark.financialdata.service.GrowthCorrelationCalculator;
 import com.helospark.financialdata.service.Helpers;
+import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.TrailingPegCalculator;
 
@@ -42,7 +43,7 @@ public class EarningQualityFlagProvider implements FlagProvider {
                 }
             }
 
-            Double bookRatio = company.financials.get(index).remoteRatio.priceToBookRatio;
+            Double bookRatio = RatioCalculator.calculatePriceToBookRatio(company.financials.get(index));
             if (bookRatio != null) {
                 if (bookRatio > 5.0) {
                     flags.add(new FlagInformation(FlagType.YELLOW, format("Expensive based on book ratio (book ratio=%.2f)", bookRatio)));
@@ -51,7 +52,7 @@ public class EarningQualityFlagProvider implements FlagProvider {
                 }
             }
 
-            Double peRatio = company.financials.get(index).remoteRatio.priceEarningsRatio;
+            Double peRatio = RatioCalculator.calculatePriceToEarningsRatio(company.financials.get(index));
             if (peRatio != null) {
                 if (peRatio > 0.0 && peRatio < 11.0) {
                     flags.add(new FlagInformation(FlagType.GREEN, format("Low PE ratio (PE=%.2f)", peRatio)));

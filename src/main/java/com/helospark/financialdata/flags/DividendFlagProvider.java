@@ -15,6 +15,7 @@ import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.service.DividendCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.Helpers;
+import com.helospark.financialdata.service.RatioCalculator;
 
 @Component
 public class DividendFlagProvider implements FlagProvider {
@@ -68,7 +69,7 @@ public class DividendFlagProvider implements FlagProvider {
         double sum = 0.0;
         int count = 0;
         for (int i = offset; i < offset + limit && i < company.financials.size(); ++i) {
-            Double payoutRatio = company.financials.get(i).remoteRatio.dividendPayoutRatio;
+            Double payoutRatio = RatioCalculator.calculatePayoutRatio(company.financials.get(i));
             if (payoutRatio != null) {
                 sum += payoutRatio;
                 ++count;

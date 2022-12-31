@@ -9,8 +9,8 @@ import java.util.Set;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.MeanAvg;
-import com.helospark.financialdata.domain.RemoteRatio;
 import com.helospark.financialdata.service.DataLoader;
+import com.helospark.financialdata.service.RatioCalculator;
 
 public class HighDividenedScreener {
 
@@ -29,9 +29,7 @@ public class HighDividenedScreener {
             double altmanZ = calculateAltmanZScore(firstElement, company.latestPrice);
 
             if (continouslyProfitable && altmanZ > 1.8) {
-                RemoteRatio remoteRatio = firstElement.remoteRatio;
-
-                Double dividendPayoutRatio = remoteRatio.dividendPayoutRatio;
+                Double dividendPayoutRatio = RatioCalculator.calculateCurrentRatio(firstElement);
                 MeanAvg dividendYield = getDividendsInfo(company, 10);
 
                 if (dividendPayoutRatio != null && dividendPayoutRatio < 0.5 && dividendPayoutRatio > 0.0 &&

@@ -13,6 +13,7 @@ import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.service.AltmanZCalculator;
 import com.helospark.financialdata.service.Helpers;
+import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.RoicCalculator;
 
 @Component
@@ -25,7 +26,7 @@ public class DebtFlagFlagProvider implements FlagProvider {
         if (index != -1) {
             double latestPrice = (index == 0 ? company.latestPrice : financials.get(index).price);
             FinancialsTtm latestEntry = company.financials.get(index);
-            Double quickRatio = latestEntry.remoteRatio.quickRatio;
+            Double quickRatio = RatioCalculator.calculateQuickRatio(latestEntry);
             if (quickRatio != null && quickRatio < 1.0) {
                 flags.add(new FlagInformation(FlagType.YELLOW, format("Quick ratio is less than 1.0 (%.2f)", quickRatio)));
             }

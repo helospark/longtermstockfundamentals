@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.helospark.financialdata.domain.CompanyFinancials;
-import com.helospark.financialdata.domain.RemoteRatio;
+import com.helospark.financialdata.service.RatioCalculator;
 
 public class HighGrowthUnprofitablesScreener {
 
@@ -32,8 +32,7 @@ public class HighGrowthUnprofitablesScreener {
 
                 double predictedPrice = projectRevenue(financials.get(0), startGrowth, endGrowth);
 
-                RemoteRatio ratios = financials.get(0).remoteRatio;
-                Double currentRatio = ratios.currentRatio;
+                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0));
                 double altmanZ = calculateAltmanZScore(financials.get(0), company.latestPrice);
                 double cashFlowBurnPerYear = financials.get(0).cashFlowTtm.freeCashFlow;
                 long cash = financials.get(0).balanceSheet.cashAndShortTermInvestments;

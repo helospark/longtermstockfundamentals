@@ -220,7 +220,6 @@ createChart("/financials/expected_return", "Compsite yield", {unit: '%'});
 
 createSeparator("Other")
 createChart("/financials/share_count", "Share count", {});
-createChart("/financials/tax_rate", "Tax rate", {});
 createChart("/financials/stock_compensation", "Stock compensation", {unit: '%'});
 createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
 createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});

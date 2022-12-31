@@ -14,8 +14,6 @@ public class FinancialsTtm implements DateAware, Serializable {
 
     public IncomeStatement incomeStatement;
     public IncomeStatement incomeStatementTtm;
-
-    public RemoteRatio remoteRatio;
     public KeyMetrics keyMetrics;
 
     @Override

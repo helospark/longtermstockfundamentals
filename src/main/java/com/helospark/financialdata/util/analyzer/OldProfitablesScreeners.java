@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.helospark.financialdata.domain.CompanyFinancials;
-import com.helospark.financialdata.domain.RemoteRatio;
+import com.helospark.financialdata.service.RatioCalculator;
 
 public class OldProfitablesScreeners {
 
@@ -30,8 +30,7 @@ public class OldProfitablesScreeners {
                 //                Double peRatio = financials.get(0).remoteRatio.priceEarningsRatio;
                 double currentPe = company.latestPrice / financials.get(0).incomeStatementTtm.eps;
                 double growth = tenYearAvgGrowth.get();
-                RemoteRatio ratios = financials.get(0).remoteRatio;
-                Double currentRatio = ratios.currentRatio;
+                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0));
 
                 if (growth >= 8.0 &&
                         currentPe <= 20.0 &&

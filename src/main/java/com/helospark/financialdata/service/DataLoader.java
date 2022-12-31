@@ -45,7 +45,6 @@ import com.helospark.financialdata.domain.IncomeStatement;
 import com.helospark.financialdata.domain.KeyMetrics;
 import com.helospark.financialdata.domain.NoTtmNeeded;
 import com.helospark.financialdata.domain.Profile;
-import com.helospark.financialdata.domain.RemoteRatio;
 import com.helospark.financialdata.domain.TresuryRate;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 
@@ -129,7 +128,6 @@ public class DataLoader {
         List<BalanceSheet> balanceSheet = readFinancialFile(symbol, "balance-sheet.json", BalanceSheet.class);
         List<IncomeStatement> incomeStatement = readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
         List<CashFlow> cashFlow = readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
-        List<RemoteRatio> remoteRatios = readFinancialFile(symbol, "ratios.json", RemoteRatio.class);
         List<HistoricalPriceElement> historicalPrice = readHistoricalFile(symbol, "historical-price.json");
         List<EnterpriseValue> enterpriseValues = readFinancialFile(symbol, "enterprise-values.json", EnterpriseValue.class);
         List<KeyMetrics> keyMetrics = readFinancialFile(symbol, "key-metrics.json", KeyMetrics.class);
@@ -146,7 +144,7 @@ public class DataLoader {
             profile.currencySymbol = getCurrencySymbol(incomeStatement);
         }
 
-        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, remoteRatios, enterpriseValues, historicalPrice, keyMetrics, profile);
+        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, enterpriseValues, historicalPrice, keyMetrics, profile);
 
         cache.put(symbol, result);
 
@@ -161,7 +159,7 @@ public class DataLoader {
         }
     }
 
-    private static CompanyFinancials createToTtm(String symbol, List<BalanceSheet> balanceSheets, List<IncomeStatement> incomeStatements, List<CashFlow> cashFlows, List<RemoteRatio> remoteRatios,
+    private static CompanyFinancials createToTtm(String symbol, List<BalanceSheet> balanceSheets, List<IncomeStatement> incomeStatements, List<CashFlow> cashFlows,
             List<EnterpriseValue> enterpriseValue, List<HistoricalPriceElement> prices, List<KeyMetrics> keyMetrics, Profile profile) {
         List<FinancialsTtm> result = new ArrayList<>();
 
@@ -182,14 +180,12 @@ public class DataLoader {
             LocalDate incomeStatementDate = incomeStatements.get(i).date;
             int cashFlowIndex = findIndexWithOrBeforeDate(cashFlows, incomeStatementDate);
             int balanceSheetIndex = findIndexWithOrBeforeDate(balanceSheets, incomeStatementDate);
-            int remoteRatioIndex = findIndexWithOrBeforeDate(remoteRatios, incomeStatementDate);
             int historicalPriceIndex = findIndexWithOrBeforeDateSafe(enterpriseValue, incomeStatementDate);
             int keyMetricsIndex = findIndexWithOrBeforeDateSafe(keyMetrics, incomeStatementDate);
 
             if (cashFlowIndex == -1 || balanceSheetIndex == -1 ||
                     cashFlowIndex + 3 >= cashFlows.size() ||
-                    balanceSheetIndex + 3 >= balanceSheets.size() ||
-                    remoteRatioIndex + 3 >= remoteRatios.size()) {
+                    balanceSheetIndex + 3 >= balanceSheets.size()) {
                 break;
             }
 
@@ -211,7 +207,6 @@ public class DataLoader {
             currentTtm.balanceSheet = balanceSheets.get(balanceSheetIndex);
             currentTtm.cashFlow = cashFlows.get(cashFlowIndex);
             currentTtm.keyMetrics = keyMetrics.get(keyMetricsIndex);
-            currentTtm.remoteRatio = remoteRatios.get(remoteRatioIndex);
             currentTtm.incomeStatement = incomeStatements.get(i);
             currentTtm.cashFlowTtm = calculateTtm(cashFlows, cashFlowIndex, new CashFlow());
             currentTtm.incomeStatementTtm = calculateTtm(incomeStatements, i, new IncomeStatement());
