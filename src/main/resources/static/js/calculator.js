@@ -211,22 +211,6 @@
        runAfter: updateCalculation
   });
 
-
-
-
-   chart.options.scales.x = {
-          display: true,
-                type: 'time',
-                time: {
-                    displayFormats: {
-                        quarter: 'yyyy-MM-dd'
-                    },
-                    tooltipFormat: 'yyyy-MM-dd'
-                }
-        }
-    chart.update();
-    
-    
     revChart=createChart("/financials/revenue", "revenue", {
          additionalLabelsAtEnd: dates,
          animation: true,
@@ -235,21 +219,6 @@
          runAfter: updateCalculation
     });
     
-     revChart.options.scales.x = {
-            display: true,
-                type: 'time',
-                time: {
-                    displayFormats: {
-                        quarter: 'yyyy-MM-dd'
-                    },
-                    tooltipFormat: 'yyyy-MM-dd'
-                }
-        }
-    revChart.update();
-    
-    
-    
-    
     marginChart=createChart("/financials/net_margin", "net margin", {
          additionalLabelsAtEnd: dates,
          label: "past",
@@ -257,18 +226,6 @@
          animation: true,
          lazyLoad: false
     });
-    
-     marginChart.options.scales.x = {
-            display: true,
-                type: 'time',
-                time: {
-                    displayFormats: {
-                        quarter: 'yyyy-MM-dd'
-                    },
-                    tooltipFormat: 'yyyy-MM-dd'
-                }
-        }
-    marginChart.update();
     
     createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {
       type: 'bar',

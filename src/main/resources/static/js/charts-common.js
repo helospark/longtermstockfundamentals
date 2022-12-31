@@ -61,6 +61,7 @@ function createChart(urlPath, title, chartOptions) {
   var legendDisplay = chartOptions.additionalCharts === undefined ? false : true;
   var animation = chartOptions.animation === undefined ? false : chartOptions.animation;
   var isLazyLoading = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
+  var dated = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
   
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
@@ -71,7 +72,7 @@ function createChart(urlPath, title, chartOptions) {
   
   var additionalLabelsAtEnd = chartOptions.additionalLabelsAtEnd === undefined ? [] : chartOptions.additionalLabelsAtEnd;
   
-  var chart = new Chart(canvas, {
+  var chartConfig = {
     type: type,
     data: {
       labels: xValues,
@@ -119,7 +120,21 @@ function createChart(urlPath, title, chartOptions) {
         }
       },
     },
-  });
+  };
+  if (dated) {
+     chartConfig.options.scales.x = {
+          display: true,
+          type: 'time',
+          time: {
+              displayFormats: {
+                  quarter: 'yyyy-MM-dd'
+              },
+              tooltipFormat: 'yyyy-MM-dd'
+          }
+      }
+  }
+  
+  var chart = new Chart(canvas, chartConfig);
   
   
   var button=document.createElement("button");

@@ -268,6 +268,20 @@ createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x y
 }});
 
 createChart("/financials/revenue_growth_rate", "Revenue growth annual", {type: 'bar', unit: '%'});
+
+createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {
+      type: 'bar',
+      unit: '%',
+      animation: true,
+      lazyLoad: false,
+      tooltip: 'Shows the annual revenue growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized revenue growth between 2013 and 2020.',
+      slider: {
+        id: "revenue_growth_rate_xyr_moving_avg_slider",
+        parameterName: "year",
+        min: 2,
+        max: 10,
+        default: 7
+}});
 createChart("/financials/share_count_growth_rate", "Share count growth annual", {type: 'bar', unit: '%'});
 createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type: 'bar', unit: '%'});
 

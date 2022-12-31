@@ -596,7 +596,7 @@ public class FinancialsController {
         for (int i = 1; i < 30 * 4; ++i) {
             double yearsAgo = i / 4.0;
             Optional<Double> growth = GrowthCalculator.getFcfGrowthInInterval(company.financials, yearsAgo, 0);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
         }
 
         return result;
