@@ -64,6 +64,7 @@ public class User {
         this.cancelling = cancelling;
     }
 
+    @DynamoDBTypeConvertedEnum
     public RegistrationSource getRegisteredWith() {
         return registeredWith;
     }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
   <include resource="org/springframework/boot/logging/logback/defaults.xml" />
-  <property name="log.path" value="logs" />
+  <property name="log.path" value="${LOG_FOLDER:-logs}" />
   <property name="log.filename.prefix" value="appLog" />
   <property name="pattern" value="%-5p %d{yyyy-MM-dd HH:mm:ss.SSS} %c [thread=%thread] [ip=%X{clientIp}] [requestId=%X{requestId}] [email=%X{email}] %msg %ex%n" />
 
@@ -76,6 +76,8 @@
       <appender-ref ref="ASYNC_FILE_APPENDER_PAYMENT" />
     </logger>
     <root level="DEBUG">
+      <appender-ref ref="ASYNC_FILE_APPENDER" />
+     
       <appender-ref ref="CONSOLE" />
     </root>
   </springProfile>

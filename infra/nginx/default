@@ -1,0 +1,75 @@
+     server {
+            server_name localhost longtermstockfundamentals.com;
+
+            server_tokens off;
+            #more_set_headers    "Server: Apache-Coyote/1.1";
+            gzip on;
+
+            location /.well-known {
+                proxy_pass http://localhost:9888;
+                proxy_http_version 1.1;
+            }
+
+
+            proxy_set_header HOST $host;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Host $host;    
+        
+
+            location / {
+                proxy_pass http://localhost:9995/;
+                proxy_http_version 1.1;
+            }
+
+    listen [::]:443 ssl ipv6only=on http2; # managed by Certbot
+    listen 443 ssl http2; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/longtermstockfundamentals.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/longtermstockfundamentals.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+
+    server {
+            listen 9888 default_server;
+            listen [::]:9888 default_server;
+            gzip  on;
+            server_tokens off;
+            gzip_comp_level 5;
+            access_log  /opt/nginx/logs/plugin.log main;
+
+	    location /.well-known {
+                root /opt/helospark_external_files;
+                autoindex off;
+            }
+    }
+
+
+    server {
+            listen 9995 default_server;
+            listen [::]:9995 default_server;
+            gzip  on;
+            server_tokens off;
+            gzip_comp_level 5;
+            access_log  /opt/nginx/logs/application.log main;
+            location / {
+                proxy_pass http://localhost:{{SERVER_PORT}};
+                proxy_http_version 1.1;
+            }
+    }
+
+     server {
+    if ($host = longtermstockfundamentals.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+            server_name localhost longtermstockfundamentals.com;
+            listen 80 default_server;
+            listen [::]:80 default_server;
+    return 404; # managed by Certbot
+
+
+}

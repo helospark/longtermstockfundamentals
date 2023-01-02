@@ -49,9 +49,6 @@ function populateProfile() {
   fetch(url)
           .then(res => res.json())
           .then(out => {
-            console.log("PROFILE");
-            console.log(out);
-            console.log(out.status);
             if (out.description !== undefined) {
               symbolText = out.currencySymbol == "" ? "" : "(" + out.currencySymbol + ")";
               innerHtml = "";
@@ -163,7 +160,11 @@ createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggested
 createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {suggestedMin: -2, suggestedMax: 5});
 createChart("/financials/ev_over_ebitda", "EV over ebitda", {});
 
-createChart("/financials/p2g_ratio", "Price to Book ratio", {suggestedMin: 0, suggestedMax: 15});
+createChart("/financials/p2b_ratio", "Price to Book ratio", {
+  suggestedMin: 0,
+  suggestedMax: 15,
+  label: "price / book value"
+});
 createChart("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5});
 
 
@@ -191,6 +192,15 @@ createChart("/financials/total_assets", "Total assets vs liabilities", {label: "
     "url": "/financials/total_liabilities",
     "label": "Total liabilities"
   }
+]});
+createChart("/financials/intangible_assets_percent", "Intangible assets", {
+   unit: '%',
+   label: "Total intangible assets to total assets",
+   additionalCharts: [
+   {
+     "url": "/financials/goodwill_percent",
+     "label": "Goodwill to total assets"
+   }
 ]});
 createChart("/financials/cash", "Cash and cash equivalents", {});
 
@@ -300,6 +310,14 @@ createChart("/financials/price", "Price", {label: "price", additionalCharts: [
   {
     "url": "/financials/composite_fair_value",
     "label": "Composite fair value"
+  }
+]});
+createChart("/financials/return_with_reinvested_dividend", "Total returns", {
+  label: "Returns with reinvested dividends",
+  tooltip: 'Returns if each dividend received is reinvested into more stocks (assumes no transaction fee or tax)',
+  additionalCharts: [{
+    "url": "/financials/price",
+    "label": "price"
   }
 ]});
 createChart("/financials/price_growth_rate", "Price growth", {type: 'bar'});

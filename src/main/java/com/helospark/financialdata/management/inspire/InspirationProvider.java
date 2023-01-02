@@ -104,7 +104,7 @@ public class InspirationProvider {
                 result.portfolio.add(elements);
             }
         } else {
-            result.authorizationError = "This algorithm is only available for user with Advanced account";
+            result.authorizationError = "This algorithm is only available for users with Advanced account";
         }
 
         return result;

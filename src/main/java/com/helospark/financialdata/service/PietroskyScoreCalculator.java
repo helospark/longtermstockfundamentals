@@ -1,23 +1,22 @@
 package com.helospark.financialdata.service;
 
-import static com.helospark.financialdata.CommonConfig.NOW;
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
 import java.util.Optional;
 
 import com.helospark.financialdata.domain.CompanyFinancials;
+import com.helospark.financialdata.domain.FinancialsTtm;
 
 public class PietroskyScoreCalculator {
 
-    public static Optional<Integer> calculatePietroskyScore(CompanyFinancials company, double offset) {
-        int nowIndex = findIndexWithOrBeforeDate(company.financials, NOW.minusMonths((long) (offset * 12.0)));
-        int oneYearAgo = findIndexWithOrBeforeDate(company.financials, NOW.minusMonths((long) ((offset + 1.0) * 12.0)));
+    public static Optional<Integer> calculatePietroskyScore(CompanyFinancials company, FinancialsTtm financialsTtm) {
+        int oneYearAgo = findIndexWithOrBeforeDate(company.financials, financialsTtm.getDate().minusYears(1));
 
-        if (nowIndex == -1 || oneYearAgo == -1) {
+        if (oneYearAgo == -1) {
             return Optional.empty();
         }
 
-        var nowFinancials = company.financials.get(nowIndex);
+        var nowFinancials = financialsTtm;
         var oneYearAgoFinancials = company.financials.get(oneYearAgo);
 
         int result = 0;

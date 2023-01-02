@@ -144,9 +144,24 @@ public class FinancialsController {
         return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.incomeStatementTtm.eps / financialsTtm.price));
     }
 
-    @GetMapping("/p2g_ratio")
-    public List<SimpleDataElement> getP2gMargin(@PathVariable("stock") String stock) {
+    @GetMapping("/p2b_ratio")
+    public List<SimpleDataElement> getP2BValue(@PathVariable("stock") String stock) {
         return getIncomeData(stock, financialsTtm -> RatioCalculator.calculatePriceToBookRatio(financialsTtm));
+    }
+
+    @GetMapping("/p2tb_ratio")
+    public List<SimpleDataElement> getP2TangibleBookValue(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculatePriceToTangibleBookRatio(financialsTtm));
+    }
+
+    @GetMapping("/intangible_assets_percent")
+    public List<SimpleDataElement> getIntangibleAssetsPercent(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwillAndIntangibleAssets / financialsTtm.balanceSheet.totalAssets));
+    }
+
+    @GetMapping("/goodwill_percent")
+    public List<SimpleDataElement> getGoodwillPercent(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwill / financialsTtm.balanceSheet.totalAssets));
     }
 
     @GetMapping("/fed_rate")
@@ -262,7 +277,7 @@ public class FinancialsController {
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
 
-            double dividend = (double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+            double dividend = calculateDividendPaidPerShare(financialsTtm);
 
             double growth = calculateAnyLongTermDividendGrowthAtYear(company, i);
 
@@ -433,6 +448,26 @@ public class FinancialsController {
         return getIncomeData(stock, financialsTtm -> financialsTtm.price);
     }
 
+    @GetMapping("/return_with_reinvested_dividend")
+    public List<SimpleDataElement> getPriceWithReinvestedDividends(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+
+        double shareCount = 1.0;
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = company.financials.size() - 1; i >= 0; --i) {
+            FinancialsTtm financialsTtm = company.financials.get(i);
+            double dividendPaid = (double) -financialsTtm.cashFlow.dividendsPaid / financialsTtm.incomeStatement.weightedAverageShsOut;
+            double priceThen = financialsTtm.price;
+            shareCount += ((shareCount * dividendPaid) / priceThen);
+
+            double value = priceThen * shareCount;
+            result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value));
+        }
+        Collections.reverse(result);
+        return result;
+    }
+
     @GetMapping("/stock_compensation")
     public List<SimpleDataElement> getStockBasedCompensation(@PathVariable("stock") String stock) {
         return getIncomeData(stock, financialsTtm -> financialsTtm.cashFlowTtm.stockBasedCompensation);
@@ -495,7 +530,11 @@ public class FinancialsController {
 
     @GetMapping("/dividend_paid")
     public List<SimpleDataElement> getDividendPaid(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> (double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+        return getIncomeData(stock, financialsTtm -> calculateDividendPaidPerShare(financialsTtm));
+    }
+
+    public double calculateDividendPaidPerShare(FinancialsTtm financialsTtm) {
+        return (double) -financialsTtm.cashFlow.dividendsPaid / financialsTtm.incomeStatement.weightedAverageShsOut;
     }
 
     @GetMapping("/dividend_yield_per_current_price")
@@ -578,15 +617,11 @@ public class FinancialsController {
 
     @GetMapping("/pietrosky_score")
     public List<SimpleDataElement> getPietroskyScore(@PathVariable("stock") String stock) {
-        CompanyFinancials company = DataLoader.readFinancials(stock);
-        List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 0; i < 30 * 4; ++i) {
-            double yearsAgo = i / 4.0;
-            Optional<Integer> growth = PietroskyScoreCalculator.calculatePietroskyScore(company, yearsAgo);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), (double) growth.orElse(0)));
-        }
-
-        return result;
+        return getIncomeDataCompany(stock,
+                (financialsTtm, company) -> {
+                    Optional<Integer> growth = PietroskyScoreCalculator.calculatePietroskyScore(company, financialsTtm);
+                    return (double) growth.orElse(0);
+                });
     }
 
     @GetMapping("/fcf_growth_rate")

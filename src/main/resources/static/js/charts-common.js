@@ -355,6 +355,13 @@ function createChart(urlPath, title, chartOptions) {
                         if (chart.options.scales.y.max > maxValueToSet) {
                            maxValueToSet = chart.options.scales.y.max;
                         }
+                        if (chartOptions.suggestedMin !== undefined && minValueToSet < chartOptions.suggestedMin) {
+                           minValueToSet = chartOptions.suggestedMin;
+                        }
+                        if (chartOptions.suggestedMax !== undefined && chartOptions.suggestedMax < maxValueToSet) {
+                           maxValueToSet = chartOptions.suggestedMax;
+                        }
+                        
 
                         
                         if (minValueToSet >= maxValueToSet) {

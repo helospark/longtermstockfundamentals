@@ -2,6 +2,7 @@ package com.helospark.financialdata.flags;
 
 import static java.lang.String.format;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,6 +12,7 @@ import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
+import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 
 @Component
@@ -22,8 +24,10 @@ public class PietroskyFlagProvider implements FlagProvider {
     @Override
     public void addFlags(CompanyFinancials company, List<FlagInformation> flags, double offset) {
         List<FinancialsTtm> financials = company.financials;
-        if (financials.size() > 0) {
-            Optional<Integer> pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, offset);
+        int index = Helpers.findIndexWithOrBeforeDate(financials, LocalDate.now().minusMonths((long) (12.0 * offset)));
+
+        if (financials.size() > 0 && index != -1) {
+            Optional<Integer> pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, company.financials.get(index));
             if (pietrosky.isPresent()) {
                 if (pietrosky.get() >= 8) {
                     flags.add(new FlagInformation(FlagType.GREEN, format("Good pietrosky score (%d)", pietrosky.get())));

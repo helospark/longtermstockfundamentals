@@ -109,7 +109,8 @@
       endGrowth = Number($("#endGrowth").val()) / 100.0 + 1.0;
       startMargin = Number($("#startMargin").val()) / 100.0;
       endMargin = Number($("#endMargin").val()) / 100.0;
-      shareChange = Number($("#shareChange").val()) / 100.0 + 1.0;
+      startShareChange = Number($("#shareChange").val()) / 100.0 + 1.0;
+      endShareChange = Number($("#endShareChange").val()) / 100.0 + 1.0;
       discount = Number($("#discount").val()) / 100.0;
       shareCount = Number($("#shareCount").val()) * 1000;
       endMultiple = Number($("#endMultiple").val());
@@ -124,7 +125,7 @@
       
 
       
-      if (!isNaN(revenue) && !isNaN(startGrowth) && !isNaN(endGrowth) && !isNaN(startMargin) && !isNaN(endMargin) && !isNaN(shareChange) && !isNaN(discount) && !isNaN(endMultiple)) {
+      if (!isNaN(revenue) && !isNaN(startGrowth) && !isNaN(endGrowth) && !isNaN(startMargin) && !isNaN(endMargin) && !isNaN(startShareChange) && !isNaN(discount) && !isNaN(endMultiple)) {
          value = 0.0;
          previousRevenue = revenue;
          previousShareCount = shareCount;
@@ -132,9 +133,10 @@
          for (i = 0; i < years; ++i) {
             currentGrowth = startGrowth - ((startGrowth - endGrowth) * i) / (years - 1);
             currentMargin = startMargin - ((startMargin - endMargin) * i) / (years - 1);
+            currentShareChange = startShareChange - ((startShareChange - endShareChange) * i) / (years - 1);
 
             previousRevenue = previousRevenue * currentGrowth;
-            previousShareCount = previousShareCount * shareChange;
+            previousShareCount = previousShareCount * currentShareChange;
                         
             
             netIncome = previousRevenue * currentMargin;

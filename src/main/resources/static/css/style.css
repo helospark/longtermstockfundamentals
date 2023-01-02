@@ -188,6 +188,24 @@ p {
      color: #110f0a;
 }
 
+.faq-card li {
+  margin-left: 40px;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 24px;
+  color: #110f0a;
+  list-style-type: decimal; 
+  list-style-position: inside; 
+}
+
+li {
+  margin: 20px;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 24px;
+  color: #110f0a;
+}
+
 a {
      text-decoration: none;
      outline: none !important;

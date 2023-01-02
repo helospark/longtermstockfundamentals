@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTimeToLiveRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTimeToLiveResult;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TimeToLiveSpecification;
 import com.amazonaws.services.dynamodbv2.model.UpdateTimeToLiveRequest;
@@ -23,6 +25,7 @@ import jakarta.annotation.PostConstruct;
 
 @Component
 public class DynamoDbInitializer {
+    private static final String ADMIN_EMAIL = "admin@longtermstockfundamentals.com";
     @Autowired
     AmazonDynamoDB amazonDynamoDB;
     @Autowired
@@ -39,11 +42,11 @@ public class DynamoDbInitializer {
         createTable("StripeUserMapping", StripeUserMapping.class);
         createTable("UserLastPayment", UserLastPayment.class);
 
-        if (wasUserTableCreated) {
+        if (wasUserTableCreated || userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
             User user = new User();
             user.setAccountType(AccountType.ADMIN);
             user.setActivated(true);
-            user.setEmail("admin@longtermstockfundamentals.com");
+            user.setEmail(ADMIN_EMAIL);
             user.setPassword("$2a$10$a83Kk3OS5I.HUR7i8G8NkOlTOIQ6XMGk/YUUGtVr2rRm7M6345ufu");
             user.setRegistered(LocalDate.now().toString());
             userRepository.save(user);
@@ -54,6 +57,19 @@ public class DynamoDbInitializer {
             ttlRequest.setTimeToLiveSpecification(new TimeToLiveSpecification().withEnabled(true).withAttributeName("expiration"));
             amazonDynamoDB.updateTimeToLive(ttlRequest);
         }
+        if (!isTimeToLiveEnabled("PersistentSignin")) {
+            UpdateTimeToLiveRequest ttlRequest = new UpdateTimeToLiveRequest();
+            ttlRequest.setTableName("PersistentSignin");
+            ttlRequest.setTimeToLiveSpecification(new TimeToLiveSpecification().withEnabled(true).withAttributeName("expiration"));
+            amazonDynamoDB.updateTimeToLive(ttlRequest);
+        }
+
+    }
+
+    public boolean isTimeToLiveEnabled(String tableName) {
+        DescribeTimeToLiveRequest ttlDescribeRequest = new DescribeTimeToLiveRequest().withTableName(tableName);
+        DescribeTimeToLiveResult hasTimeToLive = amazonDynamoDB.describeTimeToLive(ttlDescribeRequest);
+        return !hasTimeToLive.getTimeToLiveDescription().getTimeToLiveStatus().equals("DISABLED");
     }
 
     public boolean createTable(String tableName, Class<?> class1) {

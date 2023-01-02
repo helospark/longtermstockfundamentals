@@ -3,7 +3,6 @@ package com.helospark.financialdata.management.email;
 import java.util.Properties;
 
 import javax.mail.Message;
-import javax.mail.MessagingException;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
 import javax.mail.Transport;
@@ -56,14 +55,14 @@ public class EmailSender {
 
         try {
             MimeMessage message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(from));
+            message.setFrom(new InternetAddress(from, "LongTermStockFundamentals"));
             message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
             message.setSubject(subject);
             message.setContent(htmlMessage,
                     "text/html; charset=utf-8");
             LOGGER.info("Sending email to {} with title '{}'", email, subject);
             Transport.send(message);
-        } catch (MessagingException mex) {
+        } catch (Exception mex) {
             LOGGER.error("Unable to send email", mex);
         }
 

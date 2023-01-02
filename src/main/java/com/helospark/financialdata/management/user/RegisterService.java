@@ -53,7 +53,7 @@ public class RegisterService {
         }
     }
 
-    public void registerUserWithGoogle(String email) {
+    public User registerUserWithGoogle(String email) {
         Optional<User> existingUser = userRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
@@ -69,5 +69,7 @@ public class RegisterService {
         user.setRegisteredWith(RegistrationSource.GOOGLE);
 
         userRepository.save(user);
+
+        return user;
     }
 }

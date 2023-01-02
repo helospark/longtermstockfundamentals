@@ -14,6 +14,7 @@
   <script src="../js/charts-common.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="../js/bootstrap.bundle.min.js"></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4680762769337689" crossorigin="anonymous"></script>
   
   <title th:text="${companyName} + ' DCF calculator'"></title>
 </head>
@@ -43,8 +44,12 @@
       <input th:value="${startGrowth}" id="startGrowth" type="text" class="form-control" placeholder="Start growth">
     </div>
     <div class="col-md-2 mb-3">
-      <label for="startGrowth">Share change annual %</label>
+      <label for="shareChange">Share chg annual %</label>
       <input th:value="${shareChange}" id="shareChange" type="text" class="form-control" placeholder="Share change">
+    </div>
+    <div class="col-md-2 mb-3">
+      <label for="discount">Discount rate %</label>
+      <input value="10" id="discount" type="text" class="form-control" placeholder="Discount">
     </div>
   </div>
   <div class="form-row">
@@ -61,12 +66,13 @@
       <input th:value="${endGrowth}" id="endGrowth" type="text" class="form-control" placeholder="End growth">
     </div>
     <div class="col-md-2 mb-3">
+      <label for="endShareChange">End share chg annual %</label>
+      <input th:value="${shareChange}" id="endShareChange" type="text" class="form-control" placeholder="Share change">
+    </div>
+
+    <div class="col-md-2 mb-3">
       <label for="endMultiple">End multiple</label>
       <input th:value="${endMultiple}" id="endMultiple" type="text" class="form-control" placeholder="End multiple">
-    </div>
-    <div class="col-md-2 mb-3">
-      <label for="discount">Discount rate %</label>
-      <input value="10" id="discount" type="text" class="form-control" placeholder="Discount">
     </div>
   </div>
           

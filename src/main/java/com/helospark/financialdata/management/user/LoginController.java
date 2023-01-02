@@ -1,6 +1,8 @@
 package com.helospark.financialdata.management.user;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -94,6 +96,9 @@ public class LoginController {
         PersistentSignin persistentSignin = new PersistentSignin();
         persistentSignin.setKey(persistentToken);
         persistentSignin.setEmail(user.getEmail());
+        ZoneId zoneId = ZoneId.systemDefault();
+        long expiration = LocalDateTime.now().plusSeconds(rememberMeExpiry).atZone(zoneId).toEpochSecond();
+        persistentSignin.setExpiration(expiration);
 
         persistentSigninRepository.save(persistentSignin);
 
@@ -128,13 +133,17 @@ public class LoginController {
         if (optionalUser.isPresent()) {
             signInUserAfterVerification(httpResponse, optionalUser.get());
         } else {
-            registerService.registerUserWithGoogle(email);
-            signInUserAfterVerification(httpResponse, optionalUser.get());
+            User createduser = registerService.registerUserWithGoogle(email);
+            signInUserAfterVerification(httpResponse, createduser);
         }
     }
 
     @PostMapping("/user/logout")
-    public void logout(HttpServletResponse httpResponse) {
+    public void logout(HttpServletResponse httpResponse, HttpServletRequest request) {
+        Optional<Cookie> rememberMeCookie = findCookie(request, REMEMBER_ME_COOKIE_NAME);
+        if (rememberMeCookie.isPresent()) {
+            persistentSigninRepository.removePersistentSigning(rememberMeCookie.get().getValue());
+        }
         addRememberMeCookie(httpResponse, 0, "");
         addAuthorizationCookie(httpResponse, 0, "");
     }

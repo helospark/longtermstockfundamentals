@@ -7,6 +7,7 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
 public class PersistentSignin {
     private String key;
     private String email;
+    private long expiration;
 
     @DynamoDBHashKey
     public String getKey() {
@@ -23,6 +24,19 @@ public class PersistentSignin {
 
     public String getEmail() {
         return email;
+    }
+
+    public long getExpiration() {
+        return expiration;
+    }
+
+    public void setExpiration(long expiration) {
+        this.expiration = expiration;
+    }
+
+    @Override
+    public String toString() {
+        return "PersistentSignin [key=" + key + ", email=" + email + ", expiration=" + expiration + "]";
     }
 
 }

@@ -19,7 +19,16 @@ public class RatioCalculator {
     }
 
     public static double calculatePriceToBookRatio(FinancialsTtm data) {
-        return data.price / ((double) data.balanceSheet.totalStockholdersEquity / data.incomeStatement.weightedAverageShsOut);
+        return data.price / calculateBookValuePerShare(data);
+    }
+
+    public static double calculatePriceToTangibleBookRatio(FinancialsTtm data) {
+        double tangibleBookValue = ((double) data.balanceSheet.totalStockholdersEquity - data.balanceSheet.goodwillAndIntangibleAssets) / data.incomeStatement.weightedAverageShsOut;
+        return data.price / tangibleBookValue;
+    }
+
+    public static double calculateBookValuePerShare(FinancialsTtm data) {
+        return (double) data.balanceSheet.totalStockholdersEquity / data.incomeStatement.weightedAverageShsOut;
     }
 
     public static double calculatePayoutRatio(FinancialsTtm data) {
