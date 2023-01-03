@@ -123,6 +123,22 @@ function createSeparator(title) {
   
 }
 
+function createAd() {
+  adHtml = `
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-4680762769337689"
+           data-ad-slot="8763896973"
+           data-ad-format="auto"
+           data-adtest="on"
+           data-full-width-responsive="true"></ins>
+      <script>
+           (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>`;
+
+  //$("#charts").append(adHtml); // waiting on getting approved
+}
+
 populateProfile();
 
 createSeparator("Income");
@@ -138,6 +154,7 @@ createChart("/financials/net_income", "Net income", {label: "Net income", additi
 createChart("/financials/eps", "EPS", {});
 createChart("/financials/pfcf", "FCF per share", {});
 
+createAd();
 
 createSeparator("Margins")
 createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit: '%', label: "Gross margin", additionalCharts: [
@@ -167,6 +184,7 @@ createChart("/financials/p2b_ratio", "Price to Book ratio", {
 });
 createChart("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5});
 
+createAd();
 
 createSeparator("Debt information")
 
@@ -207,6 +225,7 @@ createChart("/financials/cash", "Cash and cash equivalents", {});
 //createChart("/financials/non_current_assets", "Non current assets", {});
 //createChart("/financials/long_term_debt", "Long term debt", {});
 
+createAd();
 
 createSeparator("Return ratios")
 createChart("/financials/roic", "Return on invested capital", {unit: '%'});
@@ -246,6 +265,7 @@ createChart("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio
 createChart("/financials/dividend_paid", "Dividend paid", {});
 createChart("/financials/dividend_yield_per_current_price", "Dividend yield for invest price", {unit: '%', suggestedMin: -2, suggestedMax: 200});
 
+createAd();
 
 
 createSeparator("Growth")
@@ -295,7 +315,7 @@ createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual gr
 createChart("/financials/share_count_growth_rate", "Share count growth annual", {type: 'bar', unit: '%'});
 createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type: 'bar', unit: '%'});
 
-
+createAd();
 
 createSeparator("DCF")
 createChart("/financials/eps_dcf", "EPS DCF", {});
@@ -304,6 +324,7 @@ createChart("/financials/dividend_dcf", "Dividend DCF", {});
 createChart("/financials/cash_per_share", "Cash per share", {});
 createChart("/financials/graham_number", "Graham number", {});
 
+createAd();
 
 createSeparator("Price")
 createChart("/financials/price", "Price", {label: "price", additionalCharts: [
@@ -321,6 +342,8 @@ createChart("/financials/return_with_reinvested_dividend", "Total returns", {
   }
 ]});
 createChart("/financials/price_growth_rate", "Price growth", {type: 'bar'});
+
+createAd();
 
 addFlags();
 
