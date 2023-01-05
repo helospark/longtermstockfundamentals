@@ -101,8 +101,8 @@ public class CompounderRoicScreenerBacktest2 {
 
                     if (tenYearAvgGrowth.isPresent() && tenYearAvgGrowth.get() >= 10.0 && continouslyProfitable && altmanZ > 2.2) {
 
-                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo, 6);
-                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo, 6);
+                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 6, yearsAgo);
+                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 6, yearsAgo);
 
                         if (epsDeviation.isPresent() && revenueDeviation.isPresent()) {
                             Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);

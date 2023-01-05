@@ -17,6 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.management.inspire.InspirationProvider;
+import com.helospark.financialdata.management.screener.ScreenerController;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.ViewedStocksService;
 import com.helospark.financialdata.management.user.repository.AccountType;
@@ -24,7 +25,7 @@ import com.helospark.financialdata.management.user.repository.FreeStockRepositor
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.MarginCalculator;
-import com.helospark.financialdata.service.SymbolIndexProvider;
+import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +34,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @RequestMapping("/")
 public class ViewController {
     @Autowired
-    private SymbolIndexProvider symbolIndexProvider;
+    private SymbolAtGlanceProvider symbolIndexProvider;
     @Autowired
     private LoginController loginController;
     @Autowired
@@ -42,6 +43,8 @@ public class ViewController {
     private FreeStockRepository freeStockRepository;
     @Autowired
     private InspirationProvider inspirationProvider;
+    @Autowired
+    private ScreenerController screenerController;
 
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
@@ -70,8 +73,8 @@ public class ViewController {
         return "faq";
     }
 
-    @GetMapping("/inspire/{stock}")
-    public String inspire(Model model, @PathVariable("stock") String stock, HttpServletRequest request) {
+    @GetMapping("/inspire")
+    public String inspire(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request) {
         fillModelWithCommonStockData(stock, model, request);
 
         model.addAttribute("inspirations", inspirationProvider.getAvailablePortfolios());
@@ -103,6 +106,14 @@ public class ViewController {
         }
         model.addAttribute("exchanges", exchanges);
         return "sitemap";
+    }
+
+    @GetMapping("/screener")
+    public String screener(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock) {
+        model.addAttribute("stock", stock);
+        model.addAttribute("screenerFields", screenerController.getScreenerDescriptions());
+        model.addAttribute("operators", screenerController.getScreenerOperators());
+        return "screener";
     }
 
     @GetMapping("/site-map/exchange/{exchange}")

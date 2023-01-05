@@ -15,7 +15,7 @@ import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.ViewedStocksService;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.FreeStockRepository;
-import com.helospark.financialdata.service.SymbolIndexProvider;
+import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -33,7 +33,7 @@ public class AllowViewStockFilter implements Filter {
     @Autowired
     private LoginController loginController;
     @Autowired
-    private SymbolIndexProvider symbolIndexProvider;
+    private SymbolAtGlanceProvider symbolIndexProvider;
     @Autowired
     private ViewedStocksService viewedStocksService;
     @Autowired

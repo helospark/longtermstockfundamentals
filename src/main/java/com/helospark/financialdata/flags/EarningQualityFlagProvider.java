@@ -61,7 +61,7 @@ public class EarningQualityFlagProvider implements FlagProvider {
                 }
             }
 
-            Double cape = CapeCalculator.calculateCapeRatioQ(company.financials, index, 10);
+            Double cape = CapeCalculator.calculateCapeRatioQ(company.financials, 10, index);
             if (cape != null) {
                 if (cape > 0.0 && cape <= 10.0) {
                     flags.add(new FlagInformation(FlagType.GREEN, format("Low CAPE ratio (CAPE=%.2f)", cape)));

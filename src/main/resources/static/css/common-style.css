@@ -147,3 +147,35 @@ body {
     align-items: center;
     justify-content: center;
 }
+
+#conditions .dropdown-menu {
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 10001;
+}
+
+#conditions .dropdown-menu {
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 10001;
+}
+
+#conditions input {
+  width: 100px;
+}
+
+#conditions select {
+  font-size: 18pt;
+}
+
+#screener-result-table {
+  margin-top: 20px;
+}
+
+#conditions .remove-condition-link {
+  text-decoration: none;
+  margin-left: 10px;
+  font-size: 20pt;
+  position: relative;
+  top: -4px;
+}

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1">
+
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+  <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+  
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
+  <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
+  <link rel="stylesheet" href="/css/charts_style.css">
+  <link rel="stylesheet" type="text/css" href="/css/common-style.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="../js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+
+  
+  <title>Stock screener</title>
+</head>
+<body>
+
+<div th:replace="fragments/navbar :: my_fragment(active='screener')"></div>
+<div class="clearFloat"></div>
+
+<div id="content">
+
+  <h2>Stock screener</h2>
+
+  <div id="conditions">
+    <div class="condition-row">
+      <select class="metric-dropdown"  style="float:left">
+        <option th:value="${field.key}" th:text="${field.value.readableName}" th:each="field : ${screenerFields}"></option>
+      </select>
+
+      <select class="operator-dropdown"  style="float:left">
+        <option th:value="${operator.symbol}" th:text="${operator.symbol}" th:each="operator : ${operators}"></option>
+      </select>
+    
+      <div style="float:left">
+        <input value="30.0"></input>
+      </div>
+      <div class="remove-filter" style="float:left">
+        <a class="remove-condition-link" href="javascript:;">&#10006;</a>
+      </div>
+      <div style="clear:both"></div>
+    </div>
+  </div>
+  
+
+  <button onclick="addNewCondition()">Add new condition</button>
+
+  <br><br>
+  <button onclick="submitScreener()">Submit filter</button>
+
+
+  <div id="screener-result-table">
+  </div>
+
+<script>
+  function addNewCondition() {
+    newRow = $("#conditions .condition-row").first().clone();
+    $("#conditions").append(newRow);
+  }
+  
+  function submitScreener() {
+    screenerOperations = [];
+    
+    $('.condition-row').each(function(i, obj) {
+        metric = $(this).find(".metric-dropdown").val();
+        operation = $(this).find(".operator-dropdown").val();
+        number1 = $(this).find("input:eq(0)").val();
+        number2 = 0.0;
+        secondField = $(this).find("input:eq(1)");
+        if (secondField.length > 0) {
+          number2 = secondField.val();
+        }
+        
+        screenerOperations.push({id: metric, operation: operation, number1: number1, number2: number2});
+        console.log(metric + " " + operation + " " + number1 + " " + number2);
+    });
+    
+    res = fetch('/screener/perform', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({operations: screenerOperations})
+        }).then(res => {
+          return res.json();
+        }).then(data => {
+            resultHtml=`
+            <table class="table table-striped">
+              <thead>
+                <tr>`;
+            for (i = 0; i < data.columns.length; ++i) {
+               resultHtml += '<th scope="col">' + data.columns[i] +'</th>';
+            }
+            resultHtml += `
+                </tr>
+              </thead>
+              <tbody>`;
+            for (i = 0; i < data.portfolio.length; ++i) {
+              resultHtml += "<tr>";
+              for (j = 0; j < data.columns.length; ++j) {
+                 var value = data.portfolio[i][data.columns[j]];
+                 resultHtml += "<td>" + value + "</td>";
+              }
+              resultHtml += "</tr>";
+            }
+            resultHtml += `
+               </tbody>
+             </table>`;
+            
+            $("#screener-result-table").html(resultHtml);
+            $('#screener-result-table table').DataTable({
+              "iDisplayLength": 100,
+              "order": []
+            });
+        });
+  }
+
+$('#conditions').on("click", ".dropdown-item",  function(e){
+    button = $(this).parent().parent().find("button").first();
+    button.text(this.text);
+    button.data("metric-id", $(this).data("metric-id"));
+});
+$('#conditions').on("click", ".remove-filter",  function(e){
+    if ($(".condition-row").length > 1) {
+      button = $(this).parent().remove();
+    }
+});
+
+$(".metric-dropdown").val("roic");
+$(".operator-dropdown").val(">");
+$("#conditions input").first().val("30");
+
+submitScreener();
+
+
+</script>
+
+
+<script src="../js/autocomplete.js"></script>
+
+</div>
+
+<div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
+<span id="allowed" style="display:none" th:text="${allowed}"></span>
+<span id="accountType" style="display:none" th:text="${accountType}"></span>
+<span id="viewLimit" style="display:none" th:text="${viewLimit}"></span>
+<div th:replace="fragments/content-blocking-modal"></div>
+<div th:replace="fragments/general-message-modal"></div>
+
+</body>
+</html>

@@ -32,9 +32,9 @@ public class CompounderScreener {
 
             Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, 8, 0);
             boolean continouslyProfitable = isProfitableEveryYearSince(financials, 8, 0);
-            Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 0.0, 8);
-            Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 0.0, 8);
-            Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 0.0, 8);
+            Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 8, 0.0);
+            Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 8, 0.0);
+            Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 8, 0.0);
             double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(0), company.latestPrice);
 
             Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, 0);

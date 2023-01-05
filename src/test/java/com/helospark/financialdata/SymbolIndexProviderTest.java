@@ -9,14 +9,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.helospark.financialdata.domain.SearchElement;
-import com.helospark.financialdata.service.SymbolIndexProvider;
+import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class SymbolIndexProviderTest {
-    static SymbolIndexProvider underTest;
+    static SymbolAtGlanceProvider underTest;
 
     @BeforeAll
     public static void setUp() {
-        underTest = new SymbolIndexProvider();
+        underTest = new SymbolAtGlanceProvider();
     }
 
     @Test

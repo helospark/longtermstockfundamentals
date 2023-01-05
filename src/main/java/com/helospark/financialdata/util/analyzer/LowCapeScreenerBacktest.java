@@ -40,7 +40,7 @@ public class LowCapeScreenerBacktest {
                 double latestPriceThen = financials.get(index).price;
 
                 boolean continouslyProfitable = isProfitableEveryYearSince(financials, 5 + yearsAgo, yearsAgo);
-                double cape = CapeCalculator.calculateCapeRatioQ(company.financials, index, 5);
+                double cape = CapeCalculator.calculateCapeRatioQ(company.financials, 5, index);
                 double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
                 Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
 

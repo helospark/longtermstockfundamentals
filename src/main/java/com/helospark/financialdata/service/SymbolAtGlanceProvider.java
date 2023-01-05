@@ -1,19 +1,22 @@
 package com.helospark.financialdata.service;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.helospark.financialdata.domain.SearchElement;
 import com.helospark.financialdata.util.StockDataDownloader;
+import com.helospark.financialdata.util.glance.AtGlanceData;
 
 @Component
-public class SymbolIndexProvider {
+public class SymbolAtGlanceProvider {
     List<String> symbols = new ArrayList<>();
     List<String> companyNames = new ArrayList<>();
     List<String> upperCompanyNames = new ArrayList<>();
@@ -21,29 +24,36 @@ public class SymbolIndexProvider {
     int longestCompanyName;
     int longestSymbol;
 
-    public SymbolIndexProvider() {
-        try (var file = new FileInputStream(new File(StockDataDownloader.SYMBOL_CACHE_FILE))) {
-            for (var line : new String(file.readAllBytes()).split("\n")) {
-                String[] elements = line.split(";");
-                String symbol = elements[0].toUpperCase();
+    LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache;
 
-                if (symbol.length() > longestSymbol) {
-                    longestSymbol = symbol.length();
+    public SymbolAtGlanceProvider() {
+        ObjectMapper om = new ObjectMapper();
+        File file = new File(StockDataDownloader.SYMBOL_CACHE_FILE);
+
+        TypeReference<LinkedHashMap<String, AtGlanceData>> typeRef = new TypeReference<LinkedHashMap<String, AtGlanceData>>() {
+        };
+
+        try {
+            symbolCompanyNameCache = om.readValue(file, typeRef);
+
+            for (var entry : symbolCompanyNameCache.entrySet()) {
+                if (entry.getKey().length() > longestSymbol) {
+                    longestSymbol = entry.getKey().length();
                 }
+                symbols.add(entry.getKey());
+                if (entry.getValue().companyName != null) {
+                    companyNames.add(entry.getValue().companyName);
+                    upperCompanyNames.add(entry.getValue().companyName.toUpperCase());
 
-                symbols.add(symbol);
-                if (elements.length > 1) {
-                    companyNames.add(elements[1]);
-                    upperCompanyNames.add(elements[1].toUpperCase());
-
-                    if (elements[1].length() > longestCompanyName) {
-                        longestCompanyName = elements[1].length();
+                    if (entry.getValue().companyName.length() > longestCompanyName) {
+                        longestCompanyName = entry.getValue().companyName.length();
                     }
                 } else {
                     companyNames.add("");
                     upperCompanyNames.add("");
                 }
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -93,6 +103,14 @@ public class SymbolIndexProvider {
             }
         }
         return Optional.empty();
+    }
+
+    public Optional<AtGlanceData> getAtGlanceData(String stock) {
+        return Optional.ofNullable(symbolCompanyNameCache.get(stock));
+    }
+
+    public LinkedHashMap<String, AtGlanceData> getSymbolCompanyNameCache() {
+        return symbolCompanyNameCache;
     }
 
 }

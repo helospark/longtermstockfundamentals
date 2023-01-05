@@ -1,6 +1,5 @@
 package com.helospark.financialdata.flags;
 
-import static com.helospark.financialdata.service.GrowthAnalyzer.isProfitableEveryYearSince;
 import static java.lang.String.format;
 
 import java.time.LocalDate;
@@ -14,6 +13,7 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.service.Helpers;
+import com.helospark.financialdata.service.ProfitabilityCalculator;
 
 @Component
 public class ProfitabilityFlagProvider implements FlagProvider {
@@ -30,7 +30,7 @@ public class ProfitabilityFlagProvider implements FlagProvider {
                 flags.add(new FlagInformation(FlagType.RED, "Company has no free cash flow"));
             }
 
-            Optional<Integer> numberOfYearsProfitable = calculateNumberOfYearsProfitable(company, offset);
+            Optional<Integer> numberOfYearsProfitable = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offset);
             if (numberOfYearsProfitable.isPresent()) {
                 int profitableYears = numberOfYearsProfitable.get();
                 if (profitableYears > 15) {
@@ -42,31 +42,13 @@ public class ProfitabilityFlagProvider implements FlagProvider {
                 }
 
                 int yearsToCheckFcf = profitableYears > 8 ? 8 : profitableYears;
-                boolean hasNegativeFcf = hasNegativeFreeCashFlow(company, index, yearsToCheckFcf);
+                boolean hasNegativeFcf = ProfitabilityCalculator.hasNegativeFreeCashFlow(company, index, yearsToCheckFcf);
                 if (hasNegativeFcf) {
                     flags.add(new FlagInformation(FlagType.YELLOW, format("Though company has been profitable %d yrs, it had negative FCF", yearsToCheckFcf)));
                 }
             }
         }
 
-    }
-
-    private boolean hasNegativeFreeCashFlow(CompanyFinancials company, int index, int years) {
-        for (int i = index; i < company.financials.size() && i < years * 4; ++i) {
-            if (company.financials.get(i).cashFlowTtm.freeCashFlow < 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private Optional<Integer> calculateNumberOfYearsProfitable(CompanyFinancials company, double offset) {
-        for (int i = 20; i > 0; --i) {
-            if (isProfitableEveryYearSince(company.financials, offset + i, offset)) {
-                return Optional.of(i);
-            }
-        }
-        return Optional.empty();
     }
 
 }

@@ -25,9 +25,9 @@ public class CompounderFlagProvider implements FlagProvider {
         List<FinancialsTtm> financials = company.financials;
         Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, 7 + offset, offset);
         boolean continouslyProfitable = isProfitableEveryYearSince(financials, 7 + offset, offset);
-        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, offset, 8);
-        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, offset, 8);
-        Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, offset, 8);
+        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 8, offset);
+        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 8, offset);
+        Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 8, offset);
 
         if (tenYearAvgGrowth.isPresent() && tenYearAvgGrowth.get() > 0.0 && continouslyProfitable && epsDeviation.isPresent() && revenueDeviation.isPresent() && fcfDeviation.isPresent()) {
             Double epsStandardDeviation = epsDeviation.get();

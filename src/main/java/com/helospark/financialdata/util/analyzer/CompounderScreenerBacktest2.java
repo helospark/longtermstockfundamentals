@@ -101,9 +101,9 @@ public class CompounderScreenerBacktest2 {
                         Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
                         Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
 
-                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo, 8);
-                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo, 8);
-                        Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, yearsAgo, 8);
+                        Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 8, yearsAgo);
+                        Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 8, yearsAgo);
+                        Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 8, yearsAgo);
                         if (epsDeviation.isPresent() && revenueDeviation.isPresent() && fcfDeviation.isPresent()) {
                             double growth = tenYearAvgGrowth.get();
                             Double epsStandardDeviation = epsDeviation.get();

@@ -1,13 +1,20 @@
+newest_timestamp = 0;
 const autoCompleteJS = new autoComplete({
     placeHolder: "Search for stocks...",
     data: {
         src: async (query) => {
+          sent_timestamp = (new Date()).getTime();
           let url = "/suggest?search=" + query;
           
-          result = [];
           suggestions = await fetch(url)
                           .then(res => res.json())
                           .catch(err => { throw err });
+          if (sent_timestamp < newest_timestamp) {
+              throw Error("Old results");
+          }
+          newest_timestamp = sent_timestamp;
+          result = [];
+
           for (i = 0; i < suggestions.length; ++i) {
             out = suggestions[i];
             element=out.symbol + " - " + out.name;
@@ -130,7 +137,7 @@ function createAd() {
            data-ad-client="ca-pub-4680762769337689"
            data-ad-slot="8763896973"
            data-ad-format="auto"
-           data-adtest="on"
+//           data-adtest="on"
            data-full-width-responsive="true"></ins>
       <script>
            (adsbygoogle = window.adsbygoogle || []).push({});

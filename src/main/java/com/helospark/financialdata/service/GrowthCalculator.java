@@ -108,6 +108,30 @@ public class GrowthCalculator {
         return values.isEmpty() ? getShortTermGrowth(financials, offset) : Optional.of(values.get(values.size() / 2));
     }
 
+    public static Optional<Double> getMedianEpsGrowth(List<FinancialsTtm> financials, int maxYears, double offset) {
+        List<Double> values = new ArrayList<>();
+        for (int i = maxYears; i >= 3; --i) {
+            Optional<Double> growthInInterval = getEpsGrowthInInterval(financials, i + offset, offset);
+            if (growthInInterval.isPresent()) {
+                values.add(growthInInterval.get());
+            }
+        }
+        Collections.sort(values);
+        return values.isEmpty() ? getShortTermGrowth(financials, offset) : Optional.of(values.get(values.size() / 2));
+    }
+
+    public static Optional<Double> getMedianFcfGrowth(List<FinancialsTtm> financials, int maxYears, double offset) {
+        List<Double> values = new ArrayList<>();
+        for (int i = maxYears; i >= 3; --i) {
+            Optional<Double> growthInInterval = getFcfGrowthInInterval(financials, i + offset, offset);
+            if (growthInInterval.isPresent()) {
+                values.add(growthInInterval.get());
+            }
+        }
+        Collections.sort(values);
+        return values.isEmpty() ? getShortTermGrowth(financials, offset) : Optional.of(values.get(values.size() / 2));
+    }
+
     private static Optional<Double> getShortTermGrowth(List<FinancialsTtm> financials, double offset) {
         for (int i = 2; i >= 1; --i) {
             Optional<Double> growthInInterval = getRevenueGrowthInInterval(financials, i + offset, offset);

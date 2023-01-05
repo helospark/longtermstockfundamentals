@@ -52,8 +52,8 @@ public class CompounderRoicScreenerBacktest {
 
                 Optional<Double> tenYearAvgGrowth = getEpsGrowthInInterval(financials, PROF_YEAR + yearsAgo, yearsAgo);
                 boolean continouslyProfitable = isProfitableEveryYearSince(financials, PROF_YEAR + yearsAgo, yearsAgo);
-                Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo, DEVIATION_YEAR);
-                Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo, DEVIATION_YEAR);
+                Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, DEVIATION_YEAR, yearsAgo);
+                Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, DEVIATION_YEAR, yearsAgo);
 
                 if (tenYearAvgGrowth.isPresent() && continouslyProfitable && epsDeviation.isPresent() && revenueDeviation.isPresent()) {
                     double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);

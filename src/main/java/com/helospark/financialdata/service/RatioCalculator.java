@@ -47,4 +47,8 @@ public class RatioCalculator {
         return (double) data.incomeStatementTtm.revenue / data.balanceSheet.totalAssets;
     }
 
+    public static Double calculateFcfPayoutRatio(FinancialsTtm financialsTtm) {
+        return (double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.freeCashFlow;
+    }
+
 }

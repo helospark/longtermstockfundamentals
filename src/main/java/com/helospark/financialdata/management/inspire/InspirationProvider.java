@@ -22,13 +22,15 @@ import com.helospark.financialdata.InspirationController;
 import com.helospark.financialdata.domain.PortfolioElement;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.service.DataLoader;
-import com.helospark.financialdata.service.SymbolIndexProvider;
+import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.analyzer.HighRoicScreener;
+import com.helospark.financialdata.util.glance.AtGlanceData;
 
 @Component
 public class InspirationProvider {
+    private static final String VALUE_LABEL = "Value (m$)";
     @Autowired
-    private SymbolIndexProvider symbolIndexProvider;
+    private SymbolAtGlanceProvider symbolIndexProvider;
     Map<String, String> availablePortfolios = new LinkedHashMap<>();
 
     Cache<String, List<PortfolioElement>> fileToPortfolioElements = Caffeine.newBuilder()
@@ -55,22 +57,42 @@ public class InspirationProvider {
             return DataLoader.readListOfClassFromFile(file, PortfolioElement.class);
         });
 
-        result.columns = List.of("symbol", "name", "shares");
+        result.columns = List.of("symbol", "name", VALUE_LABEL, "Trailing PEG", "ROIC", "AltmanZ", "Revenue Growth", "EPS Growth");
 
         List<Map<String, String>> portfolioElements = new ArrayList<>();
         for (var element : listOfInvestments) {
             Optional<String> company = symbolIndexProvider.getCompanyName(element.tickercusip);
-            if (company.isPresent()) {
+            Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(element.tickercusip);
+            if (company.isPresent() && optionalAtGlance.isPresent()) {
+                var atGlance = optionalAtGlance.get();
+                double priceUsd = atGlance.latestStockPriceUsd == null ? 0.0 : atGlance.latestStockPriceUsd;
                 Map<String, String> portfolioElement = new HashMap<>();
                 portfolioElement.put("symbol", createSymbolLink(element.tickercusip));
                 portfolioElement.put("name", company.get());
-                portfolioElement.put("shares", String.valueOf(element.shares));
+                portfolioElement.put(VALUE_LABEL, formatString((element.shares * priceUsd / 1_000_000.0)));
+                portfolioElement.put("Trailing PEG", formatString(atGlance.trailingPeg));
+                portfolioElement.put("ROIC", formatString(atGlance.roic));
+                portfolioElement.put("AltmanZ", formatString(atGlance.altman));
+                portfolioElement.put("Revenue Growth", formatString(atGlance.revenueGrowth));
+                portfolioElement.put("EPS Growth", formatString(atGlance.epsGrowth));
                 portfolioElements.add(portfolioElement);
             }
         }
+
+        // TODO: don't serialize just to parse again
+        portfolioElements.sort((a, b) -> Double.compare(Double.parseDouble(b.get(VALUE_LABEL)), Double.parseDouble(a.get(VALUE_LABEL))));
+
         result.portfolio = portfolioElements;
 
         return result;
+    }
+
+    public String formatString(Double value) {
+        if (value == null) {
+            return "-";
+        } else {
+            return String.format("%.2f", value);
+        }
     }
 
     private Inspiration loadAlgorithm(String fullPath, String description, AccountType type) {

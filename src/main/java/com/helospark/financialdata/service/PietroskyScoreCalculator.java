@@ -38,7 +38,7 @@ public class PietroskyScoreCalculator {
         }
         Double nowCurrentRatio = RatioCalculator.calculateCurrentRatio(nowFinancials);
         Double thenCurrentRatio = RatioCalculator.calculateCurrentRatio(oneYearAgoFinancials);
-        if (nowCurrentRatio != null && nowCurrentRatio != null && nowCurrentRatio > thenCurrentRatio) {
+        if (nowCurrentRatio != null && thenCurrentRatio != null && nowCurrentRatio > thenCurrentRatio) {
             ++result;
         }
         if (nowFinancials.incomeStatementTtm.weightedAverageShsOutDil <= oneYearAgoFinancials.incomeStatementTtm.weightedAverageShsOutDil) {

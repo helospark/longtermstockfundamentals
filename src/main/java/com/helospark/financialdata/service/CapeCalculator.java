@@ -7,7 +7,7 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 
 public class CapeCalculator {
 
-    public static Double calculateCapeRatioQ(List<FinancialsTtm> financials, int offset, int years) {
+    public static Double calculateCapeRatioQ(List<FinancialsTtm> financials, int years, int offset) {
         if (financials.size() <= offset) {
             return null;
         }

@@ -5,9 +5,11 @@
   <meta name="viewport" content="initial-scale=1, maximum-scale=1">
   <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
   <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+  <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
 
   <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
   <link rel="stylesheet" type="text/css" href="/css/common-style.css">
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css">
@@ -98,6 +100,10 @@ function loadPage(element) {
        
 
        $("#tab-content").html(resultHtml);
+       $("#tab-content table").DataTable({
+              "iDisplayLength": 100,
+              "order": []
+            });
        if (data.authorizationError !== undefined && data.authorizationError != null && data.authorizationError.length > 0) { 
           $("#tab-main-table tbody").css({"filter": "blur(10px)"});
        }

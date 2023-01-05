@@ -21,15 +21,15 @@ public class GrowthStandardDeviationCounter {
         return calculateGrowthDeviationInternal(financials, offset, 23, stepYear -> GrowthCalculator.getFcfGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
-    public static Optional<Double> calculateEpsGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {
+    public static Optional<Double> calculateEpsGrowthDeviation(List<FinancialsTtm> financials, int years, double offset) {
         return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getEpsGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
-    public static Optional<Double> calculateRevenueGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {
+    public static Optional<Double> calculateRevenueGrowthDeviation(List<FinancialsTtm> financials, int years, double offset) {
         return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getRevenueGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 
-    public static Optional<Double> calculateFcfGrowthDeviation(List<FinancialsTtm> financials, double offset, int years) {
+    public static Optional<Double> calculateFcfGrowthDeviation(List<FinancialsTtm> financials, int years, double offset) {
         return calculateGrowthDeviationInternal(financials, offset, years, stepYear -> GrowthCalculator.getFcfGrowthInInterval(financials, stepYear + offset + 4, stepYear + offset));
     }
 

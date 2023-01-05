@@ -29,6 +29,9 @@ const autoCompleteJS = new autoComplete({
         input: {
             selection: (event) => {
                 uriPart = $("#topnav").attr("data-uri");
+                if ( uriPart == "") {
+                  uriPart = "stock";
+                }
                 const selection = event.detail.selection.value;
                 window.location.href = "/" + uriPart + "/" + selection.key
             }

@@ -6,6 +6,7 @@ import java.time.LocalDate;
 public class FinancialsTtm implements DateAware, Serializable {
     public LocalDate date;
     public double price;
+    public double priceUsd;
 
     public BalanceSheet balanceSheet;
 

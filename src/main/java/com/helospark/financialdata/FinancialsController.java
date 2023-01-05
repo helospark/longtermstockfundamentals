@@ -32,6 +32,7 @@ import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.RevenueProjector;
 import com.helospark.financialdata.service.RoicCalculator;
+import com.helospark.financialdata.service.StockBasedCompensationCalculator;
 import com.helospark.financialdata.service.TrailingPegCalculator;
 
 @RestController
@@ -106,7 +107,7 @@ public class FinancialsController {
             double pe = financialsTtm.price / financialsTtm.incomeStatementTtm.eps;
             double pastGrowthRate = TrailingPegCalculator.getPastGrowthRate(company, i);
             double dividendYield = DividendCalculator.getDividendYield(company, i) * 100.0;
-            double stockBasedCompensationPerMkt = financialsTtm.cashFlowTtm.stockBasedCompensation / (financialsTtm.price * financialsTtm.incomeStatementTtm.weightedAverageShsOut) * 100.0;
+            double stockBasedCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financialsTtm);
             double yearsAgo = i / 4.0;
             double pastShareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, yearsAgo + 5, yearsAgo).orElse(0.0);
 
@@ -525,7 +526,7 @@ public class FinancialsController {
 
     @GetMapping("/dividend_payout_ratio_with_fcf")
     public List<SimpleDataElement> getPayoutRatioFcf(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.freeCashFlow));
+        return getIncomeData(stock, financialsTtm -> toPercent(RatioCalculator.calculateFcfPayoutRatio(financialsTtm)));
     }
 
     @GetMapping("/dividend_paid")
@@ -696,7 +697,7 @@ public class FinancialsController {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
-            Double growth = CapeCalculator.calculateCapeRatioQ(company.financials, i, 6);
+            Double growth = CapeCalculator.calculateCapeRatioQ(company.financials, 6, i);
             result.add(new SimpleDataElement(financialsTtm.date.toString(), growth));
         }
 

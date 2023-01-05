@@ -102,6 +102,10 @@ public class DataLoader {
     }
 
     public static CompanyFinancials readFinancials(String symbol) {
+        return readFinancialsWithCacheEnabled(symbol, true);
+    }
+
+    public static CompanyFinancials readFinancialsWithCacheEnabled(String symbol, boolean cacheWriteEnabled) {
         CompanyFinancials cachedResult = cache.getIfPresent(symbol);
         if (cachedResult != null) {
             return cachedResult;
@@ -109,7 +113,12 @@ public class DataLoader {
         Lock lock = duplicateLoadLocks.get(symbol);
         try {
             lock.tryLock(10, TimeUnit.SECONDS);
-            return loadData(symbol);
+            var result = loadData(symbol);
+            if (cacheWriteEnabled) {
+                cache.put(symbol, result);
+            }
+
+            return result;
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
@@ -134,7 +143,7 @@ public class DataLoader {
         List<Profile> profiles = readFinancialFile(symbol, "profile.json", Profile.class);
 
         Profile profile;
-        if (profiles.isEmpty()) {
+        if (profiles.isEmpty() || profiles.get(0) == null) {
             profile = new Profile();
         } else {
             profile = profiles.get(0);
@@ -145,8 +154,6 @@ public class DataLoader {
         }
 
         CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, enterpriseValues, historicalPrice, keyMetrics, profile);
-
-        cache.put(symbol, result);
 
         return result;
     }
@@ -213,6 +220,7 @@ public class DataLoader {
 
             price = convertCurrencyIfNeeded(price, currentTtm, profile);
             currentTtm.price = price;
+            currentTtm.priceUsd = convertFx(price, profile.currency, "USD", currentTtm.incomeStatement.getDate(), true).orElse(price);
 
             result.add(currentTtm);
 
@@ -227,11 +235,14 @@ public class DataLoader {
             // return new CompanyFinancials();
         }
         if (result.isEmpty()) {
-            return new CompanyFinancials(0.0, result, profile, dataQualityIssue);
+            return new CompanyFinancials(0.0, 0.0, result, profile, dataQualityIssue);
         }
 
-        double price = prices.isEmpty() ? 0 : prices.get(0).close;
-        return new CompanyFinancials(convertCurrencyIfNeeded(price, result.get(0), profile), result, profile, dataQualityIssue);
+        double priceOrigCurrency = prices.isEmpty() ? 0 : prices.get(0).close;
+        LocalDate latestPriceDate = prices.isEmpty() ? LocalDate.now() : prices.get(0).getDate();
+        double price = convertCurrencyIfNeeded(priceOrigCurrency, result.get(0), profile);
+        double priceUsd = convertFx(priceOrigCurrency, profile.currency, "USD", latestPriceDate, true).orElse(price);
+        return new CompanyFinancials(price, priceUsd, result, profile, dataQualityIssue);
     }
 
     private static double convertCurrencyIfNeeded(double price, FinancialsTtm currentTtm, Profile profile) {
@@ -398,6 +409,12 @@ public class DataLoader {
             if (date.compareTo(LocalDate.of(2022, 12, 30)) > 0) {
                 date = LocalDate.of(2022, 12, 30);
             }
+        }
+        if (fromCurrency == null || toCurrency == null) {
+            return Optional.empty();
+        }
+        if (fromCurrency.equals(toCurrency)) {
+            return Optional.of(value);
         }
 
         var oneYearRate = loadFxFile(fromCurrency, date);

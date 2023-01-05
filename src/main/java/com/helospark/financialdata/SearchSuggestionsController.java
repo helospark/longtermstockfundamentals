@@ -8,12 +8,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.helospark.financialdata.domain.SearchElement;
-import com.helospark.financialdata.service.SymbolIndexProvider;
+import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 @RestController
 public class SearchSuggestionsController {
     @Autowired
-    private SymbolIndexProvider symbolIndexProvider;
+    private SymbolAtGlanceProvider symbolIndexProvider;
 
     @RequestMapping("/suggest")
     public List<SearchElement> suggestSearch(@RequestParam("search") String search) {
