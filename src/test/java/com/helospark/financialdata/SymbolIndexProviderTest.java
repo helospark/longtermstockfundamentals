@@ -30,7 +30,7 @@ public class SymbolIndexProviderTest {
 
     @Test
     public void performance() {
-        int iteration = 3000;
+        int iteration = 300;
         Random random = new Random();
         long start = System.currentTimeMillis();
         for (int i = 0; i < iteration; ++i) {

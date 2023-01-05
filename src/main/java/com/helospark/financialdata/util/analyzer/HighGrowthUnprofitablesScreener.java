@@ -32,7 +32,7 @@ public class HighGrowthUnprofitablesScreener {
 
                 double predictedPrice = projectRevenue(financials.get(0), startGrowth, endGrowth);
 
-                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0));
+                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0)).orElse(null);
                 double altmanZ = calculateAltmanZScore(financials.get(0), company.latestPrice);
                 double cashFlowBurnPerYear = financials.get(0).cashFlowTtm.freeCashFlow;
                 long cash = financials.get(0).balanceSheet.cashAndShortTermInvestments;

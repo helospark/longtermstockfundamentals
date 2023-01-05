@@ -15,6 +15,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
   <link rel="stylesheet" href="/css/charts_style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <link rel="stylesheet" type="text/css" href="/css/common-style.css">
   
   <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
@@ -33,38 +34,66 @@
 <div class="clearFloat"></div>
 
 <div id="content">
-
   <h2>Stock screener</h2>
-
-  <div id="conditions">
-    <div class="condition-row">
-      <select class="metric-dropdown"  style="float:left">
-        <option th:value="${field.key}" th:text="${field.value.readableName}" th:each="field : ${screenerFields}"></option>
-      </select>
-
-      <select class="operator-dropdown"  style="float:left">
-        <option th:value="${operator.symbol}" th:text="${operator.symbol}" th:each="operator : ${operators}"></option>
-      </select>
+  
+  <div class="row">
+    <div class="col-xl-7">
+      <div id="conditions">
+        <div class="condition-row">
+          <select class="metric-dropdown"  style="float:left">
+            <option th:value="${field.key}" th:text="${field.value.readableName}" th:each="field : ${screenerFields}"></option>
+          </select>
     
-      <div style="float:left">
-        <input value="30.0"></input>
+          <select class="operator-dropdown"  style="float:left">
+            <option th:value="${operator.symbol}" th:text="${operator.symbol}" th:each="operator : ${operators}"></option>
+          </select>
+        
+          <div style="float:left">
+            <input value="30.0"></input>
+          </div>
+          <div class="remove-filter" style="float:left">
+            <a class="remove-condition-link" href="javascript:;">&#10006;</a>
+          </div>
+          <div style="clear:both"></div>
+        </div>
       </div>
-      <div class="remove-filter" style="float:left">
-        <a class="remove-condition-link" href="javascript:;">&#10006;</a>
-      </div>
-      <div style="clear:both"></div>
+      
+    
+      <button class="btn btn-dark" onclick="addNewCondition()">Add new condition</button>
+    </div>
+    <div class="col-md-5">
+      <select id="exchanges" multiple="multiple" class="form-select" aria-label="Exchanges">
+          <option value="ALL">All exchanges</option>
+          <option th:value="${field.key}" th:text="${field.key} + ' (' + ${field.value} + ')'" th:each="field : ${exchanges}" th:selected="${field.key == 'NASDAQ' || field.key == 'NYSE' ? 'true' : null}"></option>
+      </select>
     </div>
   </div>
-  
-
-  <button class="btn btn-dark" onclick="addNewCondition()">Add new condition</button>
-
-  <br><br>
-  <button class="btn btn-primary" onclick="submitScreener()">Submit filter</button>
-
+  <hr style="border:1px">
+  <div  style="margin-top: 40px; margin-bottom: 30px;">
+    <div style="float:left">
+      <button class="btn btn-primary" onclick="submitScreener()">Run screener</button>
+    </div>
+    <div style="float:right">
+      <select id="start-date-dropdown">
+        <option th:value="${date}" th:text="${date}" th:each="date : ${backtestDates}" th:selected="${date == 1993 ? 'true' : null}"></option>
+      </select>
+      <span style="font-size:18pt">&rarr;</span>
+      <select id="end-date-dropdown" >
+        <option th:value="${date}" th:text="${date}" th:each="date : ${backtestDates}"  th:selected="${date == 2022 ? 'true' : null}"></option>
+      </select>
+      <button id="backtest-button" class="btn btn-success" onclick="submitBacktest()">
+        <span style="display:none" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        Backtest
+      </button>
+    </div>
+    <div style="clear:both"></div>
+  </div>
+  <div name="backtest-result" id="backtest-result">
+  </div>
 
   <div id="screener-result-table">
   </div>
+  
 
 <script>
   function addNewCondition() {
@@ -77,6 +106,8 @@
   function submitScreener() {
     screenerOperations = [];
     
+    exchanges = $("#exchanges").val();
+    
     $('.condition-row').each(function(i, obj) {
         metric = $(this).find(".metric-dropdown").val();
         operation = $(this).find(".operator-dropdown").val();
@@ -88,7 +119,6 @@
         }
         
         screenerOperations.push({id: metric, operation: operation, number1: number1, number2: number2});
-        console.log(metric + " " + operation + " " + number1 + " " + number2);
     });
     
     res = fetch('/screener/perform', {
@@ -97,7 +127,7 @@
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({operations: screenerOperations})
+          body: JSON.stringify({operations: screenerOperations, exchanges: exchanges})
         }).then(res => {
           return res.json();
         }).then(data => {
@@ -137,6 +167,118 @@
                   $("#screener-result-table").append("<div class=\"screener-more-results\">* there are more results, filter more to see those</div>");
                 }
             }
+        });
+  }
+  
+  function submitBacktest() {
+    $("#backtest-button").prop("disabled",true);
+    $("#backtest-button span").css({display: 'inline-block'});
+    screenerOperations = [];
+    
+    exchanges = $("#exchanges").val();
+    startYear = $("#start-date-dropdown").val();
+    endYear = $("#end-date-dropdown").val();
+    
+    $('.condition-row').each(function(i, obj) {
+        metric = $(this).find(".metric-dropdown").val();
+        operation = $(this).find(".operator-dropdown").val();
+        number1 = $(this).find("input:eq(0)").val();
+        number2 = 0.0;
+        secondField = $(this).find("input:eq(1)");
+        if (secondField.length > 0) {
+          number2 = secondField.val();
+        }
+        
+        screenerOperations.push({id: metric, operation: operation, number1: number1, number2: number2});
+    });
+    
+    res = fetch('/screener/backtest', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({operations: screenerOperations, exchanges: exchanges, startYear: startYear, endYear: endYear})
+        }).then(res => {
+          return res.json();
+        }).then(data => {
+          $("#backtest-button").prop("disabled",false);
+          $("#backtest-button span").css({display: 'none'});
+          var canvas = document.createElement("canvas");
+          canvas.style='width:100%;max-height:400px'
+          
+          $("#backtest-result").html($(canvas));
+          //canvas.scrollIntoView();
+          
+          var xValues = [];
+          var spYValues = [];
+          var screenerYValues = [];
+          
+          console.log(data.yearData);
+          for (let [key, value] of Object.entries(data.yearData)) {
+            xValues.push(key);
+            spYValues.push(value.spAnnualReturnPercent * 100.0);
+            screenerYValues.push(value.screenerAnnualReturnPercent * 100.0);
+            console.log(key + " = " + value);
+          }
+
+          colorPalette = ["rgba(0,0,255,0.6)", "rgba(255,0,0,0.6)"]
+          colorPaletteLine =  [ "rgba(0,0,255,0.8)", "rgba(255,0,0,0.8)" ]
+          
+          var chartConfig = {
+            type: 'bar',
+            data: {
+              labels: xValues,
+              datasets: [{
+                fill: true,
+                pointRadius: 2,
+                borderColor: colorPaletteLine[0],
+                backgroundColor: colorPalette[0],
+                data: screenerYValues,
+                pointHitRadius: 300,
+                label: 'Screener annual return'
+              },{
+                fill: true,
+                pointRadius: 2,
+                borderColor: colorPaletteLine[1],
+                backgroundColor: colorPalette[1],
+                data: spYValues,
+                pointHitRadius: 300,
+                label: 'S&P 500 annual return'
+              }]
+            }, 
+            options: {
+              animation: true,
+              responsive: true,
+        
+               label: {
+                 display: false
+               },
+              plugins: {
+                legend: {
+                  display: 'S&P500 vs screener'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (item) =>
+                            `${item.dataset.label}: ${item.formattedValue}%`,
+                    },
+                },
+              },
+              scales: {
+                x: {
+                  display: true,
+                },
+                y: {
+                  display: true,
+                  type: 'linear'
+                }
+              },
+            },
+          };
+          
+          var chart = new Chart(canvas, chartConfig);
+          
         });
   }
 

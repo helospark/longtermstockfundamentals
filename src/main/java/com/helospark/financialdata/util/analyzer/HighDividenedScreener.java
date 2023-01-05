@@ -29,7 +29,7 @@ public class HighDividenedScreener {
             double altmanZ = calculateAltmanZScore(firstElement, company.latestPrice);
 
             if (continouslyProfitable && altmanZ > 1.8) {
-                Double dividendPayoutRatio = RatioCalculator.calculateCurrentRatio(firstElement);
+                Double dividendPayoutRatio = RatioCalculator.calculateCurrentRatio(firstElement).orElse(null);
                 MeanAvg dividendYield = getDividendsInfo(company, 10);
 
                 if (dividendPayoutRatio != null && dividendPayoutRatio < 0.5 && dividendPayoutRatio > 0.0 &&

@@ -65,7 +65,7 @@ public class InspirationProvider {
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(element.tickercusip);
             if (company.isPresent() && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
-                double priceUsd = atGlance.latestStockPriceUsd == null ? 0.0 : atGlance.latestStockPriceUsd;
+                double priceUsd = atGlance.latestStockPriceUsd;
                 Map<String, String> portfolioElement = new HashMap<>();
                 portfolioElement.put("symbol", createSymbolLink(element.tickercusip));
                 portfolioElement.put("name", company.get());

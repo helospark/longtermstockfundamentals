@@ -17,9 +17,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.io.IOUtils;
 
@@ -37,6 +45,7 @@ import com.helospark.financialdata.service.DividendCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.GrowthCorrelationCalculator;
 import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
+import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.MarginCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.ProfitabilityCalculator;
@@ -51,6 +60,7 @@ import com.helospark.financialdata.util.glance.AtGlanceData;
 
 public class StockDataDownloader {
     public static final String SYMBOL_CACHE_FILE = BASE_FOLDER + "/info/symbols/atGlance.json";
+    public static final String SYMBOL_CACHE_HISTORY_FILE = BASE_FOLDER + "/info/symbols/";
     static final ObjectMapper objectMapper = new ObjectMapper();
     static final String API_KEY = System.getProperty("API_KEY");
     static final Integer NUM_YEARS = 100;
@@ -123,7 +133,6 @@ public class StockDataDownloader {
 
     private static void createSymbolCache() {
         LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache = new LinkedHashMap<>();
-
         Set<Profile> usCompanies = new TreeSet<>((a, b) -> Double.compare(b.mktCap, a.mktCap));
         // sort by most often searched regions
         for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByRegion(ExchangeRegion.US))) {
@@ -134,7 +143,7 @@ public class StockDataDownloader {
         }
         for (var usCompany : usCompanies) {
             if (!symbolCompanyNameCache.containsKey(usCompany.symbol)) {
-                Optional<AtGlanceData> symbolToSearchData = symbolToSearchData(usCompany.symbol);
+                Optional<AtGlanceData> symbolToSearchData = symbolToSearchData(usCompany.symbol, 0);
                 if (symbolToSearchData.isPresent()) {
                     symbolCompanyNameCache.put(usCompany.symbol, symbolToSearchData.get());
                 }
@@ -142,7 +151,7 @@ public class StockDataDownloader {
         }
         for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByRegion(ExchangeRegion.US))) {
             if (!symbolCompanyNameCache.containsKey(symbol)) {
-                Optional<AtGlanceData> information = symbolToSearchData(symbol);
+                Optional<AtGlanceData> information = symbolToSearchData(symbol, 0);
                 if (information.isPresent()) {
                     symbolCompanyNameCache.put(symbol, information.get());
                 }
@@ -150,7 +159,7 @@ public class StockDataDownloader {
         }
         for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByType(MarketType.DEVELOPED_MARKET))) {
             if (!symbolCompanyNameCache.containsKey(symbol)) {
-                Optional<AtGlanceData> information = symbolToSearchData(symbol);
+                Optional<AtGlanceData> information = symbolToSearchData(symbol, 0);
                 if (information.isPresent()) {
                     symbolCompanyNameCache.put(symbol, information.get());
                 }
@@ -158,7 +167,7 @@ public class StockDataDownloader {
         }
         for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByType(MarketType.DEVELOPING_MARKET))) {
             if (!symbolCompanyNameCache.containsKey(symbol)) {
-                Optional<AtGlanceData> information = symbolToSearchData(symbol);
+                Optional<AtGlanceData> information = symbolToSearchData(symbol, 0);
                 if (information.isPresent()) {
                     symbolCompanyNameCache.put(symbol, information.get());
                 }
@@ -166,7 +175,7 @@ public class StockDataDownloader {
         }
         for (var symbol : DataLoader.provideAllSymbols()) {
             if (!symbolCompanyNameCache.containsKey(symbol)) {
-                Optional<AtGlanceData> information = symbolToSearchData(symbol);
+                Optional<AtGlanceData> information = symbolToSearchData(symbol, 0);
                 if (information.isPresent()) {
                     symbolCompanyNameCache.put(symbol, information.get());
                 }
@@ -180,11 +189,83 @@ public class StockDataDownloader {
             throw new RuntimeException(e);
         }
 
+        int numberOfThreads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+
+        Queue<String> queue = new ConcurrentLinkedQueue<>();
+        queue.addAll(DataLoader.provideAllSymbols());
+
+        Map<Integer, Map<String, AtGlanceData>> yearData = new ConcurrentHashMap<>();
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+        for (int thread = 0; thread < numberOfThreads; ++thread) {
+            futures.add(CompletableFuture.runAsync(() -> {
+                while (true) {
+                    var entry = queue.poll();
+                    if (entry == null) {
+                        break;
+                    }
+                    int queueSize = queue.size();
+                    if (queueSize % 1000 == 0) {
+                        System.out.println("Progress: " + (((double) queueSize / symbolCompanyNameCache.size())) * 100.0);
+                    }
+
+                    for (int i = 1; i < 30; ++i) {
+                        int year = LocalDate.now().minusYears(i).getYear();
+
+                        File offsetFile = getBacktestFileAtYear(year);
+                        if (!offsetFile.exists()) {
+                            Map<String, AtGlanceData> companyMap = yearData.get(year);
+                            if (companyMap == null) {
+                                companyMap = new ConcurrentHashMap<>();
+                                yearData.put(year, companyMap);
+                            }
+
+                            Optional<AtGlanceData> offsetDataOptional = symbolToSearchData(entry, i);
+                            if (offsetDataOptional.isPresent()) {
+                                AtGlanceData offsetData = offsetDataOptional.get();
+                                offsetData.companyName = null;
+                                companyMap.put(entry, offsetData);
+                            }
+                        }
+                    }
+                }
+            }, executorService));
+        }
+        for (int i = 0; i < futures.size(); ++i) {
+            futures.get(i).join();
+        }
+
+        try {
+            executorService.awaitTermination(1000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e1) {
+            e1.printStackTrace();
+        }
+
+        for (var entry : yearData.entrySet()) {
+            File backtestFile = getBacktestFileAtYear(entry.getKey());
+            if (!backtestFile.exists()) {
+                try (GZIPOutputStream fos = new GZIPOutputStream(new FileOutputStream(backtestFile))) {
+                    objectMapper.writeValue(fos, entry.getValue());
+                    System.out.println(backtestFile.getAbsolutePath() + " written");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
     }
 
-    public static Optional<AtGlanceData> symbolToSearchData(String symbol) {
+    public static File getBacktestFileAtYear(int year) {
+        return new File(SYMBOL_CACHE_HISTORY_FILE + year + ".json.gz");
+    }
+
+    public static Optional<AtGlanceData> symbolToSearchData(String symbol, int offsetYeari) {
         AtGlanceData data = new AtGlanceData();
         CompanyFinancials company = DataLoader.readFinancialsWithCacheEnabled(symbol, false);
+
+        LocalDate realDate = LocalDate.now().minusYears(offsetYeari);
+        LocalDate targetDate = LocalDate.of(LocalDate.now().getYear() - offsetYeari, 1, 1);
+        double offsetYear = offsetYeari + ((realDate.getMonthValue() - targetDate.getMonthValue()) / 12.0);
 
         if (company.financials.isEmpty() || company.profile == null) {
             return Optional.empty();
@@ -193,44 +274,48 @@ public class StockDataDownloader {
         data.companyName = company.profile.companyName;
         data.symbol = company.profile.symbol;
 
-        if (company.financials.size() == 0) {
+        int index = Helpers.findIndexWithOrBeforeDate(company.financials, targetDate);
+
+        if (index == -1) {
             return Optional.of(data);
         }
+        var financial = company.financials.get(index);
 
-        var financial = company.financials.get(0);
+        double latestPrice = (offsetYear == 0 ? company.latestPrice : company.financials.get(index).price);
+        double latestPriceUsd = (offsetYear == 0 ? company.latestPriceUsd : company.financials.get(index).priceUsd);
 
-        data.marketCap = (company.latestPrice * financial.incomeStatementTtm.weightedAverageShsOut) / 1_000_000.0;
-        data.latestStockPrice = company.latestPrice;
-        data.latestStockPriceUsd = company.latestPriceUsd;
+        data.marketCapUsd = (latestPriceUsd * financial.incomeStatementTtm.weightedAverageShsOut) / 1_000_000.0;
+        data.latestStockPrice = latestPrice;
+        data.latestStockPriceUsd = latestPriceUsd;
         data.shareCount = financial.incomeStatementTtm.weightedAverageShsOut;
-        data.trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, 0, company.latestPrice).orElse(null);
+        data.trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, index, latestPrice).orElse(Double.NaN);
         data.roic = RoicCalculator.calculateRoic(financial) * 100.0;
-        data.altman = AltmanZCalculator.calculateAltmanZScore(financial, company.latestPrice);
-        data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(null);
+        data.altman = AltmanZCalculator.calculateAltmanZScore(financial, latestPrice);
+        data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(Double.NaN);
         data.eps = financial.incomeStatementTtm.eps;
         data.pe = RatioCalculator.calculatePriceToEarningsRatio(financial);
-        data.fcfPerShare = company.latestPrice / financial.cashFlowTtm.freeCashFlow;
-        data.currentRatio = RatioCalculator.calculateCurrentRatio(financial);
-        data.quickRatio = RatioCalculator.calculateQuickRatio(financial);
+        data.fcfPerShare = latestPrice / financial.cashFlowTtm.freeCashFlow;
+        data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN);
+        data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN);
 
-        data.epsGrowth = GrowthCalculator.getEpsGrowthInInterval(company.financials, 5, 0).orElse(null);
-        data.fcfGrowth = GrowthCalculator.getFcfGrowthInInterval(company.financials, 5, 0).orElse(null);
-        data.revenueGrowth = GrowthCalculator.getRevenueGrowthInInterval(company.financials, 5, 0).orElse(null);
-        data.dividendGrowthRate = GrowthCalculator.getDividendGrowthInInterval(company.financials, 5, 0).orElse(null);
-        data.shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5, 0).orElse(null);
-        data.netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(company.financials, 5, 0).orElse(null);
-        data.cape = CapeCalculator.calculateCapeRatioQ(company.financials, 10 * 4, 0);
+        data.epsGrowth = GrowthCalculator.getEpsGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
+        data.fcfGrowth = GrowthCalculator.getFcfGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
+        data.revenueGrowth = GrowthCalculator.getRevenueGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
+        data.dividendGrowthRate = GrowthCalculator.getDividendGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
+        data.shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
+        data.netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
+        data.cape = CapeCalculator.calculateCapeRatioQ(company.financials, 10, index);
 
-        data.epsSD = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 7, 0).orElse(null);
-        data.revSD = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 7, 0).orElse(null);
-        data.fcfSD = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 7, 0).orElse(null);
-        data.epsFcfCorrelation = GrowthCorrelationCalculator.calculateEpsFcfCorrelation(company.financials, 7, 0).orElse(null);
+        data.epsSD = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN);
+        data.revSD = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN);
+        data.fcfSD = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN);
+        data.epsFcfCorrelation = GrowthCorrelationCalculator.calculateEpsFcfCorrelation(company.financials, offsetYear + 7, offsetYear + 0).orElse(Double.NaN);
 
-        data.dividendYield = DividendCalculator.getDividendYield(company, 0) * 100.0;
+        data.dividendYield = DividendCalculator.getDividendYield(company, index) * 100.0;
         data.dividendPayoutRatio = RatioCalculator.calculatePayoutRatio(financial) * 100.0;
         data.dividendFcfPayoutRatio = RatioCalculator.calculateFcfPayoutRatio(financial) * 100.0;
 
-        data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, 0.0).map(a -> a.doubleValue()).orElse(null);
+        data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN);
         data.stockCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financial);
 
         return Optional.of(data);

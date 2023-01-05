@@ -1,21 +1,23 @@
 package com.helospark.financialdata.service;
 
+import java.util.Optional;
+
 import com.helospark.financialdata.domain.FinancialsTtm;
 
 public class RatioCalculator {
 
-    public static Double calculateCurrentRatio(FinancialsTtm data) {
+    public static Optional<Double> calculateCurrentRatio(FinancialsTtm data) {
         if (data.balanceSheet.totalCurrentLiabilities == 0) {
-            return null;
+            return Optional.empty();
         }
-        return (double) data.balanceSheet.totalCurrentAssets / data.balanceSheet.totalCurrentLiabilities;
+        return Optional.of((double) data.balanceSheet.totalCurrentAssets / data.balanceSheet.totalCurrentLiabilities);
     }
 
-    public static Double calculateQuickRatio(FinancialsTtm data) {
+    public static Optional<Double> calculateQuickRatio(FinancialsTtm data) {
         if (data.balanceSheet.totalCurrentLiabilities == 0) {
-            return null;
+            return Optional.empty();
         }
-        return (double) (data.balanceSheet.cashAndCashEquivalents + data.balanceSheet.shortTermInvestments + data.balanceSheet.netReceivables) / data.balanceSheet.totalCurrentLiabilities;
+        return Optional.of(((double) data.balanceSheet.cashAndCashEquivalents + data.balanceSheet.shortTermInvestments + data.balanceSheet.netReceivables) / data.balanceSheet.totalCurrentLiabilities);
     }
 
     public static double calculatePriceToBookRatio(FinancialsTtm data) {

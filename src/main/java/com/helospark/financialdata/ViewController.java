@@ -120,6 +120,8 @@ public class ViewController {
 
         model.addAttribute("screenerFields", screenerController.getScreenerDescriptions());
         model.addAttribute("operators", screenerController.getScreenerOperators());
+        model.addAttribute("exchanges", Exchanges.getIdToNameMap());
+        model.addAttribute("backtestDates", screenerController.getBacktestDates());
         return "screener";
     }
 

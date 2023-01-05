@@ -5,12 +5,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.domain.SearchElement;
 import com.helospark.financialdata.util.StockDataDownloader;
 import com.helospark.financialdata.util.glance.AtGlanceData;
@@ -25,6 +29,11 @@ public class SymbolAtGlanceProvider {
     int longestSymbol;
 
     LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache;
+
+    Cache<Integer, Optional<Map<String, AtGlanceData>>> cache = Caffeine.newBuilder()
+            .expireAfterWrite(10, TimeUnit.DAYS)
+            .maximumSize(100)
+            .build();
 
     public SymbolAtGlanceProvider() {
         ObjectMapper om = new ObjectMapper();
@@ -111,6 +120,19 @@ public class SymbolAtGlanceProvider {
 
     public LinkedHashMap<String, AtGlanceData> getSymbolCompanyNameCache() {
         return symbolCompanyNameCache;
+    }
+
+    public Optional<Map<String, AtGlanceData>> loadAtGlanceDataAtYear(int year) {
+        return cache.get(year, y -> DataLoader.loadHistoricalAtGlanceData(year).map(a -> fixSymbols(a)));
+    }
+
+    private Map<String, AtGlanceData> fixSymbols(Map<String, List<AtGlanceData>> toFix) {
+        Map<String, AtGlanceData> result = new LinkedHashMap<>();
+        for (var entry : toFix.entrySet()) {
+            result.put(entry.getKey(), entry.getValue().get(0));
+            entry.getValue().get(0).symbol = entry.getKey();
+        }
+        return result;
     }
 
 }

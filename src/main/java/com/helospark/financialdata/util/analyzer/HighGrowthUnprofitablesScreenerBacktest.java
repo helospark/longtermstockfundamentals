@@ -48,7 +48,7 @@ public class HighGrowthUnprofitablesScreenerBacktest {
 
                         double predictedPrice = projectRevenue(financials.get(latestElement), startGrowth, endGrowth);
 
-                        Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(latestElement));
+                        Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(latestElement)).orElse(null);
                         double altmanZ = calculateAltmanZScore(financials.get(latestElement), latestPriceThen);
                         double cashFlowBurnPerYear = financials.get(latestElement).cashFlowTtm.freeCashFlow;
                         long cash = financials.get(latestElement).balanceSheet.cashAndShortTermInvestments;
@@ -62,9 +62,9 @@ public class HighGrowthUnprofitablesScreenerBacktest {
                             int sellYearIndex = -1;
 
                             /*for (; sellYearIndex >= 0; --sellYearIndex) {
-                            
+
                                 double currentGrowth = getRevenueGrowthInInterval(financials, yearsAgo, sellYearIndex).orElse(0.0);
-                            
+
                                 if (currentGrowth < -5) {
                                     break;
                                 }

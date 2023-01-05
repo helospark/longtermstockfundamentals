@@ -26,7 +26,7 @@ public class DebtFlagFlagProvider implements FlagProvider {
         if (index != -1) {
             double latestPrice = (index == 0 ? company.latestPrice : financials.get(index).price);
             FinancialsTtm latestEntry = company.financials.get(index);
-            Double quickRatio = RatioCalculator.calculateQuickRatio(latestEntry);
+            Double quickRatio = RatioCalculator.calculateQuickRatio(latestEntry).orElse(null);
             if (quickRatio != null && quickRatio < 1.0) {
                 flags.add(new FlagInformation(FlagType.YELLOW, format("Quick ratio is less than 1.0 (%.2f)", quickRatio)));
             }

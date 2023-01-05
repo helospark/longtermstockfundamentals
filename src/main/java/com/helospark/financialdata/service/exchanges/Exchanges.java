@@ -1,11 +1,21 @@
 package com.helospark.financialdata.service.exchanges;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public enum Exchanges {
+    NASDAQ("NASDAQ Global Select", ExchangeRegion.US),
+    NYSE("New York Stock Exchange", ExchangeRegion.US),
+    HKSE("Hong Kong Stock Exchange", ExchangeRegion.CHINA),
     MCX("MCX", ExchangeRegion.INDIA),
+    NSE("National Stock Exchange of India", ExchangeRegion.INDIA),
+    TAI("Taiwan", ExchangeRegion.TAIWAN),
+    TWO("Taipei Exchange", ExchangeRegion.TAIWAN),
+    JPX("Tokyo", ExchangeRegion.JAPAN),
+    LSE("London Stock Exchange", ExchangeRegion.EUROPE),
     XETRA("XETRA", ExchangeRegion.EUROPE),
     STO("Stockholm Stock Exchange", ExchangeRegion.EUROPE),
     SHH("Shanghai", ExchangeRegion.CHINA),
@@ -14,23 +24,17 @@ public enum Exchanges {
     BSE("BSE", ExchangeRegion.INDIA),
     DOH("Qatar", ExchangeRegion.ASIA_NORTH_WEST),
     FKA("Fukuoka", ExchangeRegion.JAPAN),
-    LSE("London Stock Exchange", ExchangeRegion.EUROPE),
-    NASDAQ("NASDAQ Global Select", ExchangeRegion.US),
-    NSE("National Stock Exchange of India", ExchangeRegion.INDIA),
     SHZ("Shenzhen", ExchangeRegion.CHINA),
     AMS("Amsterdam", ExchangeRegion.EUROPE),
     MUN("Munich", ExchangeRegion.EUROPE),
-    TWO("Taipei Exchange", ExchangeRegion.TAIWAN),
     MIL("Milan", ExchangeRegion.EUROPE),
     JKT("Jakarta Stock Exchange", ExchangeRegion.ASIA_SOUTH_EAST),
-    HKSE("Hong Kong Stock Exchange", ExchangeRegion.CHINA),
     TSX("Toronto Stock Exchange", ExchangeRegion.CANADA),
     AMEX("New York Stock Exchange Arca", ExchangeRegion.US),
     MEX("Mexico", ExchangeRegion.LATIN_AMERICA),
     SIX("Swiss Exchange", ExchangeRegion.EUROPE),
     SET("Thailand", ExchangeRegion.ASIA_SOUTH_EAST),
     SAU("Saudi", ExchangeRegion.ASIA_NORTH_WEST),
-    JPX("Tokyo", ExchangeRegion.JAPAN),
     BUE("Buenos Aires", ExchangeRegion.LATIN_AMERICA),
     KSC("Pakistan stock exchange", ExchangeRegion.ASIA_NORTH_WEST),
     IOB("IOB", ExchangeRegion.EUROPE),
@@ -47,10 +51,8 @@ public enum Exchanges {
     HAM("Hamburg", ExchangeRegion.EUROPE),
     ETF("BATS", ExchangeRegion.US),
     LIS("Lisbon", ExchangeRegion.EUROPE),
-    NYSE("New York Stock Exchange", ExchangeRegion.US),
     CPH("Copenhagen", ExchangeRegion.EUROPE),
     SGO("Santiago", ExchangeRegion.LATIN_AMERICA),
-    TAI("Taiwan", ExchangeRegion.TAIWAN),
     PRA("Prague", ExchangeRegion.EUROPE),
     TAL("Tallinn", ExchangeRegion.EUROPE),
     OTC("Other OTC", ExchangeRegion.UNKNOWN),
@@ -95,5 +97,13 @@ public enum Exchanges {
             }
         }
         throw new RuntimeException("No such exchange");
+    }
+
+    public static Map<String, String> getIdToNameMap() {
+        Map<String, String> result = new LinkedHashMap<>();
+        for (var element : Exchanges.values()) {
+            result.put(element.name(), element.getName());
+        }
+        return result;
     }
 }

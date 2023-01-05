@@ -172,7 +172,7 @@ public class FinancialsController {
 
     @GetMapping("/quick_ratio")
     public List<SimpleDataElement> getQuickRatio(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculateQuickRatio(financialsTtm));
+        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculateQuickRatio(financialsTtm).orElse(null));
     }
 
     @GetMapping("/short_term_coverage_ratio")

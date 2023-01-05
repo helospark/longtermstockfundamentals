@@ -1,11 +1,18 @@
 package com.helospark.financialdata.management.screener;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +29,19 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
+import com.helospark.financialdata.management.screener.domain.BacktestRequest;
+import com.helospark.financialdata.management.screener.domain.BacktestResult;
+import com.helospark.financialdata.management.screener.domain.BacktestYearInformation;
 import com.helospark.financialdata.management.screener.domain.GenericErrorResponse;
 import com.helospark.financialdata.management.screener.domain.ScreenerDescription;
 import com.helospark.financialdata.management.screener.domain.ScreenerResult;
 import com.helospark.financialdata.management.screener.strategy.ScreenerStrategy;
 import com.helospark.financialdata.management.user.LoginController;
+import com.helospark.financialdata.management.user.repository.AccountType;
+import com.helospark.financialdata.service.DataLoader;
+import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
+import com.helospark.financialdata.service.exchanges.Exchanges;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +51,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class ScreenerController {
     private static final Logger LOGGER = LoggerFactory.getLogger(ScreenerController.class);
     public static final int MAX_RESULTS = 100;
+    public static double BACKTEST_INVEST_AMOUNT = 1000.0;
     Map<String, ScreenerDescription> idToDescription = new LinkedHashMap<>();
 
     @Autowired
@@ -78,59 +93,21 @@ public class ScreenerController {
         return result;
     }
 
+    public List<Integer> getBacktestDates() {
+        List<Integer> result = new ArrayList<>();
+        for (int i = 1994; i <= LocalDate.now().getYear() - 1; ++i) {
+            result.add(i);
+        }
+        return result;
+    }
+
     @PostMapping("/perform")
     @RateLimit(requestPerMinute = 20)
     public ScreenerResult screenStocks(@RequestBody ScreenerRequest request, HttpServletRequest httpRequest) {
-        if (request.operations.size() > 20) {
-            throw new ScreenerClientSideException("Maximum of 20 screeners allowed, " + request.operations.size() + " found");
-        }
-        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
-        if (!jwt.isPresent() && request.operations.size() > 1) {
-            throw new ScreenerClientSideException("Logged out users can add maximum of 1 screeners, " + request.operations.size() + " found");
-        }
+        validateRequest(request, httpRequest);
 
-        for (var element : request.operations) {
-            if (!idToDescription.containsKey(element.id)) {
-                throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
-            }
-            ScreenerStrategy screenerStrategy = findScreenerStrategy(element.operation);
-            if (screenerStrategies.stream().noneMatch(a -> a.getSymbol().equals(element.operation))) {
-                throw new ScreenerClientSideException(element.operation + " is not a valid operation");
-            }
-
-            if (screenerStrategy.getNumberOfArguments() == 1 && element.number1 == null) {
-                throw new ScreenerClientSideException(element.operation + " requires number1 to be filled");
-            }
-
-            if (screenerStrategy.getNumberOfArguments() == 2 && (element.number1 == null || element.number2 == null)) {
-                throw new ScreenerClientSideException(element.operation + " requires number1 and number2 to be filled");
-            }
-
-        }
-
-        List<AtGlanceData> matchedStocks = new ArrayList<>();
         LinkedHashMap<String, AtGlanceData> data = symbolAtGlanceProvider.getSymbolCompanyNameCache();
-        for (var entry : data.entrySet()) {
-            boolean allMatch = true;
-            for (var operation : request.operations) {
-                Double value = getValue(entry.getValue(), operation);
-                if (value == null) {
-                    allMatch = false;
-                    break;
-                }
-                ScreenerStrategy screenerStrategy = findScreenerStrategy(operation.operation);
-                if (!screenerStrategy.matches(value, operation)) {
-                    allMatch = false;
-                    break;
-                }
-            }
-            if (allMatch) {
-                matchedStocks.add(entry.getValue());
-                if (matchedStocks.size() >= MAX_RESULTS) {
-                    break;
-                }
-            }
-        }
+        List<AtGlanceData> matchedStocks = findMatchingStocks(data, request, false);
 
         ScreenerResult result = new ScreenerResult();
         result.hasMoreResults = (matchedStocks.size() >= MAX_RESULTS);
@@ -166,6 +143,196 @@ public class ScreenerController {
         }
 
         return result;
+    }
+
+    public List<AtGlanceData> findMatchingStocks(Map<String, AtGlanceData> data, ScreenerRequest request, boolean randomize) {
+        List<AtGlanceData> matchedStocks = new ArrayList<>();
+
+        Set<Exchanges> exchanges = new HashSet<>();
+        if (request.exchanges.isEmpty() || request.exchanges.contains("ALL")) {
+            exchanges = Arrays.stream(Exchanges.values()).collect(Collectors.toSet());
+        } else {
+            for (var entry : request.exchanges) {
+                exchanges.add(Exchanges.fromString(entry));
+            }
+        }
+
+        Set<String> symbols = DataLoader.provideSymbolsIn(exchanges);
+
+        List<Entry<String, AtGlanceData>> entrySet = new ArrayList<>(data.entrySet());
+        if (randomize) {
+            Collections.shuffle(entrySet);
+        }
+
+        for (var entry : entrySet) {
+            if (!symbols.contains(entry.getKey())) {
+                continue;
+            }
+            var atGlanceData = entry.getValue();
+
+            boolean allMatch = true;
+            for (var operation : request.operations) {
+                Double value = getValue(atGlanceData, operation);
+                if (value == null) {
+                    allMatch = false;
+                    break;
+                }
+                ScreenerStrategy screenerStrategy = findScreenerStrategy(operation.operation);
+                if (!screenerStrategy.matches(value, operation)) {
+                    allMatch = false;
+                    break;
+                }
+            }
+            if (allMatch) {
+                matchedStocks.add(atGlanceData);
+                if (matchedStocks.size() >= MAX_RESULTS) {
+                    break;
+                }
+            }
+        }
+        return matchedStocks;
+    }
+
+    @PostMapping("/backtest")
+    @RateLimit(requestPerMinute = 20)
+    public BacktestResult performBacktest(@RequestBody BacktestRequest request, HttpServletRequest httpRequest) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (!jwt.isPresent()) {
+            AccountType accountType = loginController.getAccountType(jwt.get());
+            if (!(accountType == AccountType.ADVANCED || accountType == AccountType.ADMIN)) {
+                throw new ScreenerClientSideException("Backtest is only available for users with 'Advanced' plan");
+            }
+        }
+        validateRequest(request, httpRequest);
+
+        if (request.endYear < request.startYear) {
+            throw new ScreenerClientSideException("End date must be greater than start time");
+        }
+        if (request.endYear - request.startYear < 2) {
+            throw new ScreenerClientSideException("More than 2 year difference expected");
+        }
+        if (request.endYear >= LocalDate.now().getYear()) {
+            throw new ScreenerClientSideException("Unfortunataly our datasource doesn't provide the future stock prices :(");
+        }
+        if (request.startYear < 1990) {
+            throw new ScreenerClientSideException("We only have data from 1990");
+        }
+
+        Map<Integer, BacktestYearInformation> yearResults = new LinkedHashMap<>();
+
+        LocalDate currentDate = LocalDate.now();
+
+        for (int year = request.startYear; year < request.endYear; ++year) {
+            double yearSp500Sum = 0.0;
+            double yearScreenerSum = 0.0;
+            int yearCount = 0;
+
+            LocalDate date = LocalDate.of(year, 1, 1);
+
+            double yearAgo = (currentDate.getYear() - year) + (currentDate.getMonthValue() - 1) / 12.0;
+
+            Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(year).orElse(null);
+            List<AtGlanceData> matchedStocks = List.of();
+            if (data != null) {
+                matchedStocks = findMatchingStocks(data, request, true);
+
+                for (var stockThen : matchedStocks) {
+                    var stockNow = symbolAtGlanceProvider.getAtGlanceData(stockThen.symbol);
+                    ++yearCount;
+
+                    double sp500PriceThen = StandardAndPoorPerformanceProvider.getPriceAt(date);
+                    double sp500PriceNow = StandardAndPoorPerformanceProvider.getLatestPrice();
+
+                    double stockPriceThen = stockThen.latestStockPriceUsd;
+                    double stockPriceNow = stockNow.get().latestStockPriceUsd;
+
+                    yearSp500Sum += (sp500PriceNow / sp500PriceThen) * BACKTEST_INVEST_AMOUNT;
+                    yearScreenerSum += (stockPriceNow / stockPriceThen) * BACKTEST_INVEST_AMOUNT;
+                }
+            }
+
+            BacktestYearInformation yearInfo = new BacktestYearInformation();
+            double totalInvested = yearCount * BACKTEST_INVEST_AMOUNT;
+            yearInfo.investedAmount = totalInvested;
+
+            yearInfo.spTotalReturnPercent = ((yearSp500Sum / totalInvested) - 1.0) * 100.0;
+            yearInfo.screenerTotalReturnPercent = ((yearSp500Sum / totalInvested) - 1.0) * 100.0;
+
+            yearInfo.screenerAnnualReturnPercent = Math.pow(yearScreenerSum / totalInvested, (1.0 / yearAgo)) - 1.0;
+            yearInfo.spAnnualReturnPercent = Math.pow(yearSp500Sum / totalInvested, (1.0 / yearAgo)) - 1.0;
+
+            yearInfo.screenerReturnDollar = yearScreenerSum;
+            yearInfo.spReturnDollar = yearSp500Sum;
+
+            yearInfo.investedInAllMatching = matchedStocks.size() >= MAX_RESULTS;
+
+            yearResults.put(year, yearInfo);
+        }
+
+        int beatCount = 0;
+        int investedCount = 0;
+        for (var entry : yearResults.values()) {
+            if (entry.investedAmount > 0) {
+                ++investedCount;
+                if (entry.screenerAnnualReturnPercent > entry.spAnnualReturnPercent) {
+                    ++beatCount;
+                }
+            }
+        }
+
+        BacktestResult result = new BacktestResult();
+        result.beatCount = beatCount;
+        result.investedCount = investedCount;
+        result.beatPercent = ((double) beatCount / investedCount) * 100.0;
+
+        result.screenerAvgPercent = yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> a.screenerAnnualReturnPercent).average().orElse(0.0);
+        result.sp500AvgPercent = yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> a.spAnnualReturnPercent).average().orElse(0.0);
+
+        List<Double> screenerReturns = yearResults.values().stream().filter(a -> a.investedAmount > 0).map(a -> a.screenerAnnualReturnPercent).collect(Collectors.toList());
+        List<Double> spReturns = yearResults.values().stream().filter(a -> a.investedAmount > 0).map(a -> a.spAnnualReturnPercent).collect(Collectors.toList());
+        Collections.sort(screenerReturns);
+        Collections.sort(spReturns);
+
+        if (screenerReturns.size() > 0 && spReturns.size() > 0) {
+            result.screenerMedianPercent = screenerReturns.get(screenerReturns.size() / 2);
+            result.sp500MedianPercent = spReturns.get(spReturns.size() / 2);
+        }
+
+        result.yearData = yearResults;
+
+        return result;
+    }
+
+    public void validateRequest(ScreenerRequest request, HttpServletRequest httpRequest) {
+        if (request.operations.size() > 20) {
+            throw new ScreenerClientSideException("Maximum of 20 screeners allowed, " + request.operations.size() + " found");
+        }
+        if (request.exchanges.size() > Exchanges.values().length) {
+            throw new ScreenerClientSideException("Too many exchanges");
+        }
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (!jwt.isPresent() && request.operations.size() > 1) {
+            throw new ScreenerClientSideException("Logged out users can add maximum of 1 screeners, " + request.operations.size() + " found");
+        }
+
+        for (var element : request.operations) {
+            if (!idToDescription.containsKey(element.id)) {
+                throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
+            }
+            ScreenerStrategy screenerStrategy = findScreenerStrategy(element.operation);
+            if (screenerStrategies.stream().noneMatch(a -> a.getSymbol().equals(element.operation))) {
+                throw new ScreenerClientSideException(element.operation + " is not a valid operation");
+            }
+
+            if (screenerStrategy.getNumberOfArguments() == 1 && element.number1 == null) {
+                throw new ScreenerClientSideException(element.operation + " requires number1 to be filled");
+            }
+
+            if (screenerStrategy.getNumberOfArguments() == 2 && (element.number1 == null || element.number2 == null)) {
+                throw new ScreenerClientSideException(element.operation + " requires number1 and number2 to be filled");
+            }
+
+        }
     }
 
     public Double getValue(AtGlanceData glance, ScreenerOperation operation) {

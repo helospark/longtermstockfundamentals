@@ -30,7 +30,7 @@ public class OldProfitablesScreeners {
                 //                Double peRatio = financials.get(0).remoteRatio.priceEarningsRatio;
                 double currentPe = company.latestPrice / financials.get(0).incomeStatementTtm.eps;
                 double growth = tenYearAvgGrowth.get();
-                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0));
+                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0)).orElse(null);
 
                 if (growth >= 8.0 &&
                         currentPe <= 20.0 &&

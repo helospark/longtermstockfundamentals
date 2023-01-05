@@ -30,7 +30,7 @@ public class VeryHighGrowthScreener {
                 //                Double peRatio = financials.get(0).remoteRatio.priceEarningsRatio;
                 double currentPe = company.latestPrice / financials.get(0).incomeStatementTtm.eps;
                 double growth = tenYearAvgGrowth.get();
-                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0));
+                Double currentRatio = RatioCalculator.calculateCurrentRatio(financials.get(0)).orElse(null);
                 if (growth >= 35.0 &&
                         currentRatio != null && currentRatio > 1.0) {
                     System.out.println(symbol + " " + growth + " " + currentPe);

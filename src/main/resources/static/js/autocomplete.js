@@ -29,7 +29,7 @@ const autoCompleteJS = new autoComplete({
         input: {
             selection: (event) => {
                 uriPart = $("#topnav").attr("data-uri");
-                if ( uriPart == "") {
+                if ( !(uriPart == "stock" || uriPart == "calculator")) { // Uri not supporting stock path params
                   uriPart = "stock";
                 }
                 const selection = event.detail.selection.value;

@@ -36,8 +36,8 @@ public class PietroskyScoreCalculator {
         if (nowFinancials.balanceSheet.longTermDebt < oneYearAgoFinancials.balanceSheet.longTermDebt) {
             ++result;
         }
-        Double nowCurrentRatio = RatioCalculator.calculateCurrentRatio(nowFinancials);
-        Double thenCurrentRatio = RatioCalculator.calculateCurrentRatio(oneYearAgoFinancials);
+        Double nowCurrentRatio = RatioCalculator.calculateCurrentRatio(nowFinancials).orElse(null);
+        Double thenCurrentRatio = RatioCalculator.calculateCurrentRatio(oneYearAgoFinancials).orElse(null);
         if (nowCurrentRatio != null && thenCurrentRatio != null && nowCurrentRatio > thenCurrentRatio) {
             ++result;
         }

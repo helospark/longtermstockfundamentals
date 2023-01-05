@@ -22,10 +22,12 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPInputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +49,8 @@ import com.helospark.financialdata.domain.NoTtmNeeded;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.TresuryRate;
 import com.helospark.financialdata.service.exchanges.Exchanges;
+import com.helospark.financialdata.util.StockDataDownloader;
+import com.helospark.financialdata.util.glance.AtGlanceData;
 
 public class DataLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(DataLoader.class);
@@ -500,5 +504,22 @@ public class DataLoader {
             }
         }
         return result;
+    }
+
+    public static Optional<Map<String, List<AtGlanceData>>> loadHistoricalAtGlanceData(int year) {
+        File file = StockDataDownloader.getBacktestFileAtYear(year);
+
+        if (!file.exists()) {
+            return Optional.empty();
+        }
+
+        TypeReference<LinkedHashMap<String, List<AtGlanceData>>> typeRef = new TypeReference<LinkedHashMap<String, List<AtGlanceData>>>() {
+        };
+
+        try (var fis = new GZIPInputStream(new FileInputStream(file))) {
+            return Optional.of(objectMapper.readValue(fis, typeRef));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

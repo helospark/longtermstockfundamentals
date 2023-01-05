@@ -166,12 +166,25 @@ body {
   border-radius: .25rem;
 }
 
-#conditions select {
+#conditions select, #start-date-dropdown, #end-date-dropdown {
   font-size: 18pt;
   background-color: #fff;
   border: 1px solid #ced4da;
   border-radius: .25rem;
   height: 35px;
+}
+
+#start-date-dropdown, #end-date-dropdown {
+  font-size: 18pt;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: .25rem;
+  height: 43px;
+}
+
+#backtest-button {
+  position: relative;
+  top: -4px;
 }
 
 #conditions select:hover {
@@ -188,4 +201,14 @@ body {
   font-size: 20pt;
   position: relative;
   top: -4px;
+}
+
+#exchanges option:checked{
+    background: #87a556;
+    box-shadow: 0 0 10px 100px #87a556 inset;
+    color: white;
+}
+
+#exchanges {
+  height: 300px;
 }

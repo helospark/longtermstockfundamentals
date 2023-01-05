@@ -7,4 +7,6 @@ import jakarta.validation.constraints.NotNull;
 public class ScreenerRequest {
     @NotNull
     public List<ScreenerOperation> operations;
+
+    public List<String> exchanges;
 }
