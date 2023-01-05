@@ -57,10 +57,10 @@
   </div>
   
 
-  <button onclick="addNewCondition()">Add new condition</button>
+  <button class="btn btn-dark" onclick="addNewCondition()">Add new condition</button>
 
   <br><br>
-  <button onclick="submitScreener()">Submit filter</button>
+  <button class="btn btn-primary" onclick="submitScreener()">Submit filter</button>
 
 
   <div id="screener-result-table">
@@ -69,7 +69,9 @@
 <script>
   function addNewCondition() {
     newRow = $("#conditions .condition-row").first().clone();
-    $("#conditions").append(newRow);
+    if ($("#conditions .condition-row").length < 20) {
+      $("#conditions").append(newRow);
+    }
   }
   
   function submitScreener() {
@@ -99,34 +101,42 @@
         }).then(res => {
           return res.json();
         }).then(data => {
-            resultHtml=`
-            <table class="table table-striped">
-              <thead>
-                <tr>`;
-            for (i = 0; i < data.columns.length; ++i) {
-               resultHtml += '<th scope="col">' + data.columns[i] +'</th>';
+            resultHtml = "";
+            if (data.errorMessage != undefined && data.errorMessage != null && data.errorMessage.length > 0) {
+                $(".screener-error-message").remove();
+                $("#screener-result-table").prepend( "<div class=\"screener-error-message\" style=\"color:red\">Error: " + data.errorMessage + "</div>");
+            } else {
+                resultHtml += `
+                <table class="table table-striped">
+                  <thead>
+                    <tr>`;
+                for (i = 0; i < data.columns.length; ++i) {
+                   resultHtml += '<th scope="col">' + data.columns[i] +'</th>';
+                }
+                resultHtml += `
+                    </tr>
+                  </thead>
+                  <tbody>`;
+                for (i = 0; i < data.portfolio.length; ++i) {
+                  resultHtml += "<tr>";
+                  for (j = 0; j < data.columns.length; ++j) {
+                     var value = data.portfolio[i][data.columns[j]];
+                     resultHtml += "<td>" + value + "</td>";
+                  }
+                  resultHtml += "</tr>";
+                }
+                resultHtml += `
+                   </tbody>
+                 </table>`;
+                $("#screener-result-table").html(resultHtml);
+                $('#screener-result-table table').DataTable({
+                  "iDisplayLength": 100,
+                  "order": []
+                });
+                if (data.hasMoreResults) {
+                  $("#screener-result-table").append("<div class=\"screener-more-results\">* there are more results, filter more to see those</div>");
+                }
             }
-            resultHtml += `
-                </tr>
-              </thead>
-              <tbody>`;
-            for (i = 0; i < data.portfolio.length; ++i) {
-              resultHtml += "<tr>";
-              for (j = 0; j < data.columns.length; ++j) {
-                 var value = data.portfolio[i][data.columns[j]];
-                 resultHtml += "<td>" + value + "</td>";
-              }
-              resultHtml += "</tr>";
-            }
-            resultHtml += `
-               </tbody>
-             </table>`;
-            
-            $("#screener-result-table").html(resultHtml);
-            $('#screener-result-table table').DataTable({
-              "iDisplayLength": 100,
-              "order": []
-            });
         });
   }
 
@@ -155,6 +165,7 @@ submitScreener();
 
 </div>
 
+<span id="accountType" style="display:none" th:text="${accountType}"></span>
 <div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
 <span id="allowed" style="display:none" th:text="${allowed}"></span>
 <span id="accountType" style="display:none" th:text="${accountType}"></span>

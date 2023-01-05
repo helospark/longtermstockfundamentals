@@ -17,6 +17,10 @@ import com.helospark.financialdata.management.user.repository.ViewedStocksReposi
 
 @Service
 public class ViewedStocksService {
+    Cache<String, Integer> userToViewCountCache = Caffeine.newBuilder()
+            .expireAfterWrite(100, TimeUnit.MILLISECONDS)
+            .maximumSize(1000)
+            .build();
     @Autowired
     private ViewedStocksRepository repository;
     @Autowired
@@ -73,8 +77,10 @@ public class ViewedStocksService {
     }
 
     public int getViewCount(String email) {
-        Optional<ViewedStocks> viewedStocksOptional = repository.getViewedStocks(email);
-        return viewedStocksOptional.map(a -> a.getStocks().size()).orElse(0);
+        return userToViewCountCache.get(email, email2 -> {
+            Optional<ViewedStocks> viewedStocksOptional = repository.getViewedStocks(email2);
+            return viewedStocksOptional.map(a -> a.getStocks().size()).orElse(0);
+        });
     }
 
     public int getAllowedViewCount(AccountType accountType) {

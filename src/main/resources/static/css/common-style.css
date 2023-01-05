@@ -162,10 +162,20 @@ body {
 
 #conditions input {
   width: 100px;
+  height: 35px;
+  border-radius: .25rem;
 }
 
 #conditions select {
   font-size: 18pt;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: .25rem;
+  height: 35px;
+}
+
+#conditions select:hover {
+  background-color: #eee;
 }
 
 #screener-result-table {

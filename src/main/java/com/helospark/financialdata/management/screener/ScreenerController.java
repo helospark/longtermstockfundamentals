@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,12 +19,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
+import com.helospark.financialdata.management.screener.domain.GenericErrorResponse;
 import com.helospark.financialdata.management.screener.domain.ScreenerDescription;
 import com.helospark.financialdata.management.screener.domain.ScreenerResult;
 import com.helospark.financialdata.management.screener.strategy.ScreenerStrategy;
+import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/screener")
@@ -34,9 +41,10 @@ public class ScreenerController {
 
     @Autowired
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
-
     @Autowired
     private List<ScreenerStrategy> screenerStrategies;
+    @Autowired
+    private LoginController loginController;
 
     public ScreenerController() {
         for (var field : AtGlanceData.class.getDeclaredFields()) {
@@ -71,10 +79,16 @@ public class ScreenerController {
     }
 
     @PostMapping("/perform")
-    public ScreenerResult screenStocks(@RequestBody ScreenerRequest request) {
-        if (request.operations.size() > 10) {
-            throw new ScreenerClientSideException("Maximum of 10 elements allowed");
+    @RateLimit(requestPerMinute = 20)
+    public ScreenerResult screenStocks(@RequestBody ScreenerRequest request, HttpServletRequest httpRequest) {
+        if (request.operations.size() > 20) {
+            throw new ScreenerClientSideException("Maximum of 20 screeners allowed, " + request.operations.size() + " found");
         }
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (!jwt.isPresent() && request.operations.size() > 1) {
+            throw new ScreenerClientSideException("Logged out users can add maximum of 1 screeners, " + request.operations.size() + " found");
+        }
+
         for (var element : request.operations) {
             if (!idToDescription.containsKey(element.id)) {
                 throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
@@ -124,7 +138,16 @@ public class ScreenerController {
         result.columns.add("Symbol");
         result.columns.add("Company");
 
+        Map<String, ScreenerOperation> dedupedScreenersMap = new LinkedHashMap<>();
+
         for (var element : request.operations) {
+            if (!dedupedScreenersMap.containsKey(element.id)) {
+                dedupedScreenersMap.put(element.id, element);
+            }
+        }
+        var dedupedOperations = dedupedScreenersMap.values();
+
+        for (var element : dedupedOperations) {
             result.columns.add(idToDescription.get(element.id).readableName);
         }
 
@@ -133,7 +156,7 @@ public class ScreenerController {
             columnResult.put("Symbol", createSymbolLink(stock.symbol));
             columnResult.put("Company", stock.companyName);
 
-            for (var element : request.operations) {
+            for (var element : dedupedOperations) {
                 ScreenerDescription screenerDescription = idToDescription.get(element.id);
                 String columnName = screenerDescription.readableName;
                 Double value = getValue(stock, element);
@@ -166,15 +189,16 @@ public class ScreenerController {
 
     @ExceptionHandler(ScreenerClientSideException.class)
     @ResponseStatus(code = HttpStatus.BAD_REQUEST)
-    public String exceptionHandler(ScreenerClientSideException exception) {
-        return exception.getMessage();
+    public GenericErrorResponse exceptionHandler(ScreenerClientSideException exception) {
+        LOGGER.warn("Client side error while performing screening {}", exception.getMessage());
+        return new GenericErrorResponse(exception.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
     @ResponseStatus(code = HttpStatus.INTERNAL_SERVER_ERROR)
-    public String exceptionHandler(Exception exception) {
+    public GenericErrorResponse exceptionHandler(Exception exception) {
         LOGGER.error("Unexpected error while doing screeners", exception);
-        return exception.getMessage();
+        return new GenericErrorResponse("Unexpected error while doing screeners");
     }
 
 }

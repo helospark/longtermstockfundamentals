@@ -109,8 +109,15 @@ public class ViewController {
     }
 
     @GetMapping("/screener")
-    public String screener(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock) {
+    public String screener(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request) {
+        Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+
+        if (!jwtOptional.isPresent()) {
+            model.addAttribute("accountType", "NOT_LOGGED_IN");
+            model.addAttribute("allowed", false);
+        }
         model.addAttribute("stock", stock);
+
         model.addAttribute("screenerFields", screenerController.getScreenerDescriptions());
         model.addAttribute("operators", screenerController.getScreenerOperators());
         return "screener";

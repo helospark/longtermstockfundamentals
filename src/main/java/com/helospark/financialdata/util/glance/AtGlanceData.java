@@ -11,7 +11,7 @@ public class AtGlanceData {
     public Double latestStockPriceUsd;
     public double shareCount;
 
-    @ScreenerElement(name = "Market cap (billions)")
+    @ScreenerElement(name = "Market cap (millions)")
     public Double marketCap;
     @ScreenerElement(name = "Trailing PEG")
     public Double trailingPeg;
