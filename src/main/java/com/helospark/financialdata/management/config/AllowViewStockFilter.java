@@ -50,7 +50,7 @@ public class AllowViewStockFilter implements Filter {
         if (matcher.matches()) {
             String stockSymbol = matcher.group(1);
 
-            if (symbolIndexProvider.getCompanyName(stockSymbol).isPresent()) {
+            if (symbolIndexProvider.doesCompanyExists(stockSymbol)) {
                 Optional<DecodedJWT> jwtOptional = loginController.getJwt(httpRequest);
 
                 if (jwtOptional.isPresent()) {

@@ -200,7 +200,7 @@ select, #start-date-dropdown, #end-date-dropdown {
   margin-left: 10px;
   font-size: 28pt;
   position: relative;
-  top: -3px;
+  top: -1px;
   color: rgba(50,50,50,0.7);
 }
 

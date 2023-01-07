@@ -130,4 +130,13 @@ public class SymbolAtGlanceProvider {
         return cache.get(year, y -> DataLoader.loadHistoricalAtGlanceData(year));
     }
 
+    public boolean doesCompanyExists(String stock) {
+        for (int i = 0; i < symbols.size(); ++i) {
+            if (symbols.get(i).equalsIgnoreCase(stock)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

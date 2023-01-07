@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @Component
 @Order(0)
-public class RealRemoteIpFilter implements Filter {
+public class RealIpHeaderFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {

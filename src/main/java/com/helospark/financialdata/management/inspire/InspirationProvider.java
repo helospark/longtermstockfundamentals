@@ -61,14 +61,14 @@ public class InspirationProvider {
 
         List<Map<String, String>> portfolioElements = new ArrayList<>();
         for (var element : listOfInvestments) {
-            Optional<String> company = symbolIndexProvider.getCompanyName(element.tickercusip);
+            Optional<String> companyName = symbolIndexProvider.getCompanyName(element.tickercusip);
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(element.tickercusip);
-            if (company.isPresent() && optionalAtGlance.isPresent()) {
+            if (symbolIndexProvider.doesCompanyExists(element.tickercusip) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
                 double priceUsd = atGlance.latestStockPriceUsd;
                 Map<String, String> portfolioElement = new HashMap<>();
                 portfolioElement.put("symbol", createSymbolLink(element.tickercusip));
-                portfolioElement.put("name", company.get());
+                portfolioElement.put("name", companyName.orElse(""));
                 portfolioElement.put(VALUE_LABEL, formatString((element.shares * priceUsd / 1_000_000.0)));
                 portfolioElement.put("Trailing PEG", formatString(atGlance.trailingPeg));
                 portfolioElement.put("ROIC", formatString(atGlance.roic));
