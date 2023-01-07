@@ -1,5 +1,7 @@
 package com.helospark.financialdata.util.glance;
 
+import java.time.LocalDate;
+
 import com.helospark.financialdata.management.screener.annotation.AtGlanceFormat;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
 
@@ -10,6 +12,7 @@ public class AtGlanceData {
     public double latestStockPrice;
     public double latestStockPriceUsd;
     public double shareCount;
+    public LocalDate actualDate;
 
     @ScreenerElement(name = "Market cap (millions)")
     public double marketCapUsd;
@@ -24,7 +27,7 @@ public class AtGlanceData {
     public double eps;
     @ScreenerElement(name = "PE")
     public double pe;
-    @ScreenerElement(name = "P/FCF")
+    @ScreenerElement(name = "FCF/share")
     public double fcfPerShare;
     @ScreenerElement(name = "Current ratio")
     public double currentRatio;
@@ -66,4 +69,13 @@ public class AtGlanceData {
     @ScreenerElement(name = "Stock based compensation per market cap", format = AtGlanceFormat.PERCENT)
     public double stockCompensationPerMkt;
 
+    @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield")
+    public double getFreeCashFlowYield() {
+        return fcfPerShare / latestStockPrice * 100.0;
+    }
+
+    @ScreenerElement(id = "earnings_yield", name = "Earnings yield")
+    public double getEarningsYield() {
+        return eps / latestStockPrice * 100.0;
+    }
 }

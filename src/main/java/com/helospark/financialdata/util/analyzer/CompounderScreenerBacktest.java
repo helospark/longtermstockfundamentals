@@ -57,9 +57,9 @@ public class CompounderScreenerBacktest {
                 if (tenYearAvgGrowth.isPresent() && continouslyProfitable && epsDeviation.isPresent() && revenueDeviation.isPresent() &&
                         fcfDeviation.isPresent()) {
                     double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
-                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
-                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
-                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
+                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo);
+                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo + 0.25);
+                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo + 0.5);
 
                     double currentPe = latestPriceThen / financials.get(index).incomeStatementTtm.eps;
                     double growth = tenYearAvgGrowth.get();

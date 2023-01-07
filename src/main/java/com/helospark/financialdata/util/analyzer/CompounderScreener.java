@@ -38,8 +38,8 @@ public class CompounderScreener {
             double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(0), company.latestPrice);
 
             Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, 0);
-            Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, 0 + 1);
-            Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, 0 + 2);
+            Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, 0 + 0.25);
+            Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, 0 + 0.5);
 
             if (tenYearAvgGrowth.isPresent() && continouslyProfitable && epsDeviation.isPresent() && revenueDeviation.isPresent() && fcfDeviation.isPresent()) {
                 //                Double peRatio = financials.get(0).remoteRatio.priceEarningsRatio;

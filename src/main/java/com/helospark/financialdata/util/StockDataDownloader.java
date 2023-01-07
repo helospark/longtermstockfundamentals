@@ -33,6 +33,7 @@ import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.google.common.util.concurrent.RateLimiter;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.CompanyListElement;
@@ -188,9 +189,10 @@ public class StockDataDownloader {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-
         int numberOfThreads = Runtime.getRuntime().availableProcessors();
         ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
+
+        var allSymbolsSet = DataLoader.provideAllSymbols();
 
         Queue<String> queue = new ConcurrentLinkedQueue<>();
         queue.addAll(DataLoader.provideAllSymbols());
@@ -204,12 +206,12 @@ public class StockDataDownloader {
                     if (entry == null) {
                         break;
                     }
-                    int queueSize = queue.size();
+                    int queueSize = allSymbolsSet.size() - queue.size();
                     if (queueSize % 1000 == 0) {
-                        System.out.println("Progress: " + (((double) queueSize / symbolCompanyNameCache.size())) * 100.0);
+                        System.out.println("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
                     }
 
-                    for (int i = 1; i < 30; ++i) {
+                    for (int i = 1; i < 35; ++i) {
                         int year = LocalDate.now().minusYears(i).getYear();
 
                         File offsetFile = getBacktestFileAtYear(year);
@@ -236,6 +238,7 @@ public class StockDataDownloader {
         }
 
         try {
+            executorService.shutdownNow();
             executorService.awaitTermination(1000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e1) {
             e1.printStackTrace();
@@ -263,9 +266,9 @@ public class StockDataDownloader {
         AtGlanceData data = new AtGlanceData();
         CompanyFinancials company = DataLoader.readFinancialsWithCacheEnabled(symbol, false);
 
-        LocalDate realDate = LocalDate.now().minusYears(offsetYeari);
-        LocalDate targetDate = LocalDate.of(LocalDate.now().getYear() - offsetYeari, 1, 1);
-        double offsetYear = offsetYeari + ((realDate.getMonthValue() - targetDate.getMonthValue()) / 12.0);
+        LocalDate now = LocalDate.now();
+        LocalDate integerDate = now.minusYears(offsetYeari);
+        LocalDate targetDate = LocalDate.of(now.getYear() - offsetYeari, 1, 1);
 
         if (company.financials.isEmpty() || company.profile == null) {
             return Optional.empty();
@@ -281,20 +284,24 @@ public class StockDataDownloader {
         }
         var financial = company.financials.get(index);
 
-        double latestPrice = (offsetYear == 0 ? company.latestPrice : company.financials.get(index).price);
-        double latestPriceUsd = (offsetYear == 0 ? company.latestPriceUsd : company.financials.get(index).priceUsd);
+        LocalDate actualDate = financial.getDate();
+        double offsetYear = (now.getYear() - actualDate.getYear()) + ((now.getDayOfYear() - actualDate.getDayOfYear()) / 365.0);
 
+        double latestPrice = (offsetYeari == 0 ? company.latestPrice : company.financials.get(index).price);
+        double latestPriceUsd = (offsetYeari == 0 ? company.latestPriceUsd : company.financials.get(index).priceUsd);
+
+        data.actualDate = actualDate;
         data.marketCapUsd = (latestPriceUsd * financial.incomeStatementTtm.weightedAverageShsOut) / 1_000_000.0;
         data.latestStockPrice = latestPrice;
         data.latestStockPriceUsd = latestPriceUsd;
         data.shareCount = financial.incomeStatementTtm.weightedAverageShsOut;
-        data.trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, index, latestPrice).orElse(Double.NaN);
+        data.trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, offsetYear, latestPrice).orElse(Double.NaN);
         data.roic = RoicCalculator.calculateRoic(financial) * 100.0;
         data.altman = AltmanZCalculator.calculateAltmanZScore(financial, latestPrice);
         data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(Double.NaN);
         data.eps = financial.incomeStatementTtm.eps;
         data.pe = RatioCalculator.calculatePriceToEarningsRatio(financial);
-        data.fcfPerShare = latestPrice / financial.cashFlowTtm.freeCashFlow;
+        data.fcfPerShare = (double) financial.cashFlowTtm.freeCashFlow / financial.incomeStatementTtm.weightedAverageShsOut;
         data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN);
         data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN);
 
@@ -415,6 +422,7 @@ public class StockDataDownloader {
 
     private static void init() {
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.registerModule(new JSR310Module());
     }
 
     private static <T> T downloadSimpleUrlCached(String urlPath, String folder, Class<T> clazz) {

@@ -10,6 +10,8 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD })
 public @interface ScreenerElement {
+    String id() default "";
+
     String name();
 
     AtGlanceFormat format() default AtGlanceFormat.SIMPLE_NUMBER;

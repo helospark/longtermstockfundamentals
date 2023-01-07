@@ -45,7 +45,7 @@ public class InspirationProvider {
     public InspirationProvider() {
         availablePortfolios.put(InspirationController.PORTFOLIO_BASE_PATH + "warren_buffett", "Warren Buffett");
         availablePortfolios.put(InspirationController.PORTFOLIO_BASE_PATH + "li_lu", "Li Lu");
-        availablePortfolios.put(InspirationController.ALGORITHM_BASE_PATH + "high_roic", "High ROIC");
+        //availablePortfolios.put(InspirationController.ALGORITHM_BASE_PATH + "high_roic", "High ROIC");
     }
 
     private Inspiration loadPortfolio(String filename, String description) {

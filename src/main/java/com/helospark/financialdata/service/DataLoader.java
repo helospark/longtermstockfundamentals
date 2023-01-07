@@ -506,14 +506,14 @@ public class DataLoader {
         return result;
     }
 
-    public static Optional<Map<String, List<AtGlanceData>>> loadHistoricalAtGlanceData(int year) {
+    public static Optional<Map<String, AtGlanceData>> loadHistoricalAtGlanceData(int year) {
         File file = StockDataDownloader.getBacktestFileAtYear(year);
 
         if (!file.exists()) {
             return Optional.empty();
         }
 
-        TypeReference<LinkedHashMap<String, List<AtGlanceData>>> typeRef = new TypeReference<LinkedHashMap<String, List<AtGlanceData>>>() {
+        TypeReference<LinkedHashMap<String, AtGlanceData>> typeRef = new TypeReference<LinkedHashMap<String, AtGlanceData>>() {
         };
 
         try (var fis = new GZIPInputStream(new FileInputStream(file))) {

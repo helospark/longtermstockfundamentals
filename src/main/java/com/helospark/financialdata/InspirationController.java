@@ -48,7 +48,7 @@ public class InspirationController {
 
     @ExceptionHandler(Exception.class)
     public void onOtherError(Exception exception) {
-        LOGGER.error("Error while getting inspirations");
+        LOGGER.error("Error while getting inspirations", exception);
     }
 
 }

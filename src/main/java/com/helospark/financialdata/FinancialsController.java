@@ -1,6 +1,7 @@
 package com.helospark.financialdata;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -105,7 +106,7 @@ public class FinancialsController {
             FinancialsTtm financialsTtm = company.financials.get(i);
 
             double pe = financialsTtm.price / financialsTtm.incomeStatementTtm.eps;
-            double pastGrowthRate = TrailingPegCalculator.getPastGrowthRate(company, i);
+            double pastGrowthRate = TrailingPegCalculator.getPastEpsGrowthRate(company, i);
             double dividendYield = DividendCalculator.getDividendYield(company, i) * 100.0;
             double stockBasedCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financialsTtm);
             double yearsAgo = i / 4.0;
@@ -123,12 +124,38 @@ public class FinancialsController {
     }
 
     @GetMapping("/past_pe_to_growth_ratio")
-    public List<SimpleDataElement> getTrailingPegMargin(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getTrailingPeg(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
-            Optional<Double> value = TrailingPegCalculator.calculateTrailingPeg(company, i);
+            Optional<Double> value = TrailingPegCalculator.calculateTrailingPeg(company, i / 4.0);
+
+            result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value.orElse(null)));
+        }
+        return result;
+    }
+
+    @GetMapping("/past_pe_to_rev_growth_ratio")
+    public List<SimpleDataElement> getTrailingPegWithRevGrowth(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm financialsTtm = company.financials.get(i);
+            Optional<Double> value = TrailingPegCalculator.calculateTrailingPegWithRevGrowth(company, i / 4.0);
+
+            result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value.orElse(null)));
+        }
+        return result;
+    }
+
+    @GetMapping("/past_cape_to_growth_ratio")
+    public List<SimpleDataElement> getTrailingCapeg(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm financialsTtm = company.financials.get(i);
+            Optional<Double> value = TrailingPegCalculator.calculateTrailingCAPeg(company, i / 4.0);
 
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value.orElse(null)));
         }
@@ -553,9 +580,11 @@ public class FinancialsController {
     public List<SimpleDataElement> getGrowthRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < 30 * 4; ++i) {
-            Optional<Double> growth = GrowthCalculator.getEpsGrowthInInterval(company.financials, i / 4.0, 0);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (i * 4.0)).toString(), growth.orElse(0.0)));
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = GrowthCalculator.getEpsGrowthInInterval(company.financials, yearsAgo, 0);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;
@@ -565,12 +594,14 @@ public class FinancialsController {
     public List<SimpleDataElement> getDividendRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < 30 * 4; ++i) {
-            Optional<Double> growth = GrowthCalculator.getDividendGrowthInInterval(company.financials, i / 4.0, 0);
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = GrowthCalculator.getDividendGrowthInInterval(company.financials, yearsAgo, 0);
             if (growth.isPresent() && !growth.get().isInfinite() && !growth.get().isNaN()) {
-                result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (i * 4.0)).toString(), growth.orElse(0.0)));
+                result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
             } else {
-                result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (i * 4.0)).toString(), null));
+                result.add(new SimpleDataElement(element.getDate().toString(), null));
             }
         }
 
@@ -581,10 +612,11 @@ public class FinancialsController {
     public List<SimpleDataElement> get7yrGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int year) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 0; i < 23 * 4; ++i) {
-            double yearsAgo = i / 4.0;
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
             Optional<Double> growth = GrowthCalculator.getEpsGrowthInInterval(company.financials, yearsAgo + year, yearsAgo);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;
@@ -594,23 +626,29 @@ public class FinancialsController {
     public List<SimpleDataElement> getXyrGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int year) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 0; i < 23 * 4; ++i) {
-            double yearsAgo = i / 4.0;
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
             Optional<Double> growth = GrowthCalculator.getRevenueGrowthInInterval(company.financials, yearsAgo + year, yearsAgo);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;
+    }
+
+    private double calculateYearsAgo(LocalDate date) {
+        return Math.abs(ChronoUnit.DAYS.between(date, LocalDate.now()) / 365.0);
     }
 
     @GetMapping("revenue_growth_rate")
     public List<SimpleDataElement> getRevenueGrowthRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < 30 * 4; ++i) {
-            double yearsAgo = i / 4.0;
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
             Optional<Double> growth = GrowthCalculator.getRevenueGrowthInInterval(company.financials, yearsAgo, 0);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;
@@ -629,10 +667,11 @@ public class FinancialsController {
     public List<SimpleDataElement> getFcfGrowthRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < 30 * 4; ++i) {
-            double yearsAgo = i / 4.0;
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
             Optional<Double> growth = GrowthCalculator.getFcfGrowthInInterval(company.financials, yearsAgo, 0);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;
@@ -642,10 +681,11 @@ public class FinancialsController {
     public List<SimpleDataElement> get7yrFcfGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int year) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 0; i < 23 * 4; ++i) {
-            double yearsAgo = i / 4.0;
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
             Optional<Double> growth = GrowthCalculator.getFcfGrowthInInterval(company.financials, yearsAgo + year, yearsAgo);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;
@@ -655,10 +695,11 @@ public class FinancialsController {
     public List<SimpleDataElement> getPriceGrowth(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < 30 * 4; ++i) {
-            double yearsAgo = i / 4.0;
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
             Optional<Double> growth = GrowthCalculator.getPriceGrowthInInterval(company.financials, yearsAgo, 0);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((long) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;
@@ -668,10 +709,11 @@ public class FinancialsController {
     public List<SimpleDataElement> getShareGrowthRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < 30 * 4; ++i) {
-            double yearsAgo = i / 4.0;
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
             Optional<Double> growth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, yearsAgo, 0);
-            result.add(new SimpleDataElement(LocalDate.now().minusMonths((int) (yearsAgo * 12.0)).toString(), growth.orElse(0.0)));
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;

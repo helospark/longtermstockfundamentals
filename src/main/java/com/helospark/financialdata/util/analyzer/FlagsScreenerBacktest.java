@@ -58,7 +58,7 @@ public class FlagsScreenerBacktest {
                 Optional<Double> epsDeviation = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, yearsAgo);
                 Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, yearsAgo);
                 //                Optional<Double> fcfDeviation = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, yearsAgo);
-                Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
+                Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo);
                 //                Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
                 //                Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
                 Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);

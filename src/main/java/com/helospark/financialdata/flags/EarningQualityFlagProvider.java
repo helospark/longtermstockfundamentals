@@ -30,7 +30,7 @@ public class EarningQualityFlagProvider implements FlagProvider {
         if (index != -1 && financials.size() > index + 3) {
             var financialsTtm = financials.get(index);
 
-            Optional<Double> trailingPegOpt = calculateAvgTrailingPeg(company, index, 3);
+            Optional<Double> trailingPegOpt = calculateAvgTrailingPeg(company, offset, 3);
 
             if (trailingPegOpt.isPresent()) {
                 Double trailingPeg = trailingPegOpt.get();
@@ -105,11 +105,11 @@ public class EarningQualityFlagProvider implements FlagProvider {
 
     }
 
-    private Optional<Double> calculateAvgTrailingPeg(CompanyFinancials company, int offset, int limit) {
+    private Optional<Double> calculateAvgTrailingPeg(CompanyFinancials company, double offsetYears, int limit) {
         double sum = 0.0;
         int count = 0;
-        for (int i = offset; i < offset + limit && i < company.financials.size(); ++i) {
-            Optional<Double> trailingPegOpt1 = TrailingPegCalculator.calculateTrailingPeg(company, i);
+        for (double year = offsetYears; year < offsetYears + limit && year < company.financials.size(); ++year) {
+            Optional<Double> trailingPegOpt1 = TrailingPegCalculator.calculateTrailingPeg(company, year);
             if (trailingPegOpt1.isPresent()) {
                 sum += trailingPegOpt1.get();
                 ++count;

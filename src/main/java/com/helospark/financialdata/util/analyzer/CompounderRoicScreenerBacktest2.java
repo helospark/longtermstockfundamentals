@@ -105,7 +105,7 @@ public class CompounderRoicScreenerBacktest2 {
                         Optional<Double> revenueDeviation = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 6, yearsAgo);
 
                         if (epsDeviation.isPresent() && revenueDeviation.isPresent()) {
-                            Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
+                            Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo);
                             Double epsStandardDeviation = epsDeviation.get();
                             Double pegCutoff = 1.4;
                             Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);

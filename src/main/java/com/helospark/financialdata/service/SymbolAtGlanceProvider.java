@@ -12,7 +12,9 @@ import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.domain.SearchElement;
@@ -37,6 +39,8 @@ public class SymbolAtGlanceProvider {
 
     public SymbolAtGlanceProvider() {
         ObjectMapper om = new ObjectMapper();
+        om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        om.registerModule(new JSR310Module());
         File file = new File(StockDataDownloader.SYMBOL_CACHE_FILE);
 
         TypeReference<LinkedHashMap<String, AtGlanceData>> typeRef = new TypeReference<LinkedHashMap<String, AtGlanceData>>() {
@@ -123,16 +127,7 @@ public class SymbolAtGlanceProvider {
     }
 
     public Optional<Map<String, AtGlanceData>> loadAtGlanceDataAtYear(int year) {
-        return cache.get(year, y -> DataLoader.loadHistoricalAtGlanceData(year).map(a -> fixSymbols(a)));
-    }
-
-    private Map<String, AtGlanceData> fixSymbols(Map<String, List<AtGlanceData>> toFix) {
-        Map<String, AtGlanceData> result = new LinkedHashMap<>();
-        for (var entry : toFix.entrySet()) {
-            result.put(entry.getKey(), entry.getValue().get(0));
-            entry.getValue().get(0).symbol = entry.getKey();
-        }
-        return result;
+        return cache.get(year, y -> DataLoader.loadHistoricalAtGlanceData(year));
     }
 
 }

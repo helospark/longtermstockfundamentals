@@ -9,7 +9,7 @@ import com.helospark.financialdata.domain.CompanyFinancials;
 public class ProfitabilityCalculator {
 
     public static Optional<Integer> calculateNumberOfYearsProfitable(CompanyFinancials company, double offset) {
-        for (int i = 20; i > 0; --i) {
+        for (int i = 30; i > 0; --i) {
             if (isProfitableEveryYearSince(company.financials, offset + i, offset)) {
                 return Optional.of(i);
             }

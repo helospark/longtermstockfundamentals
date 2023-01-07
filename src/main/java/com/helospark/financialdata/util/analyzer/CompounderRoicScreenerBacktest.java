@@ -57,7 +57,7 @@ public class CompounderRoicScreenerBacktest {
 
                 if (tenYearAvgGrowth.isPresent() && continouslyProfitable && epsDeviation.isPresent() && revenueDeviation.isPresent()) {
                     double altmanZ = AltmanZCalculator.calculateAltmanZScore(financials.get(index), latestPriceThen);
-                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
+                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo);
 
                     Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
                     double growth = tenYearAvgGrowth.get();

@@ -100,7 +100,7 @@ public class HighRoicScreenerBacktest2 {
 
                     if (altmanZ > almanLimit && continouslyProfitable) {
                         Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
-                        Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
+                        Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo);
 
                         if (roic.isPresent() && roic.get() > roicLimit && trailingPeg.isPresent() && trailingPeg.get() < pegLimit) {
                             double sellPrice = company.latestPrice;

@@ -39,9 +39,9 @@ public class LowTrailingPegScreenerBacktest implements StockScreeners {
 
                 if (financials.size() > latestElement + 1) {
 
-                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
-                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, index + 1);
-                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, index + 2);
+                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo);
+                    Optional<Double> trailingPeg2 = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo + 0.25);
+                    Optional<Double> trailingPeg3 = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo + 0.5);
 
                     double latestPriceThen = financials.get(latestElement).price;
 

@@ -1,5 +1,7 @@
 package com.helospark.financialdata.management.screener;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,6 +37,7 @@ import com.helospark.financialdata.management.screener.domain.BacktestResult;
 import com.helospark.financialdata.management.screener.domain.BacktestYearInformation;
 import com.helospark.financialdata.management.screener.domain.GenericErrorResponse;
 import com.helospark.financialdata.management.screener.domain.ScreenerDescription;
+import com.helospark.financialdata.management.screener.domain.ScreenerDescription.Source;
 import com.helospark.financialdata.management.screener.domain.ScreenerResult;
 import com.helospark.financialdata.management.screener.strategy.ScreenerStrategy;
 import com.helospark.financialdata.management.user.LoginController;
@@ -49,6 +53,8 @@ import jakarta.servlet.http.HttpServletRequest;
 @RestController
 @RequestMapping("/screener")
 public class ScreenerController {
+    private static final String ANNUAL_RETURN_COLUMN = "Annual return (%)";
+    private static final String TOTAL_RETURN_COLUMN = "Total return (%)";
     private static final Logger LOGGER = LoggerFactory.getLogger(ScreenerController.class);
     public static final int MAX_RESULTS = 100;
     public static double BACKTEST_INVEST_AMOUNT = 1000.0;
@@ -69,8 +75,27 @@ public class ScreenerController {
                 ScreenerDescription description = new ScreenerDescription();
                 description.readableName = name;
                 description.format = screenerElement.format();
+                description.source = Source.FIELD;
+                description.data = field;
 
-                idToDescription.put(field.getName(), description);
+                String id = screenerElement.id().equals("") ? field.getName() : screenerElement.id();
+
+                idToDescription.put(id, description);
+            }
+        }
+        for (var method : AtGlanceData.class.getDeclaredMethods()) {
+            ScreenerElement screenerElement = method.getAnnotation(ScreenerElement.class);
+            if (screenerElement != null && method.getParameterCount() == 0) {
+                String name = screenerElement.name();
+                ScreenerDescription description = new ScreenerDescription();
+                description.readableName = name;
+                description.format = screenerElement.format();
+                description.source = Source.METHOD;
+                description.data = method;
+
+                String id = screenerElement.id().equals("") ? method.getName() : screenerElement.id();
+
+                idToDescription.put(id, description);
             }
         }
     }
@@ -136,7 +161,7 @@ public class ScreenerController {
             for (var element : dedupedOperations) {
                 ScreenerDescription screenerDescription = idToDescription.get(element.id);
                 String columnName = screenerDescription.readableName;
-                Double value = getValue(stock, element);
+                Double value = getValue(stock, element, screenerDescription);
                 columnResult.put(columnName, screenerDescription.format.format(value));
             }
             result.portfolio.add(columnResult);
@@ -172,7 +197,8 @@ public class ScreenerController {
 
             boolean allMatch = true;
             for (var operation : request.operations) {
-                Double value = getValue(atGlanceData, operation);
+                ScreenerDescription source = idToDescription.get(operation.id);
+                Double value = getValue(atGlanceData, operation, source);
                 if (value == null) {
                     allMatch = false;
                     break;
@@ -220,16 +246,26 @@ public class ScreenerController {
 
         Map<Integer, BacktestYearInformation> yearResults = new LinkedHashMap<>();
 
+        Set<String> columns = new LinkedHashSet<>();
+        columns.add("Symbol");
+        columns.add("Name");
+        columns.add("Buy price");
+        columns.add("Current price");
+        columns.add(TOTAL_RETURN_COLUMN);
+        columns.add(ANNUAL_RETURN_COLUMN);
         LocalDate currentDate = LocalDate.now();
 
+        double totalInvested = 0;
+        double totalScreenerReturned = 0;
+        double totalSpReturned = 0;
         for (int year = request.startYear; year < request.endYear; ++year) {
+            List<Map<String, String>> bought = new ArrayList<>();
             double yearSp500Sum = 0.0;
             double yearScreenerSum = 0.0;
             int yearCount = 0;
 
             LocalDate date = LocalDate.of(year, 1, 1);
-
-            double yearAgo = (currentDate.getYear() - year) + (currentDate.getMonthValue() - 1) / 12.0;
+            double yearAgo = (currentDate.getYear() - year) + (date.getMonthValue() - 1) / 12.0;
 
             Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(year).orElse(null);
             List<AtGlanceData> matchedStocks = List.of();
@@ -240,7 +276,9 @@ public class ScreenerController {
                     var stockNow = symbolAtGlanceProvider.getAtGlanceData(stockThen.symbol);
                     ++yearCount;
 
-                    double sp500PriceThen = StandardAndPoorPerformanceProvider.getPriceAt(date);
+                    LocalDate actualDate = stockThen.actualDate;
+
+                    double sp500PriceThen = StandardAndPoorPerformanceProvider.getPriceAt(actualDate);
                     double sp500PriceNow = StandardAndPoorPerformanceProvider.getLatestPrice();
 
                     double stockPriceThen = stockThen.latestStockPriceUsd;
@@ -248,23 +286,39 @@ public class ScreenerController {
 
                     yearSp500Sum += (sp500PriceNow / sp500PriceThen) * BACKTEST_INVEST_AMOUNT;
                     yearScreenerSum += (stockPriceNow / stockPriceThen) * BACKTEST_INVEST_AMOUNT;
+
+                    Map<String, String> columnResult = new HashMap<>();
+                    columnResult.put("Symbol", createSymbolLink(stockNow.get().symbol));
+                    columnResult.put("Name", stockNow.get().companyName);
+                    columnResult.put("Buy price", formatString(stockPriceThen));
+                    columnResult.put("Current price", formatString(stockPriceNow));
+                    columnResult.put(TOTAL_RETURN_COLUMN, formatString(((stockPriceNow / stockPriceThen) - 1.0) * 100.0));
+                    columnResult.put(ANNUAL_RETURN_COLUMN, formatString((Math.pow((stockPriceNow / stockPriceThen), (1.0 / yearAgo)) - 1.0) * 100.0));
+
+                    bought.add(columnResult);
                 }
             }
 
             BacktestYearInformation yearInfo = new BacktestYearInformation();
-            double totalInvested = yearCount * BACKTEST_INVEST_AMOUNT;
-            yearInfo.investedAmount = totalInvested;
+            double yearTotalInvested = yearCount * BACKTEST_INVEST_AMOUNT;
+            yearInfo.investedAmount = yearTotalInvested;
 
-            yearInfo.spTotalReturnPercent = ((yearSp500Sum / totalInvested) - 1.0) * 100.0;
-            yearInfo.screenerTotalReturnPercent = ((yearSp500Sum / totalInvested) - 1.0) * 100.0;
+            yearInfo.spTotalReturnPercent = ((yearSp500Sum / yearTotalInvested) - 1.0) * 100.0;
+            yearInfo.screenerTotalReturnPercent = ((yearScreenerSum / yearTotalInvested) - 1.0) * 100.0;
 
-            yearInfo.screenerAnnualReturnPercent = Math.pow(yearScreenerSum / totalInvested, (1.0 / yearAgo)) - 1.0;
-            yearInfo.spAnnualReturnPercent = Math.pow(yearSp500Sum / totalInvested, (1.0 / yearAgo)) - 1.0;
+            yearInfo.spAnnualReturnPercent = (Math.pow(yearSp500Sum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
+            yearInfo.screenerAnnualReturnPercent = (Math.pow(yearScreenerSum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
 
-            yearInfo.screenerReturnDollar = yearScreenerSum;
             yearInfo.spReturnDollar = yearSp500Sum;
+            yearInfo.screenerReturnDollar = yearScreenerSum;
 
-            yearInfo.investedInAllMatching = matchedStocks.size() >= MAX_RESULTS;
+            yearInfo.investedInAllMatching = matchedStocks.size() < MAX_RESULTS;
+
+            totalInvested += yearTotalInvested;
+            totalScreenerReturned += yearScreenerSum;
+            totalSpReturned += yearSp500Sum;
+
+            yearInfo.investedStocks = bought;
 
             yearResults.put(year, yearInfo);
         }
@@ -284,6 +338,11 @@ public class ScreenerController {
         result.beatCount = beatCount;
         result.investedCount = investedCount;
         result.beatPercent = ((double) beatCount / investedCount) * 100.0;
+        result.columns = columns;
+
+        result.investedAmount = totalInvested;
+        result.sp500Returned = totalSpReturned;
+        result.screenerReturned = totalScreenerReturned;
 
         result.screenerAvgPercent = yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> a.screenerAnnualReturnPercent).average().orElse(0.0);
         result.sp500AvgPercent = yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> a.spAnnualReturnPercent).average().orElse(0.0);
@@ -299,8 +358,17 @@ public class ScreenerController {
         }
 
         result.yearData = yearResults;
+        result.investedInAllMatching = yearResults.values().stream().allMatch(a -> a.investedInAllMatching);
 
         return result;
+    }
+
+    public String formatString(Double value) {
+        if (value == null) {
+            return "-";
+        } else {
+            return String.format("%.2f", value);
+        }
     }
 
     public void validateRequest(ScreenerRequest request, HttpServletRequest httpRequest) {
@@ -335,9 +403,15 @@ public class ScreenerController {
         }
     }
 
-    public Double getValue(AtGlanceData glance, ScreenerOperation operation) {
+    public Double getValue(AtGlanceData glance, ScreenerOperation operation, ScreenerDescription screenerDescriptor) {
         try {
-            return (Double) glance.getClass().getField(operation.id).get(glance);
+            if (screenerDescriptor.source.equals(Source.FIELD)) {
+                return (Double) ((Field) screenerDescriptor.data).get(glance);
+            } else if (screenerDescriptor.source.equals(Source.METHOD)) {
+                return (Double) ((Method) screenerDescriptor.data).invoke(glance);
+            } else {
+                throw new RuntimeException("Unknown source");
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

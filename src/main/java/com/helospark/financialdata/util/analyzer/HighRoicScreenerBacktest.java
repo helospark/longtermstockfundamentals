@@ -50,7 +50,7 @@ public class HighRoicScreenerBacktest {
 
                 if (altmanZ > ALTMAN && continouslyProfitable) {
                     Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
-                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, index);
+                    Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPeg(company, yearsAgo);
                     //                    double marketCap = financials.get(index).keyMetrics.enterpriseValue / (1000.0 * 1000.0 * 1000.0);
 
                     if (roic.isPresent() && roic.get() > ROIC && trailingPeg.isPresent() && trailingPeg.get() < PEG) {

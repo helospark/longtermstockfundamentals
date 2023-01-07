@@ -46,7 +46,7 @@ public class HighRoicScreener {
 
             if (altmanZ > ALTMAN && continouslyProfitable) {
                 Optional<Double> roic = RoicCalculator.getAverageRoic(company.financials, yearsAgo);
-                Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, index, latestPrice);
+                Optional<Double> trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, yearsAgo, latestPrice);
 
                 if (roic.isPresent() && roic.get() > ROIC && trailingPeg.isPresent() && trailingPeg.get() < PEG) {
                     System.out.printf("%s\t%.2f\t%.2f\t%s | %s\n", symbol, roic.get(), trailingPeg.get(), company.profile.companyName, company.profile.industry);

@@ -166,7 +166,7 @@ body {
   border-radius: .25rem;
 }
 
-#conditions select, #start-date-dropdown, #end-date-dropdown {
+select, #start-date-dropdown, #end-date-dropdown {
   font-size: 18pt;
   background-color: #fff;
   border: 1px solid #ced4da;
@@ -198,9 +198,14 @@ body {
 #conditions .remove-condition-link {
   text-decoration: none;
   margin-left: 10px;
-  font-size: 20pt;
+  font-size: 28pt;
   position: relative;
-  top: -4px;
+  top: -3px;
+  color: rgba(50,50,50,0.7);
+}
+
+#conditions .remove-condition-link:hover {
+  color: rgba(20,20,20,0.7);
 }
 
 #exchanges option:checked{
@@ -211,4 +216,17 @@ body {
 
 #exchanges {
   height: 300px;
+}
+
+.table-dark a:link { color: lightskyblue; }
+.table-dark a:visited { color: lightskyblue; }
+.table-dark a:hover { color: #ffffff; }
+.table-dark a:active { color: #ff4040; text-decoration:none; font-weight:normal; }
+
+.additional-menu-items a:link, .additional-menu-items a:visited, .additional-menu-items a:active {
+  color: black;
+  text-decoration:none;
+}
+.additional-menu-items a:hover {
+  color: #444;
 }

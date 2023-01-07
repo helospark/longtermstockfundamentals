@@ -181,7 +181,23 @@ createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%
 createSeparator("Price ratios")
 createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50});
 createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100});
-createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {suggestedMin: -2, suggestedMax: 5});
+createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {
+  tooltip: 'Trailing PEG is the PE ratio divided by the median past [1..7] year annual EPS growth. Generally above 2 is expensive, below 1 is cheap.',
+  suggestedMin: -2,
+  suggestedMax: 5});
+
+
+createChart("/financials/past_cape_to_growth_ratio", "Trailing PEG ratio variations", {
+  suggestedMin: -2,
+  suggestedMax: 5,
+  label: "CAPEG",
+  tooltip: 'Variations of trailing PEG. CAPEG is the 4 year Shiller PE divided by the past [1..7] year annual EPS growth. The trailing revenue PEG is the same as the trailing PEG, but uses revenue growth instead of EPS growth.',
+  additionalCharts: [
+  {
+    "url": "/financials/past_pe_to_rev_growth_ratio",
+    "label": "trailing revenue PEG"
+  }
+]});
 createChart("/financials/ev_over_ebitda", "EV over ebitda", {});
 
 createChart("/financials/p2b_ratio", "Price to Book ratio", {
