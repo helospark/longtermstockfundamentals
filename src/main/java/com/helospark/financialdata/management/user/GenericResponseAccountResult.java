@@ -1,9 +1,9 @@
 package com.helospark.financialdata.management.user;
 
-public class DeleteAccountResult {
+public class GenericResponseAccountResult {
     public String errorMessage;
 
-    public DeleteAccountResult(String errorMessage) {
+    public GenericResponseAccountResult(String errorMessage) {
         this.errorMessage = errorMessage;
     }
 

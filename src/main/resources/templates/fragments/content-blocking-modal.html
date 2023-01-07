@@ -1,4 +1,4 @@
-<div class="modal" id="not-registered-modal" tabindex="-1" aria-hidden="true">
+<div class="modal" id="not-registered-modal" tabindex="1" aria-hidden="true" role="">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
@@ -13,7 +13,7 @@
   </div>
 </div>
 
-<div class="modal" id="account-limit-reached" tabindex="-1" aria-hidden="true">
+<div class="modal" id="account-limit-reached" tabindex="-1" aria-hidden="true" role="">
   <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 1200px;width:90%;">
     <div class="modal-content">
       <div class="modal-header">
@@ -28,22 +28,32 @@
 </div>
 
 
+
 <script>
 
 
 
-
-allowed = $("#allowed").text();
-accountType = $("#accountType").text();
-
-if ($("#allowed").text() == "false") {
-  $("#content").addClass("blurred");
-  $("body").css({"overflow": "hidden"});
-  if (accountType == "NOT_LOGGED_IN") {
-    $("#not-registered-modal").modal({backdrop: 'static', keyboard: false});
-  } else {
-    $("#account-limit-reached").modal({backdrop: 'static', keyboard: false});
+$(document).ready(function() {
+  allowed = $("#allowed").text();
+  accountType = $("#accountType").text();
+  
+  if ($("#allowed").text() == "false") {
+    $("#content").addClass("blurred");
+    $("body").css({"overflow": "hidden"});
+    if (accountType == "NOT_LOGGED_IN") {
+      modal = new bootstrap.Modal(document.getElementById("not-registered-modal"));
+      modal._config.backdrop = 'static';
+      modal._config.keyboard = false;
+      modal.show();
+      modal._focustrap.deactivate(); // so the menubar still works
+    } else {
+      modal = new bootstrap.Modal(document.getElementById("account-limit-reached"));
+      modal._config.backdrop = 'static';
+      modal._config.keyboard = false;
+      modal.show();
+      modal._focustrap.deactivate(); // so the menubar still works
+    }
   }
-}
+});
 
 </script>

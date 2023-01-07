@@ -52,7 +52,7 @@ public class UserDeleteController {
 
     @PostMapping("/user/delete")
     @RateLimit(requestPerMinute = 5)
-    public DeleteAccountResult registerUser(@RequestBody UserDeleteRequest request, HttpServletRequest servletRequest, HttpServletResponse response, Model model) {
+    public GenericResponseAccountResult registerUser(@RequestBody UserDeleteRequest request, HttpServletRequest servletRequest, HttpServletResponse response, Model model) {
         LOGGER.info("Received account deletion request");
         Optional<DecodedJWT> optionalJwt = loginController.getJwt(servletRequest);
 
@@ -97,7 +97,7 @@ public class UserDeleteController {
         loginController.addRememberMeCookie(response, 0, "");
 
         model.addAttribute("generalMessageTitle", "Account removed");
-        return new DeleteAccountResult("");
+        return new GenericResponseAccountResult("");
     }
 
     public void cancelSubscriptionImmediatelyFor(User user) {
@@ -127,16 +127,16 @@ public class UserDeleteController {
 
     @ExceptionHandler(value = { AccountDeletionException.class })
     @ResponseStatus(code = HttpStatus.INTERNAL_SERVER_ERROR)
-    public DeleteAccountResult exceptionClientHandler(AccountDeletionException exception, Model model) {
+    public GenericResponseAccountResult exceptionClientHandler(AccountDeletionException exception, Model model) {
         LOGGER.error("Error while removing account", exception);
 
-        return new DeleteAccountResult(exception.getMessage());
+        return new GenericResponseAccountResult(exception.getMessage());
     }
 
     @ExceptionHandler
     @ResponseStatus(code = HttpStatus.INTERNAL_SERVER_ERROR)
-    public DeleteAccountResult exceptionServerHandler(Exception exception) {
-        LOGGER.error("Exception during registration", exception);
-        return new DeleteAccountResult("Unexpected error while removing account");
+    public GenericResponseAccountResult exceptionServerHandler(Exception exception) {
+        LOGGER.error("Exception during user deletion", exception);
+        return new GenericResponseAccountResult("Unexpected error while removing account");
     }
 }

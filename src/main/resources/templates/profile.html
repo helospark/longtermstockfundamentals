@@ -64,58 +64,74 @@
                         
                         <div class="faq-card">
                           <div class="row profile-row">
-                            <div class="col-md-4">
+                            <div class="col-md-4 profile-max-width">
                               Email
                             </div>
-                            <div class="col-md-3" th:text="${loginEmail}">
+                            <div class="col-lg-8 profile-explanation" th:text="${loginEmail}">
                             </div>
                           </div>
+                          <hr>
                           <div class="row profile-row" th:unless="${viewLimitText == '∞'}">
-                            <div class="col-md-4">
+                            <div class="col-md-4 profile-max-width">
                               Stocks viewed
                             </div>
-                            <div class="col-md-3" th:text="${currentlyViewText} + ' / ' + ${viewLimitText}">
+                            <div class="col-lg-8 profile-explanation" th:text="${currentlyViewText} + ' / ' + ${viewLimitText}">
                             </div>
                           </div>
                           <div class="row profile-row" th:if="${viewLimitText == '∞'}">
-                            <div class="col-md-4">
+                            <div class="col-md-4 profile-max-width">
                               Account limit
                             </div>
-                            <div class="col-md-3" th:text="${viewLimitText}">
+                            <div class="col-lg-8" th:text="${viewLimitText}">
                             </div>
                           </div>
+                          <hr>
                           <div class="row profile-row" th:unless="${accountType == 'FREE'}">
-                            <div class="col-md-4">
+                            <div class="col-md-4 profile-max-width">
                               Load Stripe customer portal
                             </div>
-                            <div class="col-md-3">
+                            <div class="profile-fixed-width">
                               <form action="/payment/customerportal" method="POST">
                                 <input type="submit" class="btn btn-md btn-success" value="Stripe customer portal"></input>
                               </form>
                             </div>
-                            <div class="col-md-5 profile-explanation">
+                            <div class="col profile-explanation">
                               Use customer portal to change payment method, and check your invoices.
                             </div>
                           </div>
+                          <hr>
                           <div class="row profile-row">
-                            <div class="col-md-4">
-                              Refresh authentication
+                            <div class="col-md-4 profile-max-width">
+                              Change password
                             </div>
-                            <div class="col-md-3" >
-                              <button class="btn btn-md btn-dark" onclick="refreshJwt()">Refresh</button>
-                            </div>
-                            <div class="col-md-5 profile-explanation">
-                              Use when some information did not refresh.
+                            <div class="col-lg-8">
+                              <form id="change_password_form" action="/action_page.php">
+                                <div class="form-group">
+                                  <label for="old_password">Old password</label>
+                                  <input id="old_password" type="password" class="form-control email-bt" placeholder="Old password" name="old_password"  minLength="5" maxLength="100" required>
+                                </div>
+                                <div class="form-group">
+                                  <label for="new_password">New password</label>
+                                  <input id="new_password" type="password" class="form-control email-bt" placeholder="New password" name="password" minLength="5" maxLength="100" required>
+                                </div>
+                                <div class="form-group">
+                                  <label for="new_password_verify">New password confirm</label>
+                                  <input id="new_password_verify" type="password" class="form-control email-bt" placeholder="New password confirm" name="password_confirm" minLength="5" maxLength="100" required>
+                                </div>
+                                <div style="margin-top:20px;">
+                                  <button id="change_password_button" type="button" class="main_bt" onclick="changePassword()">Change</button>
+                                </div>
                             </div>
                           </div>
+                          <hr>
                           <div class="row profile-row" th:unless="${accountType == 'FREE'}">
-                            <div class="col-md-4">
+                            <div class="col-md-4 profile-max-width">
                               Delete account
                             </div>
-                            <div class="col-md-3">
+                            <div class="profile-fixed-width">
                               <button class="btn btn-md btn-danger" onclick="deleteAccount()">Delete account</button>
                             </div>
-                            <div class="col-md-5 profile-explanation">
+                            <div class="col profile-explanation">
                               Danger, this cannot be undone!
                             </div>
                           </div>
@@ -129,7 +145,7 @@
     </section>
 	</header>
   <div id="generic-modal" class="modal fade" role="dialog">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
           </div>
       </div>
@@ -175,7 +191,8 @@
                 <button type="button" class="btn btn-success" data-dismiss="modal">Cancel</button>
                 <button id="delete-account-button" type="button" class="btn btn-danger">Delete</button>
             </div>`);
-        $("#generic-modal").modal("show");
+        modal = new bootstrap.Modal(document.getElementById("generic-modal"));
+        modal.show();
     
         $("#delete-account-button").click(function() {
               password = $("#delete-account-password").val();
@@ -191,7 +208,7 @@
                       json = await res.json();
                       redirectTo="";
                       if (res.status == 200) {
-                        result = "Account succesfully removed";
+                        result = "Account successfully removed";
                         redirectTo = "/";
                       } else {
                         result = json.errorMessage;
@@ -212,6 +229,43 @@
                       $("#generic-modal").on("hide.bs.modal",  () => window.location.href=redirectTo);
                   });
         });
+     }
+     
+     function changePassword() {
+              oldPassword = $("#old_password").val();
+              newPassword = $("#new_password").val();
+              newPasswordVerify = $("#new_password_verify").val();
+              fetch('/user/password', {
+                      method: 'POST',
+                      headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({oldPassword: oldPassword, newPassword: newPassword, newPasswordVerify: newPasswordVerify})
+                  })
+                  .then(async function(res) {
+                      json = await res.json();
+                      if (res.status == 200) {
+                        result = "Password successfully changed!";
+                      } else {
+                        result = json.errorMessage;
+                      }
+
+                      $("#generic-modal .modal-content").html(`
+                          <div class="modal-header">
+                              <h5 class="modal-title">Change password</h5>
+                              <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <div class="modal-body" id="modal-body">
+                              ` + result + `
+                          </div>
+                          <div class="modal-footer">
+                              <button type="button" class="btn btn-success" data-dismiss="modal">Close</button>
+                          </div>`);
+                      modal = new bootstrap.Modal(document.getElementById("generic-modal"));
+                      modal.show();
+                      $("#generic-modal").on("hide.bs.modal",  () => location.reload());
+                  });
      }
 	</script>
   <div th:replace="fragments/general-message-modal"></div>

@@ -63,7 +63,6 @@
                     	<div class="taital_main">
                     		
                     	</div>
-                        <h1 class="web_text"><strong>Long term stock fundamentals</strong></h1>
                         <input style="width:100%; max-width:500px;" id="autoComplete" type="text" class="custom-form-control" placeholder="Enter stock name or ticker">
                         
                         <p class="donec_text">Research stocks based on the long term fundamentals for free.<br/><br/>
@@ -71,9 +70,11 @@
                                 Make confident investing choices by exploring long term trends and risks.<br/>
                                 See sample pages before signing up: <a class="sample-link" href="/stock/AAPL">AAPL</a>, <a class="sample-link" href="/stock/TSLA">TSLA</a>, <a class="sample-link" href="/stock/INTC">INTC</a>, <a class="sample-link" href="/stock/VOW3.DE">VOW3.DE</a></p>
                          
-                          <div th:if="${isLoggedIn}">
+                          <div th:if="${isLoggedIn}" style="width: 200%;overflow: hidden;">
                              <a class="btn btn-lg btn-dark" href="javascript:;" onclick="logout(e)" role="button" style="margin-right: 25px;">Sign out</a>
                              <a class="btn btn-lg btn-success" href="/profile" role="button">Profile</a>
+                             <a class="btn btn-lg btn-success" href="/screener" role="button">Screener</a>
+                             <a class="btn btn-lg btn-success" href="/inspire" role="button">Inspire</a>
                           </div>
                           <div th:unless="${isLoggedIn}">
                              <a class="get_bg" href="#sign_up" role="button">Sign up</a>

@@ -230,3 +230,20 @@ select, #start-date-dropdown, #end-date-dropdown {
 .additional-menu-items a:hover {
   color: #444;
 }
+
+.profile-fixed-width {
+  width: 250px;
+}
+
+.profile-max-width {
+  max-width: 330px;
+}
+
+#change_password_form {
+  font-size: 10pt;
+  font-weight: 400;
+}
+
+#change_password_form label {
+  margin-top: 20px;
+}

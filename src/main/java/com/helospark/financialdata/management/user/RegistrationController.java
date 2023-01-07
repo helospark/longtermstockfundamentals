@@ -23,12 +23,17 @@ public class RegistrationController {
     private RecaptchaValidationService recaptchaService;
     @Autowired
     private DisposableEmailPredicate disposableEmailPredicate;
+    @Autowired
+    private PasswordValidator passwordValidator;
 
     @PostMapping("/user/register")
     @RateLimit(requestPerMinute = 10)
     public RegisterResponse registerUser(@RequestBody RegisterRequest request) {
         if (!request.password.equals(request.passwordVerify)) {
             throw new RegistrationException("Passwords must match", "register_password_verify");
+        }
+        if (!passwordValidator.validatePassword(request.password)) {
+            throw new RegistrationException("Password must be at least 5 characters long", "register_password");
         }
         if (!recaptchaService.isValidCaptcha(request.token, request.email)) {
             throw new RegistrationException("Captcha not valid", null);

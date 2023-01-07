@@ -33,7 +33,7 @@ function createChart(urlPath, title, chartOptions) {
   titleDiv.className="chart-title";
   
   if (chartOptions.tooltip !== undefined) {
-    toolTip = $("<a class=\"chart-tooltip-link\" data-bs-html=\"true\" title=\"" + chartOptions.tooltip + "\" data-toggle=\"tooltip\"><i class=\"far fa-question-circle\"></i></a>").get(0);
+    toolTip = $("<a class=\"chart-tooltip-link\" data-bs-html=\"true\" title=\"" + chartOptions.tooltip + "\" data-bs-toggle=\"tooltip\"><i class=\"far fa-question-circle\"></i></a>").get(0);
     titleDiv.appendChild(toolTip);
   }
   
