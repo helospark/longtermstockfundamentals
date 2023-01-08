@@ -35,11 +35,11 @@ public class EarningQualityFlagProvider implements FlagProvider {
             if (trailingPegOpt.isPresent()) {
                 Double trailingPeg = trailingPegOpt.get();
                 if (trailingPeg > 2.0) {
-                    flags.add(new FlagInformation(FlagType.YELLOW, format("Expensive based on trailing PEG (trailing PEG=%.2f)", trailingPeg)));
+                    flags.add(new FlagInformation(FlagType.YELLOW, format("Expensive based on average 3yr trailing PEG (trailing PEG=%.2f)", trailingPeg)));
                 } else if (trailingPeg < 1.5 && trailingPeg > 0.7) {
-                    flags.add(new FlagInformation(FlagType.GREEN, format("Fairly priced based on trailing PEG (trailing PEG=%.2f)", trailingPeg)));
+                    flags.add(new FlagInformation(FlagType.GREEN, format("Fairly priced based on average 3yr trailing PEG (trailing PEG=%.2f)", trailingPeg)));
                 } else if (trailingPeg < 0.7) {
-                    flags.add(new FlagInformation(FlagType.STAR, format("Cheap based on trailing PEG (trailing PEG=%.2f)", trailingPeg)));
+                    flags.add(new FlagInformation(FlagType.STAR, format("Cheap based on average 3yr trailing PEG (trailing PEG=%.2f)", trailingPeg)));
                 }
             }
 

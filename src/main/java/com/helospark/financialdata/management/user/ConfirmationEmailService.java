@@ -59,7 +59,7 @@ public class ConfirmationEmailService {
         String subject = "Confirm your email for LongTermStockFundamentals";
         String emailHtml = emailTemplateReader.readTemplate("confirm-email.html", Map.of("CONFIRM_URL", confirmationUrl));
 
-        emailSender.sendEmail(emailHtml, subject, email);
+        emailSender.sendMail(emailHtml, subject, email);
     }
 
     public void activeAccount(String token) {

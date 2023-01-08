@@ -397,7 +397,7 @@ public class PaymentController {
 
                         String email = emailTemplateReader.readTemplate("declined-email-template.html", Map.of("STRIPE_CUSTOMER_PORTAL", customerPortal));
 
-                        emailSender.sendEmail(email, "Payment declined for LongTermStockFundamentals subscription", user.getEmail());
+                        emailSender.sendMail(email, "Payment declined for LongTermStockFundamentals subscription", user.getEmail());
                     }
                     break;
                 }
