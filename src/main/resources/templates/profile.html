@@ -99,8 +99,8 @@
                               Use customer portal to change payment method, and check your invoices.
                             </div>
                           </div>
-                          <hr>
-                          <div class="row profile-row">
+                          <hr th:if="${registerType == 'EMAIL'}">
+                          <div class="row profile-row" th:if="${registerType == 'EMAIL'}">
                             <div class="col-md-4 profile-max-width">
                               Change password
                             </div>

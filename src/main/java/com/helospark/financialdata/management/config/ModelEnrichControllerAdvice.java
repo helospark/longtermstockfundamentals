@@ -36,9 +36,10 @@ public class ModelEnrichControllerAdvice {
 
             model.addAttribute("loginExpiry", jwt.getExpiresAt().getTime() - new Date().getTime());
             model.addAttribute("loginEmail", jwt.getSubject());
-            model.addAttribute("cancelling", String.valueOf(jwt.getClaim(LoginController.CANCELLING_CLAIM)));
+            model.addAttribute("cancelling", Optional.ofNullable(jwt.getClaim(LoginController.CANCELLING_CLAIM).asBoolean()).orElse(false));
             model.addAttribute("loginAccountType", loginController.getAccountType(jwt).toString());
             model.addAttribute("loginAccountTypeIndex", loginController.getAccountType(jwt).ordinal());
+            model.addAttribute("registerType", jwt.getClaim(LoginController.REGISTER_TYPE_CLAIM).asString());
         }
 
         for (var entry : planToPriceMap.entrySet()) {

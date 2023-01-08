@@ -106,7 +106,46 @@ public class DataLoader {
     }
 
     public static CompanyFinancials readFinancials(String symbol) {
-        return readFinancialsWithCacheEnabled(symbol, true);
+        return readFinancials(symbol, false);
+    }
+
+    public static CompanyFinancials readFinancials(String symbol, boolean addLatestPriceElement) {
+        CompanyFinancials result = readFinancialsWithCacheEnabled(symbol, true);
+
+        if (result.financials.size() > 0 && addLatestPriceElement) {
+            FinancialsTtm latestReport = result.financials.get(0);
+
+            FinancialsTtm newTtm = new FinancialsTtm();
+            newTtm.price = result.latestPrice;
+            newTtm.priceUsd = result.latestPriceUsd;
+            newTtm.date = result.latestPriceDate;
+            newTtm.incomeStatement = copyFields(latestReport.incomeStatement, new IncomeStatement());
+            newTtm.incomeStatementTtm = copyFields(latestReport.incomeStatementTtm, new IncomeStatement());
+            newTtm.cashFlow = copyFields(latestReport.cashFlow, new CashFlow());
+            newTtm.cashFlowTtm = copyFields(latestReport.cashFlowTtm, new CashFlow());
+            newTtm.balanceSheet = copyFields(latestReport.balanceSheet, new BalanceSheet());
+            newTtm.keyMetrics = copyFields(latestReport.keyMetrics, new KeyMetrics());
+
+            newTtm.incomeStatement.date = newTtm.date;
+            newTtm.incomeStatementTtm.date = newTtm.date;
+            newTtm.cashFlow.date = newTtm.date;
+            newTtm.cashFlowTtm.date = newTtm.date;
+            newTtm.balanceSheet.date = newTtm.date;
+            newTtm.keyMetrics.date = newTtm.date;
+
+            List<FinancialsTtm> newFinancialsList = new ArrayList<>();
+            newFinancialsList.add(newTtm);
+            newFinancialsList.addAll(result.financials);
+
+            result.financials.add(0, newTtm);
+
+            CompanyFinancials newResult = copyFields(result, new CompanyFinancials());
+            newResult.financials = newFinancialsList;
+
+            result = newResult;
+        }
+
+        return result;
     }
 
     public static CompanyFinancials readFinancialsWithCacheEnabled(String symbol, boolean cacheWriteEnabled) {
@@ -181,6 +220,8 @@ public class DataLoader {
 
         int dataQualityIssue = 0;
 
+        LocalDate latestDate = prices.size() > 0 ? prices.get(0).getDate() : LocalDate.now();
+
         int i = 0;
         while (true) {
             int ttmEndIndex = i + 3;
@@ -239,14 +280,14 @@ public class DataLoader {
             // return new CompanyFinancials();
         }
         if (result.isEmpty()) {
-            return new CompanyFinancials(0.0, 0.0, result, profile, dataQualityIssue);
+            return new CompanyFinancials(0.0, 0.0, latestDate, result, profile, dataQualityIssue);
         }
 
         double priceOrigCurrency = prices.isEmpty() ? 0 : prices.get(0).close;
         LocalDate latestPriceDate = prices.isEmpty() ? LocalDate.now() : prices.get(0).getDate();
         double price = convertCurrencyIfNeeded(priceOrigCurrency, result.get(0), profile);
         double priceUsd = convertFx(priceOrigCurrency, profile.currency, "USD", latestPriceDate, true).orElse(price);
-        return new CompanyFinancials(price, priceUsd, result, profile, dataQualityIssue);
+        return new CompanyFinancials(price, priceUsd, latestDate, result, profile, dataQualityIssue);
     }
 
     private static double convertCurrencyIfNeeded(double price, FinancialsTtm currentTtm, Profile profile) {
@@ -281,6 +322,18 @@ public class DataLoader {
                         field.set(result, value);
                     }
                 }
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static <T> T copyFields(T input, T result) {
+        try {
+            for (var field : result.getClass().getFields()) {
+                field.set(result, field.get(input));
             }
 
             return result;

@@ -267,7 +267,7 @@ createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, s
     "label": "FED funds rate"
   }
 ]});
-createChart("/financials/expected_return", "Compsite yield", {unit: '%'});
+//createChart("/financials/expected_return", "Compsite yield", {unit: '%'});
 
 
 createSeparator("Other")

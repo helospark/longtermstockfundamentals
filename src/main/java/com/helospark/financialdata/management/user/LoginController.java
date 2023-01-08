@@ -49,6 +49,7 @@ public class LoginController {
     public static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
     public static final String JWT_COOKIE_NAME = "Authorization";
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
+    public static final String REGISTER_TYPE_CLAIM = "register-type";
     private SecureRandom secureRandom = new SecureRandom();
     @Autowired
     private UserRepository userRepository;
@@ -263,12 +264,14 @@ public class LoginController {
     public String createJWT(User user) {
         Date expiration = new Date();
         expiration.setTime(expiration.getTime() + (jwtExpiry * 1000L));
+        String registrationType = Optional.ofNullable(user.getRegisteredWith()).map(a -> a.toString()).orElse("EMAIL");
         return JWT.create()
                 .withIssuer(JwtService.ISSUER)
                 .withExpiresAt(expiration)
                 .withSubject(user.getEmail())
                 .withClaim(JwtService.ACCOUNT_TYPE_CLAIM, user.getAccountType().toString())
                 .withClaim(CANCELLING_CLAIM, user.isCancelling())
+                .withClaim(REGISTER_TYPE_CLAIM, registrationType)
                 .sign(jwtService.getAlgorithm());
     }
 

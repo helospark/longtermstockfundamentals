@@ -95,7 +95,13 @@ public class FinancialsController {
 
     @GetMapping("/pe_ratio")
     public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculatePriceToEarningsRatio(financialsTtm));
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        var result = getIncomeData(company, financialsTtm -> RatioCalculator.calculatePriceToEarningsRatio(financialsTtm));
+        if (company.financials.size() > 0) {
+            double pe = company.latestPrice / company.financials.get(0).incomeStatementTtm.eps;
+            result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), pe));
+        }
+        return result;
     }
 
     @GetMapping("/expected_return")
@@ -473,7 +479,12 @@ public class FinancialsController {
 
     @GetMapping("/price")
     public List<SimpleDataElement> getPrice(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.price);
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = getIncomeData(company, financialsTtm -> financialsTtm.price);
+        if (company.financials.size() > 0) {
+            result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), company.latestPrice));
+        }
+        return result;
     }
 
     @GetMapping("/return_with_reinvested_dividend")
@@ -491,6 +502,10 @@ public class FinancialsController {
 
             double value = priceThen * shareCount;
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value));
+        }
+        if (company.financials.size() > 0) {
+            double value = company.latestPrice * shareCount;
+            result.add(new SimpleDataElement(company.latestPriceDate.toString(), value));
         }
         Collections.reverse(result);
         return result;
@@ -543,7 +558,14 @@ public class FinancialsController {
 
     @GetMapping("/dividend_yield")
     public List<SimpleDataElement> getDividendYield(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut / financialsTtm.price));
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        var result = getIncomeData(company,
+                financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut / financialsTtm.price));
+        if (company.financials.size() > 0) {
+            double yield = toPercent((double) -company.financials.get(0).cashFlowTtm.dividendsPaid / company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / company.latestPrice);
+            result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), yield));
+        }
+        return result;
     }
 
     @GetMapping("/dividend_payout_ratio")
@@ -573,6 +595,11 @@ public class FinancialsController {
 
     @GetMapping("/altmanz")
     public List<SimpleDataElement> getAltmanZ(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = getIncomeData(company, financialsTtm -> AltmanZCalculator.calculateAltmanZScore(financialsTtm, financialsTtm.price));
+        if (company.financials.size() > 0) {
+            result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), AltmanZCalculator.calculateAltmanZScore(company.financials.get(0), company.latestPrice)));
+        }
         return getIncomeData(stock, financialsTtm -> AltmanZCalculator.calculateAltmanZScore(financialsTtm, financialsTtm.price));
     }
 
@@ -749,6 +776,10 @@ public class FinancialsController {
     private List<SimpleDataElement> getIncomeData(String stock, Function<FinancialsTtm, ? extends Number> dataSupplier) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
 
+        return getIncomeData(company, dataSupplier);
+    }
+
+    private List<SimpleDataElement> getIncomeData(CompanyFinancials company, Function<FinancialsTtm, ? extends Number> dataSupplier) {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
