@@ -1,6 +1,7 @@
 package com.helospark.financialdata.management.inspire;
 
 import static com.helospark.financialdata.CommonConfig.BASE_FOLDER;
+import static com.helospark.financialdata.management.config.SymbolLinkBuilder.createSymbolLink;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -143,10 +144,6 @@ public class InspirationProvider {
         } else {
             throw new InspirationClientException("Portfolio doesn't exist");
         }
-    }
-
-    public String createSymbolLink(String ticker) {
-        return "<a href=\"/stock/" + ticker + "\">" + ticker + "</a>";
     }
 
     public Map<String, String> getAvailablePortfolios() {

@@ -41,37 +41,6 @@
         });
   }
   
-  function createTableHtml(columns, rows, dark) {
-      if (dark == true) {
-        cssClass = "table-dark";
-      } else {
-        cssClass = "";
-      }
-      resultHtml = "";
-        resultHtml += `
-      <table class="table table-striped ` + cssClass + `">
-        <thead>
-          <tr>`;
-      for (i = 0; i < columns.length; ++i) {
-         resultHtml += '<th scope="col">' + columns[i] +'</th>';
-      }
-      resultHtml += `
-          </tr>
-        </thead>
-        <tbody>`;
-      for (i = 0; i < rows.length; ++i) {
-        resultHtml += "<tr>";
-        for (j = 0; j < columns.length; ++j) {
-           var value = rows[i][columns[j]];
-           resultHtml += "<td>" + value + "</td>";
-        }
-        resultHtml += "</tr>";
-      }
-      resultHtml += `
-         </tbody>
-       </table>`;
-       return resultHtml;
-  }
   
   function collectOperations() {
     screenerOperations = [];

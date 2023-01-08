@@ -62,7 +62,6 @@ function createChart(urlPath, title, chartOptions) {
   var animation = chartOptions.animation === undefined ? false : chartOptions.animation;
   var isLazyLoading = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
   var dated = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
-  var addLatestPriceElement = chartOptions.addLatestPriceElement === undefined ? false : chartOptions.addLatestPriceElement;
   
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
@@ -184,27 +183,6 @@ function createChart(urlPath, title, chartOptions) {
   underChartBar.appendChild(button);
   underChartBar.appendChild(startAtZeroButton);
   
-  latestPriceEnabled = false;
-  if (addLatestPriceElement) {
-    var addLatestPriceButton=document.createElement("button");
-    addLatestPriceButton.innerHTML = "Include latest price";
-    addLatestPriceButton.className="floatleft";
-    underChartBar.appendChild(addLatestPriceButton);
-    addLatestPriceButton.onclick=function() {
-        if (latestPriceEnabled) {
-          startAtZeroButton.classList.remove("pressed");
-        } else {
-          startAtZeroButton.classList.add("pressed");
-        }
-        latestPriceEnabled = !latestPriceEnabled;
-
-        // TODO: refresh data
-
-        chart.update();
-    }
-  }
-  
-
   if (chartOptions.slider !== undefined) {
     var sliderDiv = document.createElement("div")
     sliderDiv.className="slider-div";

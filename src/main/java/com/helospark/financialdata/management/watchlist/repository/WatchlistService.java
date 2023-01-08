@@ -1,0 +1,197 @@
+package com.helospark.financialdata.management.watchlist.repository;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.apache.commons.text.StringEscapeUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.helospark.financialdata.management.config.SymbolLinkBuilder;
+import com.helospark.financialdata.management.user.repository.AccountType;
+import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
+import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
+import com.helospark.financialdata.management.watchlist.domain.WatchListResponse;
+import com.helospark.financialdata.service.SymbolAtGlanceProvider;
+import com.helospark.financialdata.util.glance.AtGlanceData;
+
+@Service
+public class WatchlistService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(WatchlistService.class);
+    private static final String NOTES_COL = "Notes";
+    private static final String DIFFERENCE_COL = "Margin of safety";
+    private static final String PRICE_TARGET_COL = "Price target";
+    private static final String CURRENT_PRICE_COL = "Current price";
+    private static final String NAME_COL = "Name";
+    private static final String SYMBOL_COL = "Symbol";
+    private static final String TAGS_COL = "Tags";
+    @Autowired
+    private WatchlistRepository watchlistRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private SymbolAtGlanceProvider symbolIndexProvider;
+
+    public WatchListResponse getWatchlist(String email) {
+        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
+
+        WatchListResponse result = new WatchListResponse();
+        result.columns = List.of(SYMBOL_COL, NAME_COL, CURRENT_PRICE_COL, PRICE_TARGET_COL, DIFFERENCE_COL, TAGS_COL, NOTES_COL);
+        result.portfolio = new ArrayList<>();
+
+        if (!optionalWatchlist.isPresent()) {
+            return result;
+        }
+
+        Watchlist watchlist = optionalWatchlist.get();
+
+        List<WatchlistElement> watchlistElements = decodeWatchlist(watchlist);
+
+        for (int i = 0; i < watchlistElements.size(); ++i) {
+            WatchlistElement currentElement = watchlistElements.get(i);
+            String ticker = currentElement.symbol;
+            Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
+            if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
+                var atGlance = optionalAtGlance.get();
+                Map<String, String> portfolioElement = new HashMap<>();
+                portfolioElement.put(SYMBOL_COL, SymbolLinkBuilder.createSymbolLink(ticker));
+                portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
+                portfolioElement.put(CURRENT_PRICE_COL, formatString(atGlance.latestStockPrice));
+                portfolioElement.put(PRICE_TARGET_COL, formatString(currentElement.targetPrice));
+                portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(atGlance.latestStockPrice, currentElement.targetPrice)));
+                portfolioElement.put(TAGS_COL, formatTags(currentElement.tags));
+                portfolioElement.put(NOTES_COL, currentElement.notes);
+
+                result.portfolio.add(portfolioElement);
+            }
+        }
+
+        return result;
+    }
+
+    private String formatTags(List<String> tags) {
+        String result = "";
+        for (var tag : tags) {
+            result += "<span class=\"badge badge-pill bg-primary\">" + tag + "</span>";
+        }
+        return result;
+    }
+
+    private String formatStringAsPercent(Double value) {
+        if (value == null) {
+            return "-";
+        } else {
+            if (value < 0) {
+                return String.format("<div style=\"color:red;  font-weight: 600;\">%.2f %%</div>", value);
+            } else {
+                return String.format("<div style=\"color:green; font-weight: 600;\">%.2f %%</div>", value);
+            }
+        }
+    }
+
+    private Double calculateTargetPercent(double latestStockPrice, Double targetPrice) {
+        if (targetPrice == null) {
+            return null;
+        }
+        return (targetPrice / latestStockPrice - 1.0) * 100.0;
+    }
+
+    public String formatString(Double value) {
+        if (value == null) {
+            return "-";
+        } else {
+            return String.format("%.2f", value);
+        }
+    }
+
+    public List<WatchlistElement> decodeWatchlist(Watchlist watchlist) {
+        try {
+            String rawString = MessageCompresser.uncompressString(watchlist.getWatchlistRaw());
+
+            JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, WatchlistElement.class);
+            List<WatchlistElement> result = objectMapper.readValue(rawString, type);
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void saveToWatchlist(String email, AddToWatchlistRequest request, AccountType accountType) {
+        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
+
+        List<WatchlistElement> elements;
+
+        if (!optionalWatchlist.isPresent()) {
+            elements = new ArrayList<>();
+        } else {
+            elements = decodeWatchlist(optionalWatchlist.get());
+        }
+
+        int index = findIndexFor(elements, request.symbol);
+
+        WatchlistElement elementToUpdate;
+        if (index == -1) {
+            if (elements.size() > 200) {
+                throw new WatchlistBadRequestException("Maximum of 200 watchlist element supported");
+            }
+            if (elements.size() > 30 && accountType.equals(AccountType.FREE)) {
+                throw new WatchlistBadRequestException("Maximum of 30 watchlist element supported for free subscription");
+            }
+
+            elementToUpdate = new WatchlistElement();
+            elements.add(elementToUpdate);
+        } else {
+            elementToUpdate = elements.get(index);
+        }
+        elementToUpdate.notes = escapeSymbols(request.notes);
+        elementToUpdate.symbol = request.symbol;
+        elementToUpdate.tags = escapeSymbols(request.tags);
+        elementToUpdate.targetPrice = request.priceTarget;
+
+        Watchlist toInsert = new Watchlist();
+        toInsert.setEmail(email);
+        toInsert.setWatchlistRaw(createCompressedValue(elements));
+
+        LOGGER.info("Inserting into watchlist, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
+
+        watchlistRepository.save(toInsert);
+    }
+
+    private ByteBuffer createCompressedValue(List<WatchlistElement> elements) {
+        try {
+            byte[] bytes = objectMapper.writeValueAsBytes(elements);
+            return MessageCompresser.compressString(bytes);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<String> escapeSymbols(List<String> tags) {
+        return tags.stream()
+                .map(a -> StringEscapeUtils.escapeHtml4(a))
+                .collect(Collectors.toList());
+    }
+
+    private String escapeSymbols(String text) {
+        return StringEscapeUtils.escapeHtml4(text);
+    }
+
+    private int findIndexFor(List<WatchlistElement> elements, String symbol) {
+        for (int i = 0; i < elements.size(); ++i) {
+            if (elements.get(i).symbol.equals(symbol)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+}

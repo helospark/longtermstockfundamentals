@@ -1,9 +1,9 @@
 <div id="topnav" class="topnav" th:fragment="my_fragment" th:data-uri="${active}">
-  <div class="menu"><a th:attr="class=${active == 'home' ? 'active' : ''}"  href="/">Home</a></div>
-  <div class="menu"><a th:attr="class=${active == 'stock' ? 'active' : ''}" th:href="'/stock/'+${stock}">Charts</a></div>
-  <div class="menu"><a th:attr="class=${active == 'calculator' ? 'active' : ''}" th:href="'/calculator/' + ${stock}">Calculator</a></div>
-  <div class="menu"><a th:attr="class=${active == 'inspire' ? 'active' : ''}" th:href="'/inspire?stock=' + ${stock}">Inspire</a></div>
-  <div class="menu"><a th:attr="class=${active == 'screener' ? 'active' : ''}" th:href="'/screener?stock=' + ${stock}">Screener</a></div>
+  <div class="menu"><a th:attr="class=${active == 'home' ? 'active' : ''}"  href="/"><i class="topnav-icon fa-solid fa-house"></i><span class="topnav-text">Home</span></a></div>
+  <div class="menu"><a th:attr="class=${active == 'stock' ? 'active' : ''}" th:href="'/stock/'+${stock}"><i class="topnav-icon fa-solid fa-chart-simple"></i><span class="topnav-text">Charts</span></a></div>
+  <div class="menu"><a th:attr="class=${active == 'calculator' ? 'active' : ''}" th:href="'/calculator/' + ${stock}"><i class="topnav-icon fa-solid fa-calculator"></i><span class="topnav-text">Calculator</span></a></div>
+  <div class="menu"><a th:attr="class=${active == 'inspire' ? 'active' : ''}" th:href="'/inspire?stock=' + ${stock}"><i class="topnav-icon fa-solid fa-lightbulb"></i><span class="topnav-text">Inspire</span></a></div>
+  <div class="menu"><a th:attr="class=${active == 'screener' ? 'active' : ''}" th:href="'/screener?stock=' + ${stock}"><i class="topnav-icon fa-solid fa-filter"></i><span class="topnav-text">Screener</span></a></div>
   <input id="autoComplete">
   <div th:if="${haveLimitedStocksCount}" style="float:right"><span th:text="${currentlyViewText} + '/' + ${viewLimitText}"></span></div>
-</div> 
+</div>

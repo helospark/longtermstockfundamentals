@@ -28,13 +28,18 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+<script src="/js/common.js"></script>
+
 
 <link rel="stylesheet" type="text/css" href="/css/style.css">
 <link rel="stylesheet" type="text/css" href="/css/common-style.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+
 </head>
 <body>
-	<header id="home" class="section">
-	<div class="header_main">
+  <header id="home" class="section">
+  <div class="header_main">
          <!-- header inner -->
          <div class="header">
             <div class="container">
@@ -56,13 +61,13 @@
          </div>
          <!-- end header inner -->
       <section >
-      	<div class="bannen_inner">
+        <div class="bannen_inner">
             <div class="container">
                 <div class="row marginii">
                     <div class="col-xl-6 col-lg-6 col-md-6 col-sm-12">
-                    	<div class="taital_main">
-                    		
-                    	</div>
+                      <div class="taital_main">
+                        
+                      </div>
                         <input style="width:100%; max-width:500px;" id="autoComplete" type="text" class="custom-form-control" placeholder="Enter stock name or ticker">
                         
                         <p class="donec_text">Research stocks based on the long term fundamentals for free.<br/><br/>
@@ -97,41 +102,72 @@
     <!-- banner end -->
     <!-- choose start -->
     <div id="about" class="choose_section" th:unless="${isLoggedIn}">
-    	<div class="container">
-    		<div class="col-sm-12">
-    			<h1 class="choose_text">Why you should <span class="color">sign up</span></h1>
-    		</div>
-    	</div>
+      <div class="container">
+        <div class="col-sm-12">
+          <h1 class="choose_text">Why you should <span class="color">sign up</span></h1>
+        </div>
+      </div>
     </div>
     <div class="" th:unless="${isLoggedIn}">
-    	<div class="container">
-    	    <div class="row">
-    		    <div class="col-sm-4">
-    			    <div class="power">
-    				    <div class="icon"><a href="#"><img src="/images/icon-trends.png" alt="icon"></a></div>
-    				    <h2 class="totaly_text">Long term trends</h2>
-    				    <p class="making">Seeing long term fundamental trends can help you to make better investment decisions.</p>
-    			    </div>
-    		    </div>
-    		    <div class="col-sm-4">
-    			    <div class="power">
-    				    <div class="icon"><a href="#"><img src="/images/optimised-icon.png" alt="icon"></a></div>
-    				    <h2 class="totaly_text">Risk checks</h2>
-    				    <p class="making">We provide checks, that can help you avoid companies with weak fundamentals.</p>
-    			    </div>
-    		    </div>
-    		    <div class="col-sm-4">
-    			    <div class="power">
-    				    <div class="icon"><a href="#"><img src="/images/icon-3.png" alt="icon"></a></div>
-    				    <h2 class="totaly_text">Value analysis</h2>
-    				    <p class="making">We provide DCF calculator that can help you find undervalued stocks with great value.</p>
-    			    </div>
-    		    </div>
-    	    </div>
-    	</div>
+      <div class="container">
+          <div class="row">
+            <div class="col-sm-4">
+              <div class="power">
+                <div class="icon"><a href="#"><img src="/images/icon-trends.png" alt="icon"></a></div>
+                <h2 class="totaly_text">Long term trends</h2>
+                <p class="making">Seeing long term fundamental trends can help you to make better investment decisions.</p>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="power">
+                <div class="icon"><a href="#"><img src="/images/optimised-icon.png" alt="icon"></a></div>
+                <h2 class="totaly_text">Risk checks</h2>
+                <p class="making">We provide checks, that can help you avoid companies with weak fundamentals.</p>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="power">
+                <div class="icon"><a href="#"><img src="/images/icon-3.png" alt="icon"></a></div>
+                <h2 class="totaly_text">Value analysis</h2>
+                <p class="making">We provide DCF calculator that can help you find undervalued stocks with great value.</p>
+              </div>
+            </div>
+          </div>
+      </div>
     </div>
-
-
+    <div class="choose_section" th:if="${isLoggedIn}">
+      <div class="container">
+        <div class="col-sm-12">
+          <h1 class="choose_text">Watchlist</span></h1>
+        </div>
+      </div>
+    </div>
+    <div class="" th:if="${isLoggedIn}">
+      <div class="container">
+          <div id="watchlist-table" class="row">
+          </div>
+      </div>
+    </div>
+    <script>
+    
+       fetch('/watchlist', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+        }).then(res => {
+           return res.json();
+        }).then(data => {
+           watchlistHtml = createTableHtml(data.columns, data.portfolio, false);
+           $("#watchlist-table").append(watchlistHtml);
+           $('#watchlist-table table').DataTable({
+             "iDisplayLength": 100,
+             "order": []
+           });
+        });
+    
+    
+    </script>
 
     <div id="plans-div" class="contact_section_2" th:if="${isLoggedIn}">
       <div th:replace="fragments/plans-fragment"></div>
@@ -139,10 +175,10 @@
 
 
     <div class="contact_section_2" th:unless="${isLoggedIn}">
-    	<div class="container">
-    		<div class="row">
-    			<div class="col-md-6">
-    				<div class="input_main">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="input_main">
                        <div class="container">
                           <a id="sign_up"><h1 class="choose_text">Free sign up</h1></a>
                           <form id="register_form" action="/action_page.php">
@@ -281,20 +317,20 @@
                        });
                      }
                     </script>
-    			</div>
-    			<div class="col-md-6">
-    				<div class="section_right">
-    					<img src="/images/img-2.png" style="max-width: 100%;">
-    				</div>
-    			</div>
-    		</div>
-    	</div>
+          </div>
+          <div class="col-md-6">
+            <div class="section_right">
+              <img src="/images/img-2.png" style="max-width: 100%;">
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     
     <div class="contact_section_3">
-    	<div class="container">
-    		<div class="contact_product">
-    			<div class="row">
+      <div class="container">
+        <div class="contact_product">
+          <div class="row">
             <div class="col-sm-4">
               <div class="menu">
                 <ul>
@@ -321,14 +357,14 @@
               </div>  
             </div>
           </div>
-    		</div>
-    	</div>
+        </div>
+      </div>
     </div>
     
     <div class="copyright_main">
-    	<div class="container">
-    		<p class="copy_text">© 2023 All Rights Reserved.</p>
-    	</div>
+      <div class="container">
+        <p class="copy_text">© 2023 All Rights Reserved.</p>
+      </div>
     </div>
 
 

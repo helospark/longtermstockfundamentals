@@ -231,6 +231,16 @@ select, #start-date-dropdown, #end-date-dropdown {
   color: #444;
 }
 
+.add-to-watchlist-icon {
+  color:black;
+  text-decoration:none;
+  font-size: 12pt;
+  margin-left: 20px;
+}
+.add-to-watchlist-icon:hover {
+  color: #DAA520;
+}
+
 .profile-fixed-width {
   width: 250px;
 }
@@ -246,4 +256,79 @@ select, #start-date-dropdown, #end-date-dropdown {
 
 #change_password_form label {
   margin-top: 20px;
+}
+
+#add-to-watchlist-header {
+  margin-left: 20px;
+  position: relative;
+  top: 5px;
+  cursor: pointer;
+}
+
+
+/* Add a black background color to the top navigation */
+.topnav {
+  background-color: #333;
+  width: 100%;
+  height: 50px;
+  z-index: 10000;
+  position: relative;
+}
+
+/* Style the links inside the navigation bar */
+.topnav div {
+  color: #f2f2f2;
+  text-align: center;
+  padding: 10px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.topnav a {
+  color: #f2f2f2;
+  text-align: center;
+  padding: 15px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+.topnav > .autoComplete_wrapper {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  float:right;
+}
+
+
+/* Change the color of links on hover */
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+/* Add a color to the active/current link */
+.topnav a.active {
+  background-color: #04AA6D;
+  color: white;
+}
+
+.topnav .menu {
+  float:left;
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
+.topnav-icon {
+  margin-right: 7px;
+}
+
+@media (max-width: 1070px) {
+ #autoComplete {
+    width: 200px;
+  }
+}
+
+@media (max-width: 900px) {
+  .topnav-text {
+    display:none;
+  }
 }

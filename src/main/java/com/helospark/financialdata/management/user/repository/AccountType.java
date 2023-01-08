@@ -35,4 +35,8 @@ public enum AccountType {
                 .filter(a -> a.name().equals(string))
                 .findFirst();
     }
+
+    public static boolean isAtLeastStandard(AccountType accountType) {
+        return accountType == AccountType.STANDARD || accountType == AccountType.ADVANCED || accountType == AccountType.ADMIN;
+    }
 }
