@@ -27,19 +27,28 @@ There are utils under `com.helospark.financialdata.util`, these are separate app
  
 ### Dev notes
 
-Generate new JWT signing keys
+**Generate new JWT signing keys**
 
     openssl genrsa -out jwt2.pem 2048
     openssl rsa -in jwt2.pem -pubout > jwt2.pub
 
 
-Generate new DKIM keys
+**Generate new DKIM keys**
 
     openssl genrsa -out dkim_private.pem 2048
     openssl pkcs8 -topk8 -inform PEM -outform DER -nocrypt -in dkim_private.pem -out dkim_private.der
 
 Copy the above private key to src/main/resources/dkim folder.
-Then get the public key and copy it as TXT record into `email._domainkey` DNS record:
+Then get the public key and copy it as DNS TXT record with `email._domainkey` subdomain (`email` is the selector):
 
     openssl rsa -in dkim_private.pem -pubout -outform der 2>/dev/null | openssl base64 -A
 
+**Create SPF1 and DMARC**
+
+Create TXT records in your DNS for root sender domain:
+
+    v=spf1 ip4={SENDER_IP} ~all
+
+Create dmarc record with sub-domain `_dmarc`:
+
+    v=DMARC1; p=quarantine; rua=mailto:support@longtermstockfundamentals.com
