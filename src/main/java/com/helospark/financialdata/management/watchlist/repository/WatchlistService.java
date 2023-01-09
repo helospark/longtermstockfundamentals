@@ -6,9 +6,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.text.StringEscapeUtils;
+import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.DeleteFromWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
@@ -35,6 +39,10 @@ public class WatchlistService {
     private static final String NAME_COL = "Name";
     private static final String SYMBOL_COL = "Symbol";
     private static final String TAGS_COL = "Tags";
+
+    private static final List<String> COLOR_CODES = List.of(
+            "darkred", "green", "blue", "purple", "grey", "coral", "deeppink", "maroon", "sienna", "darkgoldenrod", "darkcyan", "darkmagenta", "darkviolet");
+
     @Autowired
     private WatchlistRepository watchlistRepository;
     @Autowired
@@ -42,8 +50,14 @@ public class WatchlistService {
     @Autowired
     private SymbolAtGlanceProvider symbolIndexProvider;
 
+    // Only for single server setup
+    Cache<String, Optional<Watchlist>> watchlistCache = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.DAYS)
+            .maximumSize(1000)
+            .build();
+
     public WatchListResponse getWatchlist(String email) {
-        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
+        Optional<Watchlist> optionalWatchlist = loadWatchlist(email);
 
         WatchListResponse result = new WatchListResponse();
         result.columns = List.of(SYMBOL_COL, NAME_COL, CURRENT_PRICE_COL, PRICE_TARGET_COL, DIFFERENCE_COL, TAGS_COL, NOTES_COL);
@@ -83,6 +97,10 @@ public class WatchlistService {
         return result;
     }
 
+    public @PolyNull Optional<Watchlist> loadWatchlist(String email) {
+        return watchlistCache.get(email, email2 -> watchlistRepository.readWatchlistByEmail(email2));
+    }
+
     private String buildCalculatorUri(CalculatorParameters calculatorParameters, String symbol) {
         String uri = "/calculator/" + symbol;
         uri += "?startMargin=" + calculatorParameters.startMargin + "&endMargin=" + calculatorParameters.endMargin;
@@ -96,7 +114,9 @@ public class WatchlistService {
     private String formatTags(List<String> tags) {
         String result = "";
         for (var tag : tags) {
-            result += "<span class=\"badge badge-pill bg-primary\">" + tag + "</span>";
+            int colorIndex = tag.hashCode() % COLOR_CODES.size();
+            String colorToUse = COLOR_CODES.get(colorIndex);
+            result += "<span class=\"badge badge-pill\" style=\"background-color: " + colorToUse + "\">" + tag + "</span>";
         }
         return result;
     }
@@ -182,6 +202,7 @@ public class WatchlistService {
         LOGGER.info("Inserting into watchlist, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
 
         watchlistRepository.save(toInsert);
+        watchlistCache.invalidate(email);
     }
 
     private List<String> stripTags(List<String> tags) {
@@ -242,10 +263,11 @@ public class WatchlistService {
         LOGGER.info("Remove successful, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
 
         watchlistRepository.save(toInsert);
+        watchlistCache.invalidate(email);
     }
 
     public Optional<WatchlistElement> getWatchlistElement(String email, String stock) {
-        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
+        Optional<Watchlist> optionalWatchlist = loadWatchlist(email);
 
         if (!optionalWatchlist.isPresent()) {
             return Optional.empty();

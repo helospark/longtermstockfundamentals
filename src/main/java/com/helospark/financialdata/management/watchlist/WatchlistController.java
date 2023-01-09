@@ -38,6 +38,7 @@ public class WatchlistController {
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
 
     @GetMapping("/watchlist")
+    @RateLimit(requestPerMinute = 30)
     public WatchListResponse getCurrentWatchList(HttpServletRequest httpRequest) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {
@@ -47,6 +48,7 @@ public class WatchlistController {
     }
 
     @GetMapping("/watchlist/{stock}")
+    @RateLimit(requestPerMinute = 30)
     public WatchlistElement getCurrentWatchList(@PathVariable("stock") String stock, HttpServletRequest httpRequest) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {
@@ -65,6 +67,7 @@ public class WatchlistController {
     }
 
     @PostMapping("/watchlist")
+    @RateLimit(requestPerMinute = 30)
     public void addToWatchlist(@RequestBody AddToWatchlistRequest request, HttpServletRequest httpRequest) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {
@@ -76,8 +79,8 @@ public class WatchlistController {
         if (request.tags != null && request.tags.size() > 10) {
             throw new WatchlistBadRequestException("Maximum of 10 tag supported");
         }
-        if (request.notes != null && request.notes.length() > 200) {
-            throw new WatchlistBadRequestException("Maximum of 200 characters long notes supported");
+        if (request.notes != null && request.notes.length() > 250) {
+            throw new WatchlistBadRequestException("Maximum of 250 characters long notes supported");
         }
         if (request.tags != null) {
             for (var tag : request.tags) {
@@ -91,7 +94,7 @@ public class WatchlistController {
     }
 
     @DeleteMapping("/watchlist")
-    @RateLimit(requestPerMinute = 20)
+    @RateLimit(requestPerMinute = 30)
     public void addToWatchlist(@RequestBody DeleteFromWatchlistRequest request, HttpServletRequest httpRequest) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {

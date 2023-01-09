@@ -36,6 +36,7 @@
             <h5 class="modal-title">Remove ` + stock + ` from watchlist</h5>
         </div>
         <div class="modal-body" id="modal-body">
+            <div id="watchlist-error-message" style="color:red;text-weight:600;"></div>
             Are you sure you want to remove this stock from your watchlist?
         </div>
         <div class="modal-footer">
@@ -50,8 +51,6 @@
   }
 
   function removeFromWatchlistExec(stock) {
-    $("#generic-modal").modal('hide');
-
     fetch('/watchlist', {
       method: 'DELETE',
       headers: {
@@ -59,18 +58,22 @@
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({symbol: stock})
-    }).then(data => {
-      console.log(data);
-      
-      firstColumn = $("#watchlist-table table tr td:first-child");
-      
-      for (i = 0; i < firstColumn.length; ++i) {
-        if (firstColumn.get(i).textContent == stock) {
-          break;
-        }
+    }).then(async data => {
+        if (data.status != 200) {
+          data = await data.json();
+          $("#watchlist-error-message").text(data.errorMessage);
+        } else {
+          $("#generic-modal").modal("hide");
+          firstColumn = $("#watchlist-table table tr td:first-child");
+          
+          for (i = 0; i < firstColumn.length; ++i) {
+            if (firstColumn.get(i).textContent == stock) {
+              break;
+            }
+          }
+          
+          $("#watchlist-table table").get(0).deleteRow(i + 1);
       }
-      
-      $("#watchlist-table table").get(0).deleteRow(i + 1);
     });
   }
 
@@ -171,11 +174,12 @@
                   <h5 class="modal-title">Add to watchlist</h5>
               </div>
               <div class="modal-body" id="modal-body">
+                  <div id="watchlist-error-message" style="color:red;text-weight:600;"></div>
                   <label for="watchlist-target-price" class="col-form-label">Target price</label>
                   <input type="number" class="form-control" id="watchlist-target-price" value="` + targetPrice + `">
-                  <label for="watchlist-notes" class="col-form-label">Notes</label>
+                  <label for="watchlist-notes" class="col-form-label" maxlength="250">Notes</label>
                   <input type="text" class="form-control" id="watchlist-notes" value="` + notes + `">
-                  <label for="watchlist-tags" class="col-form-label">Comma separated tags</label>
+                  <label for="watchlist-tags" class="col-form-label" maxlength="150">Tags (comma separated):</label>
                   <input type="text" class="form-control" id="watchlist-tags" value="` + tags + `">
               </div>
               <div class="modal-footer">
@@ -225,8 +229,6 @@
       calculatorParameters = null;
     }
 
-    $("#generic-modal").modal("hide");
-
     fetch('/watchlist', {
       method: 'POST',
       headers: {
@@ -234,11 +236,16 @@
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({symbol: stock, priceTarget: priceTarget, notes: notes, tags: tags, calculatorParameters: calculatorParameters})
-    }).then(data => {
-      console.log(data);
-      if ($("#watchlist-table").length > 0) {
-        location.reload();
-      }
+    }).then(async data => {
+        if (data.status != 200) {
+          data = await data.json();
+          $("#watchlist-error-message").text(data.errorMessage);
+        } else {
+          $("#generic-modal").modal("hide");
+          if ($("#watchlist-table").length > 0) {
+            location.reload();
+          }
+        }
     });
     
   }

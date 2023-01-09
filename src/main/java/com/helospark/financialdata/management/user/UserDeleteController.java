@@ -51,7 +51,7 @@ public class UserDeleteController {
     private ScheduledExecutorService scheduledExecutorService;
 
     @PostMapping("/user/delete")
-    @RateLimit(requestPerMinute = 5)
+    @RateLimit(requestPerMinute = 3)
     public GenericResponseAccountResult registerUser(@RequestBody UserDeleteRequest request, HttpServletRequest servletRequest, HttpServletResponse response, Model model) {
         LOGGER.info("Received account deletion request");
         Optional<DecodedJWT> optionalJwt = loginController.getJwt(servletRequest);

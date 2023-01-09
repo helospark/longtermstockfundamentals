@@ -7,10 +7,14 @@ import org.springframework.stereotype.Component;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
 import com.amazonaws.services.dynamodbv2.model.DescribeTimeToLiveRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeTimeToLiveResult;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TimeToLiveSpecification;
+import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.UpdateTimeToLiveRequest;
 import com.helospark.financialdata.management.payment.repository.StripeUserMapping;
 import com.helospark.financialdata.management.payment.repository.UserLastPayment;
@@ -42,7 +46,7 @@ public class DynamoDbInitializer {
         boolean wasConfirmationEmailTableCreated = createTable("ConfirmationEmail", ConfirmationEmail.class);
         createTable("StripeUserMapping", StripeUserMapping.class);
         createTable("UserLastPayment", UserLastPayment.class);
-        createTable("Watchlist", Watchlist.class);
+        createTableWithProvisioning("Watchlist", Watchlist.class, 1L, 1L);
 
         if (wasUserTableCreated || userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
             User user = new User();
@@ -65,7 +69,27 @@ public class DynamoDbInitializer {
             ttlRequest.setTimeToLiveSpecification(new TimeToLiveSpecification().withEnabled(true).withAttributeName("expiration"));
             amazonDynamoDB.updateTimeToLive(ttlRequest);
         }
+        //        if (!isProvisionedTable("ViewedStocks")) {
+        //            migrateToProvisionedBillingMode("ViewedStocks", 1L, 1L);
+        //        }
+        if (!isProvisionedTable("Watchlist")) {
+            migrateToProvisionedBillingMode("Watchlist", 5L, 5L);
+        }
+        //        if (!isProvisionedTable("User")) {
+        //            migrateToProvisionedBillingMode("User", 1L, 1L);
+        //        }
 
+    }
+
+    private void migrateToProvisionedBillingMode(String string, long read, long write) {
+        UpdateTableRequest updateTableRequest = new UpdateTableRequest(string, new ProvisionedThroughput(read, write));
+        amazonDynamoDB.updateTable(updateTableRequest);
+    }
+
+    private boolean isProvisionedTable(String string) {
+        DescribeTableRequest describeRequest = new DescribeTableRequest(string);
+        DescribeTableResult describeTableResult = amazonDynamoDB.describeTable(describeRequest);
+        return describeTableResult.getTable().getBillingModeSummary().getBillingMode().equals("PROVISIONED");
     }
 
     public boolean isTimeToLiveEnabled(String tableName) {
@@ -78,6 +102,27 @@ public class DynamoDbInitializer {
         if (!doesTableExist(tableName)) {
             CreateTableRequest tableRequest = mapper.generateCreateTableRequest(class1);
             tableRequest.setBillingMode("PAY_PER_REQUEST");
+            amazonDynamoDB.createTable(tableRequest);
+
+            for (int i = 0; i < 10; ++i) {
+                if (doesTableExist(tableName)) {
+                    break;
+                } else {
+                    System.out.println("Waiting for " + tableName + " table to be created");
+                    exceptionlessSleep(1);
+                }
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean createTableWithProvisioning(String tableName, Class<?> class1, Long provisionedRead, Long provisionedWrite) {
+        if (!doesTableExist(tableName)) {
+            CreateTableRequest tableRequest = mapper.generateCreateTableRequest(class1);
+            tableRequest.setBillingMode("PROVISIONED");
+            tableRequest.setProvisionedThroughput(new ProvisionedThroughput(provisionedRead, provisionedWrite));
             amazonDynamoDB.createTable(tableRequest);
 
             for (int i = 0; i < 10; ++i) {
