@@ -7,4 +7,5 @@ public class AddToWatchlistRequest {
     public Double priceTarget;
     public List<String> tags;
     public String notes;
+    public CalculatorParameters calculatorParameters;
 }

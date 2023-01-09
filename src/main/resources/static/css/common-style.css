@@ -321,6 +321,27 @@ select, #start-date-dropdown, #end-date-dropdown {
   margin-right: 7px;
 }
 
+.watchlist-actions-cell {
+  font-size:20pt;
+  white-space: nowrap;
+}
+.watchlist-actions-cell i, .watchlist-actions-cell a {
+  margin-left: 6px;
+  cursor:pointer;
+  width: 30px;
+  color:black;
+}
+
+.watchlist-actions-cell-header {
+  width: 30px;
+}
+
+.watchlist-table-container {
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 @media (max-width: 1070px) {
  #autoComplete {
     width: 200px;

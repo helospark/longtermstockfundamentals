@@ -6,19 +6,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
-import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.domain.WatchListResponse;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
@@ -40,10 +43,25 @@ public class WatchlistController {
         if (jwt.isEmpty()) {
             throw new WatchlistPermissionDeniedException("Not logged in");
         }
-        if (!AccountType.isAtLeastStandard(loginController.getAccountType(jwt.get()))) {
-            throw new WatchlistPermissionDeniedException("Watchlist feature is only available to users with standard or advanced subscription");
-        }
         return watchlistService.getWatchlist(jwt.get().getSubject());
+    }
+
+    @GetMapping("/watchlist/{stock}")
+    public WatchlistElement getCurrentWatchList(@PathVariable("stock") String stock, HttpServletRequest httpRequest) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (jwt.isEmpty()) {
+            throw new WatchlistPermissionDeniedException("Not logged in");
+        }
+        Optional<WatchlistElement> element = watchlistService.getWatchlistElement(jwt.get().getSubject(), stock);
+
+        if (element.isPresent()) {
+            return element.get();
+        } else {
+            var emptyElement = new WatchlistElement();
+            emptyElement.symbol = stock;
+
+            return emptyElement;
+        }
     }
 
     @PostMapping("/watchlist")
@@ -61,8 +79,29 @@ public class WatchlistController {
         if (request.notes != null && request.notes.length() > 200) {
             throw new WatchlistBadRequestException("Maximum of 200 characters long notes supported");
         }
+        if (request.tags != null) {
+            for (var tag : request.tags) {
+                if (tag.strip().length() > 15) {
+                    throw new WatchlistBadRequestException("Each tag can be maximum of 15 characters");
+                }
+            }
+        }
 
         watchlistService.saveToWatchlist(jwt.get().getSubject(), request, loginController.getAccountType(jwt.get()));
+    }
+
+    @DeleteMapping("/watchlist")
+    @RateLimit(requestPerMinute = 20)
+    public void addToWatchlist(@RequestBody DeleteFromWatchlistRequest request, HttpServletRequest httpRequest) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (jwt.isEmpty()) {
+            throw new WatchlistPermissionDeniedException("Not logged in");
+        }
+        if (!symbolAtGlanceProvider.doesCompanyExists(request.symbol)) {
+            throw new WatchlistBadRequestException("Symbol does not exist");
+        }
+
+        watchlistService.deleteFromWatchlist(jwt.get().getSubject(), request);
     }
 
     @ExceptionHandler(WatchlistPermissionDeniedException.class)

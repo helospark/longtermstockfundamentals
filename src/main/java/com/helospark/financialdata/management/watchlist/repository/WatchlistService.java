@@ -16,10 +16,11 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.helospark.financialdata.management.config.SymbolLinkBuilder;
 import com.helospark.financialdata.management.user.repository.AccountType;
+import com.helospark.financialdata.management.watchlist.DeleteFromWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
+import com.helospark.financialdata.management.watchlist.domain.CalculatorParameters;
 import com.helospark.financialdata.management.watchlist.domain.WatchListResponse;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
@@ -63,7 +64,7 @@ public class WatchlistService {
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
                 Map<String, String> portfolioElement = new HashMap<>();
-                portfolioElement.put(SYMBOL_COL, SymbolLinkBuilder.createSymbolLink(ticker));
+                portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
                 portfolioElement.put(CURRENT_PRICE_COL, formatString(atGlance.latestStockPrice));
                 portfolioElement.put(PRICE_TARGET_COL, formatString(currentElement.targetPrice));
@@ -71,11 +72,25 @@ public class WatchlistService {
                 portfolioElement.put(TAGS_COL, formatTags(currentElement.tags));
                 portfolioElement.put(NOTES_COL, currentElement.notes);
 
+                if (currentElement.calculatorParameters != null) {
+                    portfolioElement.put("CALCULATOR_URI", buildCalculatorUri(currentElement.calculatorParameters, ticker));
+                }
+
                 result.portfolio.add(portfolioElement);
             }
         }
 
         return result;
+    }
+
+    private String buildCalculatorUri(CalculatorParameters calculatorParameters, String symbol) {
+        String uri = "/calculator/" + symbol;
+        uri += "?startMargin=" + calculatorParameters.startMargin + "&endMargin=" + calculatorParameters.endMargin;
+        uri += "&startGrowth=" + calculatorParameters.startGrowth + "&endGrowth=" + calculatorParameters.endGrowth;
+        uri += "&startShareChange=" + calculatorParameters.startShChange + "&endShareChange=" + calculatorParameters.endShChange;
+        uri += "&discount=" + calculatorParameters.discount + "&endMultiple=" + calculatorParameters.endMultiple;
+
+        return uri;
     }
 
     private String formatTags(List<String> tags) {
@@ -154,8 +169,11 @@ public class WatchlistService {
         }
         elementToUpdate.notes = escapeSymbols(request.notes);
         elementToUpdate.symbol = request.symbol;
-        elementToUpdate.tags = escapeSymbols(request.tags);
+        elementToUpdate.tags = escapeSymbols(stripTags(request.tags));
         elementToUpdate.targetPrice = request.priceTarget;
+        if (request.calculatorParameters != null) {
+            elementToUpdate.calculatorParameters = request.calculatorParameters;
+        }
 
         Watchlist toInsert = new Watchlist();
         toInsert.setEmail(email);
@@ -164,6 +182,15 @@ public class WatchlistService {
         LOGGER.info("Inserting into watchlist, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
 
         watchlistRepository.save(toInsert);
+    }
+
+    private List<String> stripTags(List<String> tags) {
+        if (tags == null) {
+            return List.of();
+        }
+        return tags.stream()
+                .map(tag -> tag.strip())
+                .collect(Collectors.toList());
     }
 
     private ByteBuffer createCompressedValue(List<WatchlistElement> elements) {
@@ -192,6 +219,46 @@ public class WatchlistService {
             }
         }
         return -1;
+    }
+
+    public void deleteFromWatchlist(String email, DeleteFromWatchlistRequest request) {
+        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
+
+        if (!optionalWatchlist.isPresent()) {
+            return;
+        }
+        List<WatchlistElement> elements = decodeWatchlist(optionalWatchlist.get());
+
+        int index = findIndexFor(elements, request.symbol);
+
+        if (index != -1) {
+            elements.remove(index);
+        }
+
+        Watchlist toInsert = new Watchlist();
+        toInsert.setEmail(email);
+        toInsert.setWatchlistRaw(createCompressedValue(elements));
+
+        LOGGER.info("Remove successful, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
+
+        watchlistRepository.save(toInsert);
+    }
+
+    public Optional<WatchlistElement> getWatchlistElement(String email, String stock) {
+        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
+
+        if (!optionalWatchlist.isPresent()) {
+            return Optional.empty();
+        }
+        List<WatchlistElement> elements = decodeWatchlist(optionalWatchlist.get());
+
+        int index = findIndexFor(elements, stock);
+
+        if (index != -1) {
+            return Optional.of(elements.get(index));
+        } else {
+            return Optional.empty();
+        }
     }
 
 }

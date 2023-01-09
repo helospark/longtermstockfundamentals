@@ -59,7 +59,7 @@
     </div>
     <div class="col-md-2 mb-3">
       <label for="discount">Discount rate %</label>
-      <input value="10" id="discount" type="text" class="form-control" placeholder="Discount">
+      <input th:value="${discount}" id="discount" type="text" class="form-control" placeholder="Discount">
     </div>
   </div>
   <div class="form-row row">
@@ -77,7 +77,7 @@
     </div>
     <div class="col-md-2 mb-3">
       <label for="endShareChange">End share chg annual %</label>
-      <input th:value="${shareChange}" id="endShareChange" type="text" class="form-control" placeholder="Share change">
+      <input th:value="${endShareChange}" id="endShareChange" type="text" class="form-control" placeholder="Share change">
     </div>
 
     <div class="col-md-2 mb-3">

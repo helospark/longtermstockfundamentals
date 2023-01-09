@@ -153,7 +153,15 @@ public class ViewController {
     }
 
     @GetMapping("/calculator/{stock}")
-    public String calculator(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
+    public String calculator(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes,
+            @RequestParam(required = false, name = "startMargin") Double startMarginParam,
+            @RequestParam(required = false, name = "endMargin") Double endMarginParam,
+            @RequestParam(required = false, name = "startGrowth") Double startGrowthParam,
+            @RequestParam(required = false, name = "endGrowth") Double endGrowthParam,
+            @RequestParam(required = false, name = "startShareChange") Double startShareChangeParam,
+            @RequestParam(required = false, name = "endShareChange") Double endShareChangeParam,
+            @RequestParam(required = false, name = "discount") Double discountParam,
+            @RequestParam(required = false, name = "endMultiple") Double endMultipleParam) {
         if (!symbolIndexProvider.doesCompanyExists(stock)) {
             redirectAttributes.addAttribute("generalInfo", "stock_not_found");
             return "redirect:/";
@@ -163,27 +171,50 @@ public class ViewController {
             if (Boolean.TRUE.equals(model.getAttribute("allowed"))) {
                 CompanyFinancials company = DataLoader.readFinancials(stock);
                 if (company.financials.size() > 0) {
-                    double revenueGrowth = GrowthCalculator.getMedianRevenueGrowth(company.financials, 8, 0.0).orElse(10.0);
-                    double margin = MarginCalculator.getAvgNetMargin(company.financials, 0);
-                    double shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5, 0).orElse(0.0);
-                    double endGrowth = revenueGrowth * 0.5;
-                    double endMultiple = 12;
+                    Double startGrowth = startGrowthParam;
+                    if (startGrowth == null) {
+                        startGrowth = GrowthCalculator.getMedianRevenueGrowth(company.financials, 8, 0.0).orElse(10.0);
+                    }
+                    Double startMargin = startMarginParam;
+                    if (startMargin == null) {
+                        startMargin = MarginCalculator.getAvgNetMargin(company.financials, 0) * 100.0;
+                    }
 
-                    if (endGrowth > 12) {
-                        endMultiple = endGrowth;
+                    Double startShareCountGrowth = startShareChangeParam;
+                    if (startShareCountGrowth == null) {
+                        startShareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5, 0).orElse(0.0);
                     }
-                    if (endMultiple > 24) {
-                        endMultiple = 24;
+                    double endGrowth = nonNullOf(endGrowthParam, startGrowth * 0.5);
+
+                    Double endShareCountGrowth = endShareChangeParam;
+                    if (endShareCountGrowth == null) {
+                        endShareCountGrowth = startShareCountGrowth;
                     }
+
+                    Double endMultiple = endMultipleParam;
+                    if (endMultiple == null) {
+                        endMultiple = 12.0;
+                        if (endGrowth > 12) {
+                            endMultiple = endGrowth;
+                        }
+                        if (endMultiple > 24) {
+                            endMultiple = 24.0;
+                        }
+                    }
+                    Double endMargin = nonNullOf(endMarginParam, startMargin);
+                    Double discount = nonNullOf(discountParam, 10.0);
 
                     model.addAttribute("revenue", (double) company.financials.get(0).incomeStatementTtm.revenue / 1_000_000);
-                    model.addAttribute("startGrowth", String.format("%.2f", revenueGrowth));
-                    model.addAttribute("endGrowth", String.format("%.2f", endGrowth));
-                    model.addAttribute("startMargin", String.format("%.2f", margin * 100.0));
-                    model.addAttribute("endMargin", String.format("%.2f", margin * 100.0));
-                    model.addAttribute("shareChange", String.format("%.2f", shareCountGrowth));
                     model.addAttribute("shareCount", company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / 1000);
+
+                    model.addAttribute("startGrowth", String.format("%.2f", startGrowth));
+                    model.addAttribute("endGrowth", String.format("%.2f", endGrowth));
+                    model.addAttribute("startMargin", String.format("%.2f", startMargin));
+                    model.addAttribute("endMargin", String.format("%.2f", endMargin));
+                    model.addAttribute("shareChange", String.format("%.2f", startShareCountGrowth));
+                    model.addAttribute("endShareChange", String.format("%.2f", endShareCountGrowth));
                     model.addAttribute("endMultiple", String.format("%.0f", endMultiple));
+                    model.addAttribute("discount", String.format("%.0f", discount));
                 }
 
                 model.addAttribute("latestPrice", company.latestPrice);
@@ -191,6 +222,13 @@ public class ViewController {
 
             return "calculator";
         }
+    }
+
+    private double nonNullOf(Double a, double d) {
+        if (a != null) {
+            return a;
+        }
+        return d;
     }
 
     public void fillModelWithCommonStockData(String stock, Model model, HttpServletRequest request) {

@@ -600,7 +600,7 @@ public class FinancialsController {
         if (company.financials.size() > 0) {
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), AltmanZCalculator.calculateAltmanZScore(company.financials.get(0), company.latestPrice)));
         }
-        return getIncomeData(stock, financialsTtm -> AltmanZCalculator.calculateAltmanZScore(financialsTtm, financialsTtm.price));
+        return result;
     }
 
     @GetMapping("/eps_growth_rate")

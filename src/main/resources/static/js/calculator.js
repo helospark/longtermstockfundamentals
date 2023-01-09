@@ -170,7 +170,7 @@
          endPrice = (eps * endMultiple);
          expectedGrowth = Math.pow(epsSum / currentPrice, (1.0 / years)) - 1.0;
          
-         $("#fair_value").text("Value: " + currencySymbol + value.toFixed(2));
+         $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + value.toFixed(2) + "</span>");
          $("#current_price").html("Current price: " + currencySymbol + currentPrice.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
                + "price in ten years: <b>" + currencySymbol + endPrice.toFixed(2) + "</b>)");
       }
