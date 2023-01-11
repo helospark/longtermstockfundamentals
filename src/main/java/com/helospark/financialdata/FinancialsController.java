@@ -355,6 +355,21 @@ public class FinancialsController {
         return result;
     }
 
+    @GetMapping("/default_calculator_result")
+    public List<SimpleDataElement> getDefaultCalculatorResult(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm financialsTtm = company.financials.get(i);
+
+            Optional<Double> dcf = DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, (i / 4.0)).map(a -> a < 0 ? 0.0 : a);
+
+            result.add(new SimpleDataElement(financialsTtm.getDate().toString(), dcf.orElse(null)));
+        }
+        return result;
+    }
+
     private double getAnyRevenueGrowth(CompanyFinancials company, int year) {
         List<Double> growths = new ArrayList<>();
         for (int i = 6; i > 0; --i) {
@@ -475,6 +490,15 @@ public class FinancialsController {
     @GetMapping("/non_current_assets")
     public List<SimpleDataElement> getLongTermLiabilities(@PathVariable("stock") String stock) {
         return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.otherNonCurrentAssets);
+    }
+
+    @GetMapping("/acquisitions_per_market_cap")
+    public List<SimpleDataElement> getAckquisitionsPerMarketCap(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, financialsTtm -> toPercent(-1.0 * financialsTtm.cashFlowTtm.acquisitionsNet / calculateMarketCap(financialsTtm)));
+    }
+
+    private double calculateMarketCap(FinancialsTtm financialsTtm) {
+        return financialsTtm.price * financialsTtm.incomeStatementTtm.weightedAverageShsOut;
     }
 
     @GetMapping("/price")

@@ -114,7 +114,7 @@ public class WatchlistService {
     private String formatTags(List<String> tags) {
         String result = "";
         for (var tag : tags) {
-            int colorIndex = tag.hashCode() % COLOR_CODES.size();
+            int colorIndex = Math.abs(tag.hashCode()) % COLOR_CODES.size();
             String colorToUse = COLOR_CODES.get(colorIndex);
             result += "<span class=\"badge badge-pill\" style=\"background-color: " + colorToUse + "\">" + tag + "</span>";
         }

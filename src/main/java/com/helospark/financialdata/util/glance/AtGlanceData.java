@@ -69,6 +69,25 @@ public class AtGlanceData {
     @ScreenerElement(name = "Stock based compensation per market cap", format = AtGlanceFormat.PERCENT)
     public double stockCompensationPerMkt;
 
+    @ScreenerElement(name = "Ideal 10yr revenue growth correlation")
+    public float ideal10yrRevCorrelation;
+    @ScreenerElement(name = "Ideal 10yr EPS growth correlation")
+    public float ideal10yrEpsCorrelation;
+    @ScreenerElement(name = "Ideal 10yr FCF growth correlation")
+    public float ideal10yrFcfCorrelation;
+
+    @ScreenerElement(name = "Ideal 20yr revenue growth correlation")
+    public float ideal20yrRevCorrelation;
+    @ScreenerElement(name = "Ideal 20yr EPS growth correlation")
+    public float ideal20yrEpsCorrelation;
+    @ScreenerElement(name = "Ideal 20yr FCF growth correlation")
+    public float ideal20yrFcfCorrelation;
+
+    @ScreenerElement(name = "Default calculator fair value margin of safety")
+    public float fvCalculatorMoS;
+    @ScreenerElement(name = "Composite fair value margin of safety")
+    public float fvCompositeMoS;
+
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield")
     public double getFreeCashFlowYield() {
         return fcfPerShare / latestStockPrice * 100.0;

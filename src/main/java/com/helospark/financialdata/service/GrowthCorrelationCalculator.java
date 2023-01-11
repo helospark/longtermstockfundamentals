@@ -22,9 +22,11 @@ public class GrowthCorrelationCalculator {
 
         double[] epses = new double[oldIndex - newIndex + 1];
         double[] fcfs = new double[oldIndex - newIndex + 1];
+        int j = 0;
         for (int i = newIndex; i < oldIndex; ++i) {
-            epses[i - newIndex] = financials.get(i).incomeStatementTtm.eps;
-            fcfs[i - newIndex] = (double) financials.get(i).cashFlowTtm.freeCashFlow / financials.get(i).incomeStatementTtm.weightedAverageShsOut;
+            epses[j] = financials.get(i).incomeStatementTtm.eps;
+            fcfs[j] = (double) financials.get(i).cashFlowTtm.freeCashFlow / financials.get(i).incomeStatementTtm.weightedAverageShsOut;
+            ++j;
         }
 
         if (epses.length < 5) {

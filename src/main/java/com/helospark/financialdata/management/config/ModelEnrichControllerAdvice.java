@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.user.LoginController;
+import com.helospark.financialdata.management.user.repository.AccountType;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -33,13 +34,17 @@ public class ModelEnrichControllerAdvice {
         model.addAttribute("isLoggedIn", optionalJwt.isPresent());
         if (optionalJwt.isPresent()) {
             var jwt = optionalJwt.get();
+            AccountType accountType = loginController.getAccountType(jwt);
 
             model.addAttribute("loginExpiry", jwt.getExpiresAt().getTime() - new Date().getTime());
             model.addAttribute("loginEmail", jwt.getSubject());
             model.addAttribute("cancelling", Optional.ofNullable(jwt.getClaim(LoginController.CANCELLING_CLAIM).asBoolean()).orElse(false));
-            model.addAttribute("loginAccountType", loginController.getAccountType(jwt).toString());
-            model.addAttribute("loginAccountTypeIndex", loginController.getAccountType(jwt).ordinal());
+            model.addAttribute("loginAccountType", accountType.toString());
+            model.addAttribute("loginAccountTypeIndex", accountType.ordinal());
             model.addAttribute("registerType", jwt.getClaim(LoginController.REGISTER_TYPE_CLAIM).asString());
+            model.addAttribute("isPaidAccount", AccountType.isAtLeastStandard(accountType));
+        } else {
+            model.addAttribute("isPaidAccount", false);
         }
 
         for (var entry : planToPriceMap.entrySet()) {

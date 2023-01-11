@@ -152,6 +152,7 @@
            watchlistHtml = createWatchlistTableHtml(data.columns, data.portfolio, false);
            $("#watchlist-table").append(watchlistHtml);
            $('#watchlist-table table').DataTable({
+              paging: false,
              "iDisplayLength": 100,
              "order": []
            });

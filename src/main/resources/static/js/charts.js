@@ -277,6 +277,7 @@ createChart("/financials/stock_compensation_per_net_income", "Stock compensation
 createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
 createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
 createChart("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%'});
+createChart("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
 createChart("/financials/pietrosky_score", "Pietrosky score", {});
 
 
@@ -350,10 +351,13 @@ createChart("/financials/graham_number", "Graham number", {});
 createAd();
 
 createSeparator("Price")
-createChart("/financials/price", "Price", {label: "price", additionalCharts: [
+createChart("/financials/price", "Price vs calculated fair value", {
+   label: "price",
+   tooltip: 'Calculated fair value is the value you get with the default form on the calculator page.',
+   additionalCharts: [
   {
-    "url": "/financials/composite_fair_value",
-    "label": "Composite fair value"
+    "url": "/financials/default_calculator_result",
+    "label": "Calculated fair value"
   }
 ]});
 createChart("/financials/return_with_reinvested_dividend", "Total returns", {

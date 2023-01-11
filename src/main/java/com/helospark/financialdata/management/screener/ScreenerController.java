@@ -284,8 +284,13 @@ public class ScreenerController {
                     double stockPriceThen = stockThen.latestStockPriceUsd;
                     double stockPriceNow = stockNow.get().latestStockPriceUsd;
 
+                    double screenerIncrease = (stockPriceNow / stockPriceThen) * BACKTEST_INVEST_AMOUNT;
+                    if (!Double.isFinite(screenerIncrease)) {
+                        continue;
+                    }
+
                     yearSp500Sum += (sp500PriceNow / sp500PriceThen) * BACKTEST_INVEST_AMOUNT;
-                    yearScreenerSum += (stockPriceNow / stockPriceThen) * BACKTEST_INVEST_AMOUNT;
+                    yearScreenerSum += screenerIncrease;
 
                     Map<String, String> columnResult = new HashMap<>();
                     columnResult.put("Symbol", createSymbolLink(stockNow.get().symbol));
@@ -406,14 +411,26 @@ public class ScreenerController {
     public Double getValue(AtGlanceData glance, ScreenerOperation operation, ScreenerDescription screenerDescriptor) {
         try {
             if (screenerDescriptor.source.equals(Source.FIELD)) {
-                return (Double) ((Field) screenerDescriptor.data).get(glance);
+                Object value = ((Field) screenerDescriptor.data).get(glance);
+                return convertNumberToType(value);
             } else if (screenerDescriptor.source.equals(Source.METHOD)) {
-                return (Double) ((Method) screenerDescriptor.data).invoke(glance);
+                Object value = ((Method) screenerDescriptor.data).invoke(glance);
+                return convertNumberToType(value);
             } else {
                 throw new RuntimeException("Unknown source");
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public Double convertNumberToType(Object value) {
+        if (value.getClass().equals(Double.class)) {
+            return (Double) value;
+        } else if (value.getClass().equals(Float.class)) {
+            return ((Float) value).doubleValue();
+        } else {
+            throw new RuntimeException("Unknown type");
         }
     }
 

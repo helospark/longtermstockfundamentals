@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.helospark.financialdata.CommonConfig;
+import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
 
 public class DcfCalculator {
@@ -112,6 +113,70 @@ public class DcfCalculator {
             result = financial.price * 10;
         }
         return Optional.of(result);
+    }
+
+    public static Optional<Double> doDcfAnalysisRevenueWithDefaultParameters(CompanyFinancials company, double offsetYear) {
+        var financials = company.financials;
+        int index = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offsetYear * 12.0)));
+
+        if (index == -1) {
+            return Optional.empty();
+        }
+
+        double startGrowth = GrowthCalculator.getMedianRevenueGrowth(company.financials, 8, offsetYear).orElse(10.0);
+        double startMargin = MarginCalculator.getAvgNetMargin(company.financials, index) * 100.0;
+        double startShareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5 + offsetYear, offsetYear).orElse(0.0);
+        double endGrowth = startGrowth * 0.5;
+
+        double endShareCountGrowth = startShareCountGrowth;
+
+        double endMultiple = 12.0;
+        if (endGrowth > 12) {
+            endMultiple = endGrowth;
+        }
+        if (endMultiple > 24) {
+            endMultiple = 24.0;
+        }
+        double endMargin = startMargin;
+        double discount = 10.0;
+        double revenue = company.financials.get(index).incomeStatementTtm.revenue;
+        double shareCount = company.financials.get(index).incomeStatementTtm.weightedAverageShsOut;
+
+        startMargin = startMargin / 100.0;
+        endMargin = endMargin / 100.0;
+        startGrowth = startGrowth / 100.0 + 1.0;
+        endGrowth = endGrowth / 100.0 + 1.0;
+        startShareCountGrowth = startShareCountGrowth / 100.0 + 1.0;
+        endShareCountGrowth = endShareCountGrowth / 100.0 + 1.0;
+        discount = discount / 100.0;
+
+        int years = 10;
+        double value = 0.0;
+        double previousRevenue = revenue;
+        double previousShareCount = shareCount;
+        double eps = 0.0;
+        for (int i = 0; i < years; ++i) {
+            double currentGrowth = startGrowth - ((startGrowth - endGrowth) * i) / (years - 1);
+            double currentMargin = startMargin - ((startMargin - endMargin) * i) / (years - 1);
+            double currentShareChange = startShareCountGrowth - ((startShareCountGrowth - endShareCountGrowth) * i) / (years - 1);
+
+            previousRevenue = previousRevenue * currentGrowth;
+            previousShareCount = previousShareCount * currentShareChange;
+
+            double netIncome = previousRevenue * currentMargin;
+
+            eps = netIncome / previousShareCount;
+
+            double discountedEps = (eps / Math.pow(1.0 + discount, i + 1));
+            value += discountedEps;
+        }
+
+        value += ((eps * endMultiple) / Math.pow(1.0 + discount, years));
+
+        if (!Double.isFinite(value)) {
+            return Optional.empty();
+        }
+        return Optional.of(value);
     }
 
     private static double calculateDividendPerShare(FinancialsTtm financial) {

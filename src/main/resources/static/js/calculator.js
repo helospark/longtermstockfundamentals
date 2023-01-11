@@ -27,7 +27,6 @@
   for (i=0; i < 10; ++i) {
     liDateElement = document.createElement("td");
     date = dateToString(dateObj);
-    console.log(date);
     liDateElement.innerText = dateObj.getFullYear();
     dates.push(date);
     $("#table_dates").append(liDateElement);
@@ -103,7 +102,6 @@
   }
 
   function updateCalculation() {
-  console.log("Update calc");
       revenue = Number($("#revenue").val()) * 1000000;
       startGrowth = Number($("#startGrowth").val()) / 100.0 + 1.0;
       endGrowth = Number($("#endGrowth").val()) / 100.0 + 1.0;
@@ -149,10 +147,7 @@
             shareCounts.push({x: dates[i], y: previousShareCount});
             epsSum += eps;
             
-            console.log(1.0 + discount);
-            
             discountedEps = (eps / Math.pow(1.0 + discount, i + 1));
-            console.log(discountedEps);
             value += discountedEps;
             
             

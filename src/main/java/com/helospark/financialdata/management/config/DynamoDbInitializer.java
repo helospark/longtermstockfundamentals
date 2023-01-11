@@ -46,7 +46,7 @@ public class DynamoDbInitializer {
         boolean wasConfirmationEmailTableCreated = createTable("ConfirmationEmail", ConfirmationEmail.class);
         createTable("StripeUserMapping", StripeUserMapping.class);
         createTable("UserLastPayment", UserLastPayment.class);
-        createTableWithProvisioning("Watchlist", Watchlist.class, 1L, 1L);
+        createTableWithProvisioning("Watchlist", Watchlist.class, 5L, 5L);
 
         if (wasUserTableCreated || userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
             User user = new User();
@@ -69,15 +69,6 @@ public class DynamoDbInitializer {
             ttlRequest.setTimeToLiveSpecification(new TimeToLiveSpecification().withEnabled(true).withAttributeName("expiration"));
             amazonDynamoDB.updateTimeToLive(ttlRequest);
         }
-        //        if (!isProvisionedTable("ViewedStocks")) {
-        //            migrateToProvisionedBillingMode("ViewedStocks", 1L, 1L);
-        //        }
-        if (!isProvisionedTable("Watchlist")) {
-            migrateToProvisionedBillingMode("Watchlist", 5L, 5L);
-        }
-        //        if (!isProvisionedTable("User")) {
-        //            migrateToProvisionedBillingMode("User", 1L, 1L);
-        //        }
 
     }
 

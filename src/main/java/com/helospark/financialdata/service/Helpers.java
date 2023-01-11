@@ -28,7 +28,7 @@ public class Helpers {
             return -1;
         }
         if (ChronoUnit.DAYS.between(cashFlows.get(0).getDate(), date) > 6 * 30) {
-            LOGGER.warn("Company may be delisted already, the latest report is more than 6 month old date={}", cashFlows.get(0).getDate());
+            //LOGGER.warn("Company may be delisted already, the latest report is more than 6 month old date={}", cashFlows.get(0).getDate());
             //return -1;
         }
 
