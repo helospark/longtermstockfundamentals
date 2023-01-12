@@ -297,35 +297,35 @@ public class StockDataDownloader {
         data.latestStockPrice = latestPrice;
         data.latestStockPriceUsd = latestPriceUsd;
         data.shareCount = financial.incomeStatementTtm.weightedAverageShsOut;
-        data.trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, offsetYear, latestPrice).orElse(Double.NaN);
-        data.roic = RoicCalculator.calculateRoic(financial) * 100.0;
-        data.altman = AltmanZCalculator.calculateAltmanZScore(financial, latestPrice);
-        data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(Double.NaN);
+        data.trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, offsetYear, latestPrice).orElse(Double.NaN).floatValue();
+        data.roic = (float) (RoicCalculator.calculateRoic(financial) * 100.0);
+        data.altman = (float) AltmanZCalculator.calculateAltmanZScore(financial, latestPrice);
+        data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(Double.NaN).floatValue();
         data.eps = financial.incomeStatementTtm.eps;
-        data.pe = RatioCalculator.calculatePriceToEarningsRatio(financial);
+        data.pe = RatioCalculator.calculatePriceToEarningsRatio(financial).floatValue();
         data.fcfPerShare = (double) financial.cashFlowTtm.freeCashFlow / financial.incomeStatementTtm.weightedAverageShsOut;
-        data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN);
-        data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN);
+        data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN).floatValue();
+        data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN).floatValue();
 
-        data.epsGrowth = GrowthCalculator.getEpsGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
-        data.fcfGrowth = GrowthCalculator.getFcfGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
-        data.revenueGrowth = GrowthCalculator.getRevenueGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
-        data.dividendGrowthRate = GrowthCalculator.getDividendGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
-        data.shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
-        data.netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN);
-        data.cape = CapeCalculator.calculateCapeRatioQ(company.financials, 10, index);
+        data.epsGrowth = GrowthCalculator.getEpsGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.fcfGrowth = GrowthCalculator.getFcfGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.revenueGrowth = GrowthCalculator.getRevenueGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.dividendGrowthRate = GrowthCalculator.getDividendGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.cape = CapeCalculator.calculateCapeRatioQ(company.financials, 10, index).floatValue();
 
-        data.epsSD = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN);
-        data.revSD = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN);
-        data.fcfSD = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN);
-        data.epsFcfCorrelation = GrowthCorrelationCalculator.calculateEpsFcfCorrelation(company.financials, offsetYear + 7, offsetYear + 0).orElse(Double.NaN);
+        data.epsSD = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.revSD = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.fcfSD = GrowthStandardDeviationCounter.calculateFcfGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.epsFcfCorrelation = GrowthCorrelationCalculator.calculateEpsFcfCorrelation(company.financials, offsetYear + 7, offsetYear + 0).orElse(Double.NaN).floatValue();
 
-        data.dividendYield = DividendCalculator.getDividendYield(company, index) * 100.0;
-        data.dividendPayoutRatio = RatioCalculator.calculatePayoutRatio(financial) * 100.0;
-        data.dividendFcfPayoutRatio = RatioCalculator.calculateFcfPayoutRatio(financial) * 100.0;
+        data.dividendYield = (float) (DividendCalculator.getDividendYield(company, index) * 100.0);
+        data.dividendPayoutRatio = (float) (RatioCalculator.calculatePayoutRatio(financial) * 100.0);
+        data.dividendFcfPayoutRatio = (float) (RatioCalculator.calculateFcfPayoutRatio(financial) * 100.0);
 
-        data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN);
-        data.stockCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financial);
+        data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).floatValue();
+        data.stockCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financial).floatValue();
 
         data.ideal10yrRevCorrelation = (float) IdealGrowthCorrelationCalculator.calculateRevenueCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal10yrEpsCorrelation = (float) IdealGrowthCorrelationCalculator.calculateEpsCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();

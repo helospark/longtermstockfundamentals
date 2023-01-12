@@ -89,7 +89,15 @@ public class InspirationProvider {
     }
 
     public String formatString(Double value) {
-        if (value == null) {
+        if (value == null || !Double.isFinite(value)) {
+            return "-";
+        } else {
+            return String.format("%.2f", value);
+        }
+    }
+
+    public String formatString(Float value) {
+        if (value == null || !Float.isFinite(value)) {
             return "-";
         } else {
             return String.format("%.2f", value);

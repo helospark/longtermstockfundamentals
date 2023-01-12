@@ -1,7 +1,5 @@
 package com.helospark.financialdata.management.email;
 
-import java.util.Map;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,10 +21,10 @@ public class TestController {
 
     @GetMapping("/test_123")
     public String test(Model model) {
-        String email = emailTemplateReader.readTemplate("declined-email-template.html", Map.of("STRIPE_CUSTOMER_PORTAL", "https://testUri.com"));
-
-        emailSender.sendMail(email, "Test message from code", "bcsababcsaba9021@gmail.com");
-        //        highRoicJob.runHighRoicJob();
+        //        String email = emailTemplateReader.readTemplate("declined-email-template.html", Map.of("STRIPE_CUSTOMER_PORTAL", "https://testUri.com"));
+        //
+        //        emailSender.sendMail(email, "Test message from code", "bcsababcsaba9021@gmail.com");
+        highRoicJob.runHighRoicJob();
 
         return "index";
     }

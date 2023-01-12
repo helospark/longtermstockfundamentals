@@ -11,63 +11,64 @@ public class AtGlanceData {
     public String tradingCurrency;
     public double latestStockPrice;
     public double latestStockPriceUsd;
-    public double shareCount;
+    public long shareCount;
     public LocalDate actualDate;
 
     @ScreenerElement(name = "Market cap (millions)")
     public double marketCapUsd;
     @ScreenerElement(name = "Trailing PEG")
-    public double trailingPeg;
+    public float trailingPeg;
     @ScreenerElement(name = "ROIC", format = AtGlanceFormat.PERCENT)
-    public double roic;
+    public float roic;
     @ScreenerElement(name = "AltmanZ score")
-    public double altman;
+    public float altman;
     @ScreenerElement(name = "Pietrosky score")
-    public double pietrosky;
+    public float pietrosky;
+
     public double eps;
-    @ScreenerElement(name = "PE")
-    public double pe;
-    @ScreenerElement(name = "FCF/share")
     public double fcfPerShare;
+
+    @ScreenerElement(name = "PE")
+    public float pe;
     @ScreenerElement(name = "Current ratio")
-    public double currentRatio;
+    public float currentRatio;
     @ScreenerElement(name = "Quick ratio")
-    public double quickRatio;
+    public float quickRatio;
     @ScreenerElement(name = "5 year annual EPS growth", format = AtGlanceFormat.PERCENT)
-    public double epsGrowth;
+    public float epsGrowth;
     @ScreenerElement(name = "5 year annual FCF growth", format = AtGlanceFormat.PERCENT)
-    public double fcfGrowth;
+    public float fcfGrowth;
     @ScreenerElement(name = "5 year annual revenue growth", format = AtGlanceFormat.PERCENT)
-    public double revenueGrowth;
+    public float revenueGrowth;
     @ScreenerElement(name = "5 year annual dividend growth", format = AtGlanceFormat.PERCENT)
-    public double dividendGrowthRate;
+    public float dividendGrowthRate;
     @ScreenerElement(name = "5 year annual share count growth", format = AtGlanceFormat.PERCENT)
-    public double shareCountGrowth;
+    public float shareCountGrowth;
     @ScreenerElement(name = "5 year annual net margin growth", format = AtGlanceFormat.PERCENT)
-    public double netMarginGrowth;
+    public float netMarginGrowth;
     @ScreenerElement(name = "Shiller PE")
-    public double cape;
+    public float cape;
 
     @ScreenerElement(name = "EPS standard deviation")
-    public double epsSD;
+    public float epsSD;
     @ScreenerElement(name = "Revenue standard deviation")
-    public double revSD;
+    public float revSD;
     @ScreenerElement(name = "FCF standard deviation")
-    public double fcfSD;
+    public float fcfSD;
     @ScreenerElement(name = "EPS FCF correlation")
-    public double epsFcfCorrelation;
+    public float epsFcfCorrelation;
 
     @ScreenerElement(name = "Dividend yield", format = AtGlanceFormat.PERCENT)
-    public double dividendYield;
+    public float dividendYield;
     @ScreenerElement(name = "Dividend EPS payout ratio", format = AtGlanceFormat.PERCENT)
-    public double dividendPayoutRatio;
+    public float dividendPayoutRatio;
     @ScreenerElement(name = "Dividend FCF payout ratio", format = AtGlanceFormat.PERCENT)
-    public double dividendFcfPayoutRatio;
+    public float dividendFcfPayoutRatio;
 
     @ScreenerElement(name = "Profitable year count")
-    public double profitableYears;
+    public float profitableYears;
     @ScreenerElement(name = "Stock based compensation per market cap", format = AtGlanceFormat.PERCENT)
-    public double stockCompensationPerMkt;
+    public float stockCompensationPerMkt;
 
     @ScreenerElement(name = "Ideal 10yr revenue growth correlation")
     public float ideal10yrRevCorrelation;

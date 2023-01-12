@@ -134,7 +134,7 @@ function createChart(urlPath, title, chartOptions) {
       }
   }
   
-  var chart = new Chart(canvas, chartConfig);
+  var chart;// = new Chart(canvas, chartConfig);
   
   
   var button=document.createElement("button");
@@ -276,6 +276,7 @@ function createChart(urlPath, title, chartOptions) {
     if (isScrolledIntoView(canvas) || !isLazyLoading) {
         if (inView) { return; }
         inView = true;
+        chart = new Chart(canvas, chartConfig);
         let url = '/' + stockToLoad + urlPath;
         
         //console.log("Staring to load " + url);
@@ -316,7 +317,7 @@ function createChart(urlPath, title, chartOptions) {
                         chart.options.scales.y.max = maxValueToSet;
                       }
                       startAtZeroButton.onclick();
-                      chart.update();
+                      //chart.update(); // onclick updates chart
           }).then(out => {
                    if (chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts.length > 0) {
                      for (elementIndex in chartOptions.additionalCharts) {
