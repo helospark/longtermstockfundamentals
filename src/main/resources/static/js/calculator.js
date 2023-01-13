@@ -102,6 +102,7 @@
   }
 
   function updateCalculation() {
+      console.log("Updating calc");
       revenue = Number($("#revenue").val()) * 1000000;
       startGrowth = Number($("#startGrowth").val()) / 100.0 + 1.0;
       endGrowth = Number($("#endGrowth").val()) / 100.0 + 1.0;
@@ -205,25 +206,28 @@
 
   chart=createChart("/financials/eps", "EPS", {
        additionalLabelsAtEnd: dates,
-       animation: true,
        lazyLoad: false,
        label: "past",
-       runAfter: updateCalculation
+       quarterlyEnabled: false,
+       runAfter: updateCalculation,
+       zeroBasedChangeListener: updateCalculation
   });
 
     revChart=createChart("/financials/revenue", "revenue", {
          additionalLabelsAtEnd: dates,
-         animation: true,
          lazyLoad: false,
          label: "past",
-         runAfter: updateCalculation
+         quarterlyEnabled: false,
+         runAfter: updateCalculation,
+         zeroBasedChangeListener: updateCalculation
     });
     
     marginChart=createChart("/financials/net_margin", "net margin", {
          additionalLabelsAtEnd: dates,
          label: "past",
          runAfter: updateCalculation,
-         animation: true,
+         zeroBasedChangeListener: updateCalculation,
+         quarterlyEnabled: false,
          lazyLoad: false
     });
     
@@ -231,15 +235,16 @@
          additionalLabelsAtEnd: dates,
          label: "past",
          runAfter: updateCalculation,
-         animation: true,
+         zeroBasedChangeListener: updateCalculation,
+         quarterlyEnabled: false,
          lazyLoad: false
      });
     
     createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {
       type: 'bar',
       unit: '%',
-      animation: true,
       lazyLoad: false,
+      quarterlyEnabled: false,
       slider: {
         id: "revenue_growth_rate_xyr_moving_avg_slider",
         parameterName: "year",

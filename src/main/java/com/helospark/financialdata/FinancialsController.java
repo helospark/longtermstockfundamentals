@@ -49,54 +49,54 @@ public class FinancialsController {
     }
 
     @GetMapping("/eps")
-    public List<SimpleDataElement> getEps(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.incomeStatementTtm.eps);
+    public List<SimpleDataElement> getEps(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.eps);
     }
 
     @GetMapping("/revenue")
-    public List<SimpleDataElement> getRevenue(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.incomeStatementTtm.revenue);
+    public List<SimpleDataElement> getRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.revenue);
     }
 
     @GetMapping("/fcf")
-    public List<SimpleDataElement> getFcf(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.cashFlowTtm.freeCashFlow);
+    public List<SimpleDataElement> getFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.cashFlowTtm.freeCashFlow);
     }
 
     @GetMapping("/net_income")
-    public List<SimpleDataElement> getNetIncome(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.incomeStatementTtm.netIncome);
+    public List<SimpleDataElement> getNetIncome(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.netIncome);
     }
 
     @GetMapping("/pfcf")
-    public List<SimpleDataElement> getPFcf(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> (double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+    public List<SimpleDataElement> getPFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
     }
 
     @GetMapping("/operating_margin")
-    public List<SimpleDataElement> getOperativeMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.operatingIncome / financialsTtm.incomeStatementTtm.revenue));
+    public List<SimpleDataElement> getOperativeMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.operatingIncome / financialsTtm.incomeStatementTtm.revenue));
     }
 
     @GetMapping("/gross_margin")
-    public List<SimpleDataElement> getGrossMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(RatioCalculator.calculateGrossProfitMargin(financialsTtm)));
+    public List<SimpleDataElement> getGrossMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateGrossProfitMargin(financialsTtm)));
     }
 
     @GetMapping("/net_margin")
-    public List<SimpleDataElement> getNetMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.revenue));
+    public List<SimpleDataElement> getNetMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.revenue));
     }
 
     @GetMapping("/fcf_margin")
-    public List<SimpleDataElement> getFcfMargin(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.revenue));
+    public List<SimpleDataElement> getFcfMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.revenue));
     }
 
     @GetMapping("/pe_ratio")
-    public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
-        var result = getIncomeData(company, financialsTtm -> RatioCalculator.calculatePriceToEarningsRatio(financialsTtm));
+        var result = getIncomeData(company, quarterly, financialsTtm -> RatioCalculator.calculatePriceToEarningsRatio(financialsTtm));
         if (company.financials.size() > 0) {
             double pe = company.latestPrice / company.financials.get(0).incomeStatementTtm.eps;
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), pe));
@@ -105,7 +105,7 @@ public class FinancialsController {
     }
 
     @GetMapping("/expected_return")
-    public List<SimpleDataElement> getExpectedReturn(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getExpectedReturn(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
@@ -130,7 +130,7 @@ public class FinancialsController {
     }
 
     @GetMapping("/past_pe_to_growth_ratio")
-    public List<SimpleDataElement> getTrailingPeg(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getTrailingPeg(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
@@ -143,7 +143,7 @@ public class FinancialsController {
     }
 
     @GetMapping("/past_pe_to_rev_growth_ratio")
-    public List<SimpleDataElement> getTrailingPegWithRevGrowth(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getTrailingPegWithRevGrowth(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
@@ -156,7 +156,7 @@ public class FinancialsController {
     }
 
     @GetMapping("/past_cape_to_growth_ratio")
-    public List<SimpleDataElement> getTrailingCapeg(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getTrailingCapeg(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
@@ -169,86 +169,89 @@ public class FinancialsController {
     }
 
     @GetMapping("/fcf_yield")
-    public List<SimpleDataElement> getFreeCashFlowYield(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut) / financialsTtm.price));
+    public List<SimpleDataElement> getFreeCashFlowYield(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> toPercent(((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut) / financialsTtm.price));
     }
 
     @GetMapping("/eps_yield")
-    public List<SimpleDataElement> getEpsYield(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(financialsTtm.incomeStatementTtm.eps / financialsTtm.price));
+    public List<SimpleDataElement> getEpsYield(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(financialsTtm.incomeStatementTtm.eps / financialsTtm.price));
     }
 
     @GetMapping("/p2b_ratio")
-    public List<SimpleDataElement> getP2BValue(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculatePriceToBookRatio(financialsTtm));
+    public List<SimpleDataElement> getP2BValue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> RatioCalculator.calculatePriceToBookRatio(financialsTtm));
     }
 
     @GetMapping("/p2tb_ratio")
-    public List<SimpleDataElement> getP2TangibleBookValue(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculatePriceToTangibleBookRatio(financialsTtm));
+    public List<SimpleDataElement> getP2TangibleBookValue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> RatioCalculator.calculatePriceToTangibleBookRatio(financialsTtm));
     }
 
     @GetMapping("/intangible_assets_percent")
-    public List<SimpleDataElement> getIntangibleAssetsPercent(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwillAndIntangibleAssets / financialsTtm.balanceSheet.totalAssets));
+    public List<SimpleDataElement> getIntangibleAssetsPercent(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwillAndIntangibleAssets / financialsTtm.balanceSheet.totalAssets));
     }
 
     @GetMapping("/goodwill_percent")
-    public List<SimpleDataElement> getGoodwillPercent(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwill / financialsTtm.balanceSheet.totalAssets));
+    public List<SimpleDataElement> getGoodwillPercent(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwill / financialsTtm.balanceSheet.totalAssets));
     }
 
     @GetMapping("/fed_rate")
-    public List<SimpleDataElement> getFedRate(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> FedRateProvider.getFedFundsRate(financialsTtm.getDate()));
+    public List<SimpleDataElement> getFedRate(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> FedRateProvider.getFedFundsRate(financialsTtm.getDate()));
     }
 
     @GetMapping("/quick_ratio")
-    public List<SimpleDataElement> getQuickRatio(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> RatioCalculator.calculateQuickRatio(financialsTtm).orElse(null));
+    public List<SimpleDataElement> getQuickRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> RatioCalculator.calculateQuickRatio(financialsTtm).orElse(null));
     }
 
     @GetMapping("/short_term_coverage_ratio")
-    public List<SimpleDataElement> getShortTermCoverageRatio(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getShortTermCoverageRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock,
+                quarterly,
                 financialsTtm -> toPercent(financialsTtm.balanceSheet.shortTermDebt > 0.0 ? (double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.balanceSheet.shortTermDebt : null));
     }
 
     @GetMapping("/short_term_assets_to_total_debt")
-    public List<SimpleDataElement> getShortTermAssetsToTotalDebt(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getShortTermAssetsToTotalDebt(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock,
-                financialsTtm -> financialsTtm.balanceSheet.longTermDebt > 0 ? (double) financialsTtm.balanceSheet.totalCurrentAssets / financialsTtm.balanceSheet.totalDebt : null);
+                quarterly, financialsTtm -> financialsTtm.balanceSheet.longTermDebt > 0 ? (double) financialsTtm.balanceSheet.totalCurrentAssets / financialsTtm.balanceSheet.totalDebt : null);
     }
 
     @GetMapping("/return_on_assets")
-    public List<SimpleDataElement> getReturnOnAssets(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(RoicCalculator.calculateROA(financialsTtm)));
+    public List<SimpleDataElement> getReturnOnAssets(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RoicCalculator.calculateROA(financialsTtm)));
     }
 
     @GetMapping("/return_on_tangible_assets")
-    public List<SimpleDataElement> getReturnOnTangibleAssets(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(RoicCalculator.calculateROTA(financialsTtm)));
+    public List<SimpleDataElement> getReturnOnTangibleAssets(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RoicCalculator.calculateROTA(financialsTtm)));
     }
 
     @GetMapping("/cash_flow_to_debt")
-    public List<SimpleDataElement> getCashFlowToDebt(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getCashFlowToDebt(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock,
+                quarterly,
                 financialsTtm -> toPercent(financialsTtm.balanceSheet.shortTermDebt > 0.0 ? (double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.balanceSheet.totalDebt : 0));
     }
 
     @GetMapping("/share_count")
-    public List<SimpleDataElement> getShareCount(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+    public List<SimpleDataElement> getShareCount(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.weightedAverageShsOut);
     }
 
     @GetMapping("/interest_expense")
-    public List<SimpleDataElement> getInterestExpense(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.incomeStatementTtm.interestExpense);
+    public List<SimpleDataElement> getInterestExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.interestExpense);
     }
 
     @GetMapping("/interest_rate")
-    public List<SimpleDataElement> getInterestRate(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> {
+    public List<SimpleDataElement> getInterestRate(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> {
             if (financialsTtm.balanceSheet.totalDebt > 0 && financialsTtm.incomeStatementTtm.interestExpense > 0) {
                 return toPercent((double) financialsTtm.incomeStatementTtm.interestExpense / financialsTtm.balanceSheet.totalDebt);
             } else {
@@ -258,8 +261,8 @@ public class FinancialsController {
     }
 
     @GetMapping("/interest_coverage")
-    public List<SimpleDataElement> getInterestCoverage(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> {
+    public List<SimpleDataElement> getInterestCoverage(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> {
             Double coverage = null;
             if (financialsTtm.incomeStatementTtm.interestExpense > 0) {
                 double ebit = RoicCalculator.calculateEbit(financialsTtm);
@@ -458,43 +461,43 @@ public class FinancialsController {
     }
 
     @GetMapping("/cash")
-    public List<SimpleDataElement> getCash(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.cashAndCashEquivalents);
+    public List<SimpleDataElement> getCash(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.cashAndCashEquivalents);
     }
 
     @GetMapping("/current_assets")
-    public List<SimpleDataElement> getTotalCurrentAssets(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.totalCurrentAssets);
+    public List<SimpleDataElement> getTotalCurrentAssets(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.totalCurrentAssets);
     }
 
     @GetMapping("/total_assets")
-    public List<SimpleDataElement> getTotalAssets(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.totalAssets);
+    public List<SimpleDataElement> getTotalAssets(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.totalAssets);
     }
 
     @GetMapping("/total_liabilities")
-    public List<SimpleDataElement> getTotalLiabilities(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.totalLiabilities);
+    public List<SimpleDataElement> getTotalLiabilities(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.totalLiabilities);
     }
 
     @GetMapping("/current_liabilities")
-    public List<SimpleDataElement> getTotalCurrentLiabilities(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.totalCurrentLiabilities);
+    public List<SimpleDataElement> getTotalCurrentLiabilities(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.totalCurrentLiabilities);
     }
 
     @GetMapping("/long_term_debt")
-    public List<SimpleDataElement> getLongTermDebt(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.longTermDebt);
+    public List<SimpleDataElement> getLongTermDebt(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.longTermDebt);
     }
 
     @GetMapping("/non_current_assets")
-    public List<SimpleDataElement> getLongTermLiabilities(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.balanceSheet.otherNonCurrentAssets);
+    public List<SimpleDataElement> getLongTermLiabilities(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.otherNonCurrentAssets);
     }
 
     @GetMapping("/acquisitions_per_market_cap")
-    public List<SimpleDataElement> getAckquisitionsPerMarketCap(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(-1.0 * financialsTtm.cashFlowTtm.acquisitionsNet / calculateMarketCap(financialsTtm)));
+    public List<SimpleDataElement> getAckquisitionsPerMarketCap(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(-1.0 * financialsTtm.cashFlowTtm.acquisitionsNet / calculateMarketCap(financialsTtm)));
     }
 
     private double calculateMarketCap(FinancialsTtm financialsTtm) {
@@ -502,9 +505,9 @@ public class FinancialsController {
     }
 
     @GetMapping("/price")
-    public List<SimpleDataElement> getPrice(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getPrice(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
-        List<SimpleDataElement> result = getIncomeData(company, financialsTtm -> financialsTtm.price);
+        List<SimpleDataElement> result = getIncomeData(company, quarterly, financialsTtm -> financialsTtm.price);
         if (company.financials.size() > 0) {
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), company.latestPrice));
         }
@@ -536,55 +539,56 @@ public class FinancialsController {
     }
 
     @GetMapping("/stock_compensation")
-    public List<SimpleDataElement> getStockBasedCompensation(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.cashFlowTtm.stockBasedCompensation);
+    public List<SimpleDataElement> getStockBasedCompensation(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.cashFlowTtm.stockBasedCompensation);
     }
 
     @GetMapping("/stock_compensation_per_net_income")
-    public List<SimpleDataElement> getStockBasedCompensationPerNetIncome(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> (double) financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.incomeStatementTtm.netIncome * 100.0);
+    public List<SimpleDataElement> getStockBasedCompensationPerNetIncome(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.incomeStatementTtm.netIncome * 100.0);
     }
 
     @GetMapping("/stock_compensation_per_market_cap")
-    public List<SimpleDataElement> getStockBasedCompensationPerMarketCap(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.cashFlowTtm.stockBasedCompensation / (financialsTtm.price * financialsTtm.incomeStatementTtm.weightedAverageShsOut) * 100.0);
+    public List<SimpleDataElement> getStockBasedCompensationPerMarketCap(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> financialsTtm.cashFlowTtm.stockBasedCompensation / (financialsTtm.price * financialsTtm.incomeStatementTtm.weightedAverageShsOut) * 100.0);
     }
 
     @GetMapping("/roic")
-    public List<SimpleDataElement> getRoic(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(RoicCalculator.calculateRoic(financialsTtm)));
+    public List<SimpleDataElement> getRoic(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RoicCalculator.calculateRoic(financialsTtm)));
     }
 
     @GetMapping("/capex_to_revenue")
-    public List<SimpleDataElement> getCapexToRevenue(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.incomeStatementTtm.revenue) * -1.0);
+    public List<SimpleDataElement> getCapexToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.incomeStatementTtm.revenue) * -1.0);
     }
 
     @GetMapping("/cash_per_share")
-    public List<SimpleDataElement> getCashPerShare(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.keyMetrics.cashPerShare);
+    public List<SimpleDataElement> getCashPerShare(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.keyMetrics.cashPerShare);
     }
 
     @GetMapping("/ev_over_ebitda")
-    public List<SimpleDataElement> getEvOverEbitda(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.keyMetrics.enterpriseValue / financialsTtm.incomeStatementTtm.ebitda);
+    public List<SimpleDataElement> getEvOverEbitda(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.keyMetrics.enterpriseValue / financialsTtm.incomeStatementTtm.ebitda);
     }
 
     @GetMapping("/graham_number")
-    public List<SimpleDataElement> getGrahamNumber(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> financialsTtm.keyMetrics.grahamNumber);
+    public List<SimpleDataElement> getGrahamNumber(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.keyMetrics.grahamNumber);
     }
 
     @GetMapping("/stock_compensation_per_net_revenue")
-    public List<SimpleDataElement> getStockBasedCompensationPerRevenue(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> (double) financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.incomeStatementTtm.revenue * 100.0);
+    public List<SimpleDataElement> getStockBasedCompensationPerRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.incomeStatementTtm.revenue * 100.0);
     }
 
     @GetMapping("/dividend_yield")
-    public List<SimpleDataElement> getDividendYield(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getDividendYield(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         var result = getIncomeData(company,
-                financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut / financialsTtm.price));
+                quarterly, financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut / financialsTtm.price));
         if (company.financials.size() > 0) {
             double yield = toPercent((double) -company.financials.get(0).cashFlowTtm.dividendsPaid / company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / company.latestPrice);
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), yield));
@@ -593,18 +597,18 @@ public class FinancialsController {
     }
 
     @GetMapping("/dividend_payout_ratio")
-    public List<SimpleDataElement> getPayoutRatio(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(RatioCalculator.calculatePayoutRatio(financialsTtm)));
+    public List<SimpleDataElement> getPayoutRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculatePayoutRatio(financialsTtm)));
     }
 
     @GetMapping("/dividend_payout_ratio_with_fcf")
-    public List<SimpleDataElement> getPayoutRatioFcf(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> toPercent(RatioCalculator.calculateFcfPayoutRatio(financialsTtm)));
+    public List<SimpleDataElement> getPayoutRatioFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateFcfPayoutRatio(financialsTtm)));
     }
 
     @GetMapping("/dividend_paid")
-    public List<SimpleDataElement> getDividendPaid(@PathVariable("stock") String stock) {
-        return getIncomeData(stock, financialsTtm -> calculateDividendPaidPerShare(financialsTtm));
+    public List<SimpleDataElement> getDividendPaid(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> calculateDividendPaidPerShare(financialsTtm));
     }
 
     public double calculateDividendPaidPerShare(FinancialsTtm financialsTtm) {
@@ -618,9 +622,9 @@ public class FinancialsController {
     }
 
     @GetMapping("/altmanz")
-    public List<SimpleDataElement> getAltmanZ(@PathVariable("stock") String stock) {
+    public List<SimpleDataElement> getAltmanZ(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
-        List<SimpleDataElement> result = getIncomeData(company, financialsTtm -> AltmanZCalculator.calculateAltmanZScore(financialsTtm, financialsTtm.price));
+        List<SimpleDataElement> result = getIncomeData(company, quarterly, financialsTtm -> AltmanZCalculator.calculateAltmanZScore(financialsTtm, financialsTtm.price));
         if (company.financials.size() > 0) {
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), AltmanZCalculator.calculateAltmanZScore(company.financials.get(0), company.latestPrice)));
         }
@@ -797,16 +801,20 @@ public class FinancialsController {
         return result;
     }
 
-    private List<SimpleDataElement> getIncomeData(String stock, Function<FinancialsTtm, ? extends Number> dataSupplier) {
+    private List<SimpleDataElement> getIncomeData(String stock, boolean quarterly, Function<FinancialsTtm, ? extends Number> dataSupplier) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
 
-        return getIncomeData(company, dataSupplier);
+        return getIncomeData(company, quarterly, dataSupplier);
     }
 
-    private List<SimpleDataElement> getIncomeData(CompanyFinancials company, Function<FinancialsTtm, ? extends Number> dataSupplier) {
+    private List<SimpleDataElement> getIncomeData(CompanyFinancials company, boolean quarterly, Function<FinancialsTtm, ? extends Number> dataSupplier) {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
+            if (quarterly) {
+                financialsTtm = new FinancialsTtm(financialsTtm, false);
+
+            }
             Double value = Optional.ofNullable(dataSupplier.apply(financialsTtm)).map(a -> a.doubleValue()).orElse(null);
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value));
         }

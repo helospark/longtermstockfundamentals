@@ -62,6 +62,7 @@ function createChart(urlPath, title, chartOptions) {
   var animation = chartOptions.animation === undefined ? false : chartOptions.animation;
   var isLazyLoading = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
   var dated = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
+  var quaterlySupported = chartOptions.quarterlyEnabled === undefined ? true : chartOptions.quarterlyEnabled;
   
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
@@ -151,37 +152,38 @@ function createChart(urlPath, title, chartOptions) {
       chart.options.scales.y.type = value;
       chart.update();
   }
+  startAtZero = true;
   var startAtZeroButton=document.createElement("button");
   startAtZeroButton.innerHTML = "Zero based";
   startAtZeroButton.className="floatleft";
   startAtZeroButton.onclick=function() {
       isCurrentlyEnabled = (chart.options.scales.y.originalMin !== undefined);
-      if (isCurrentlyEnabled) {
-        startAtZeroButton.classList.remove("pressed");
-      } else {
-        startAtZeroButton.classList.add("pressed");
-      }
-      if (isCurrentlyEnabled) {
-        chart.options.scales.y.min = chart.options.scales.y.originalMin;
-        chart.options.scales.y.max = chart.options.scales.y.originalMax;
-        chart.options.scales.y.originalMin = undefined;
-        chart.options.scales.y.originalMax = undefined;
-      } else {
-        chart.options.scales.y.originalMin = chart.options.scales.y.min;
-        chart.options.scales.y.originalMax = chart.options.scales.y.max;
-        if (chart.options.scales.y.min > 0) {
-           chart.options.scales.y.min = 0;
-        }
-        if (chart.options.scales.y.max < 0) {
-          chart.options.scales.y.max = 0;
-        }
-      }
+
+      setStartZeroBased(isCurrentlyEnabled);
 
       chart.update();
   }
-  
   underChartBar.appendChild(button);
   underChartBar.appendChild(startAtZeroButton);
+  
+  var quarterly = false;
+  if (quaterlySupported) {
+    var quarterlyButton=document.createElement("button");
+    quarterlyButton.innerHTML = "Quarterly";
+    quarterlyButton.className="floatleft";
+    quarterlyButton.onclick=function() {
+        quarterly = !quarterly;
+        if (quarterly) {
+          quarterlyButton.classList.add("pressed");
+        } else {
+          quarterlyButton.classList.remove("pressed");
+        }
+        doUpdateChart();
+    }
+    underChartBar.appendChild(quarterlyButton);
+  }
+
+  
   
   if (chartOptions.slider !== undefined) {
     var sliderDiv = document.createElement("div")
@@ -199,29 +201,8 @@ function createChart(urlPath, title, chartOptions) {
     valueSpan.innerText = (chartOptions.slider.default + " " + chartOptions.slider.parameterName);
     
     optionSlider.oninput = function() {
-      
       valueSpan.innerText = (this.value + " " + chartOptions.slider.parameterName);
-    
-      let paramedUrl = '/' + stockToLoad + urlPath + "?" + chartOptions.slider.parameterName + "=" + this.value;
-  
-      fetch(paramedUrl)
-          .then(res => res.json())
-          .then(out => {
-                      for (index = 0; index < out.length; index++) {
-                          xValues[out.length - index - 1] = out[index].date;
-                          yValues[out.length - index - 1] = out[index].value;
-                      }
-                      
-                      max = Math.max.apply(Math, yValues);
-                      min = Math.min.apply(Math, yValues);
-                  
-
-                      chart.options.scales.y.min = min;
-                      chart.options.scales.y.max = max;
-                  
-                      chart.update();
-          })
-          .catch(err => { throw err });
+      doUpdateChart();
     }
     
     sliderDiv.appendChild(optionSlider);
@@ -271,18 +252,66 @@ function createChart(urlPath, title, chartOptions) {
   
       return ((elemTop <= docViewBottom) && (elemBottom >= docViewTop));
   }
+  
+  function setStartZeroBased(isCurrentlyEnabled) {
+      if (isCurrentlyEnabled) {
+        startAtZeroButton.classList.remove("pressed");
+      } else {
+        startAtZeroButton.classList.add("pressed");
+      }
+      if (isCurrentlyEnabled) {
+        chart.options.scales.y.min = chart.options.scales.y.originalMin;
+        chart.options.scales.y.max = chart.options.scales.y.originalMax;
+        chart.options.scales.y.originalMin = undefined;
+        chart.options.scales.y.originalMax = undefined;
+      } else {
+        chart.options.scales.y.originalMin = chart.options.scales.y.min;
+        chart.options.scales.y.originalMax = chart.options.scales.y.max;
+        if (chart.options.scales.y.min > 0) {
+           chart.options.scales.y.min = 0;
+        }
+        if (chart.options.scales.y.max < 0) {
+          chart.options.scales.y.max = 0;
+        }
+      }
+      if (chartOptions.zeroBasedChangeListener !== undefined) {
+        chartOptions.zeroBasedChangeListener();
+      }
+  }
 
-  function updateFunction() {
-    if (isScrolledIntoView(canvas) || !isLazyLoading) {
-        if (inView) { return; }
-        inView = true;
-        chart = new Chart(canvas, chartConfig);
-        let url = '/' + stockToLoad + urlPath;
+  function doUpdateChart() {
+        xValues.length = 0;
+        yValues.length = 0;
         
-        //console.log("Staring to load " + url);
-
-
-  fetch(url)
+        if (chart.data.datasets.length > 2) {
+          while (chart.data.datasets.length > 1) {
+            chart.data.datasets.shift();
+          }
+        }
+        
+        let url = '/' + stockToLoad + urlPath;
+        parameters = new Map();
+        
+        if (quarterly) {
+          parameters.set('quarterly', 'true');
+        }
+        if (chartOptions.slider !== undefined) {
+          parameters.set(chartOptions.slider.parameterName, $(optionSlider).val());
+        }
+        
+        parameterString = "";
+        i = 0;
+        for (let [key, value] of parameters) {
+          parameterString += (key + "=" + value);
+          if (i < parameters.length - 1) {
+            parameterString += "&";
+          }
+          ++i;
+        }
+        if (parameterString.length > 0) {
+          url += "?" + parameterString;
+        }
+        fetch(url)
           .then(res => res.json())
           .then(out => {
                       for (index = 0; index < out.length; index++) {
@@ -291,7 +320,6 @@ function createChart(urlPath, title, chartOptions) {
                       }
                       for (index = 0; index < additionalLabelsAtEnd.length; index++) {
                           xValues.push(additionalLabelsAtEnd[index]);
-                         // yValues.push(1.0);
                       }
                       max = Math.max.apply(Math, yValues);
                       min = Math.min.apply(Math, yValues);
@@ -308,39 +336,48 @@ function createChart(urlPath, title, chartOptions) {
 
                       if (!isNaN(minValueToSet)) {
                         slider.slider("option", "min", min);
-                        slider.slider('values', 0, minValueToSet);
+                        //slider.slider('values', 0, minValueToSet);
                         chart.options.scales.y.min = minValueToSet;
                       }
                       if (!isNaN(maxValueToSet)) {
                         slider.slider("option", "max", max);
-                        slider.slider('values', 1, maxValueToSet);
+                        //slider.slider('values', 1, maxValueToSet);
                         chart.options.scales.y.max = maxValueToSet;
                       }
-                      startAtZeroButton.onclick();
-                      //chart.update(); // onclick updates chart
+                      setStartZeroBased(false);
           }).then(out => {
                    if (chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts.length > 0) {
                      for (elementIndex in chartOptions.additionalCharts) {
                         var element = chartOptions.additionalCharts[elementIndex];
-                        addAdditionalChart(element);
+                        chartToUpdate = (chartOptions.additionalCharts.length == 1 && chart.data.datasets.length == 2) ? 0 : -1;
+                        addAdditionalChart(element, parameterString, chartToUpdate);
                      }
                    
                    }
                    if (chartOptions.runAfter !== undefined) {
                      chartOptions.runAfter();
                    }
+                   chart.update();
                    chart.options.animation = true; // enable animation after display
           })
           .catch(err => { throw err });
     
     
-    function addAdditionalChart(element) {
+    function addAdditionalChart(element, parameterString, chartToUpdate) {
           localUri  = '/' + stockToLoad + element.url;
+          
+          if (parameterString.length > 0) {
+            localUri += "?" + parameterString;
+          }
           fetch(localUri)
             .then(res => res.json())
             .then(out => {
                         var newXValues = [];
                         var newYValues = [];
+                        if (chartToUpdate != -1) {
+                          newYValues = chart.data.datasets[chartToUpdate].data;
+                          newXValues = chart.data.datasets[chartToUpdate].label;
+                        }
                         for (index = 0; index < out.length; index++) {
                             newXValues[out.length - index - 1] = out[index].date;
                             newYValues[out.length - index - 1] = out[index].value;
@@ -369,14 +406,16 @@ function createChart(urlPath, title, chartOptions) {
                         if (minValueToSet >= maxValueToSet) {
                            minValueToSet = maxValueToSet + 1.0;
                         }
-                        chart.data.datasets.unshift({
-                          pointRadius: 2,
-                          borderColor: colorPaletteLine[chart.data.datasets.length % colorPalette.length],
-                          backgroundColor: colorPalette[chart.data.datasets.length % colorPalette.length],
-                          data: newYValues,
-                          pointHitRadius: 300,
-                          label: element.label
-                        });
+                        if (chartToUpdate == -1) {
+                          chart.data.datasets.unshift({
+                            pointRadius: 2,
+                            borderColor: colorPaletteLine[chart.data.datasets.length % colorPalette.length],
+                            backgroundColor: colorPalette[chart.data.datasets.length % colorPalette.length],
+                            data: newYValues,
+                            pointHitRadius: 300,
+                            label: element.label
+                          });
+                        }
                     
                         if (!isNaN(minValueToSet)) {
                           slider.slider("option", "min", min);
@@ -392,6 +431,16 @@ function createChart(urlPath, title, chartOptions) {
             })
             .catch(err => { throw err });
     }
+  }
+
+  function updateFunction() {
+    if (isScrolledIntoView(canvas) || !isLazyLoading) {
+        if (inView) { return; }
+        inView = true;
+        chart = new Chart(canvas, chartConfig);
+        
+        //console.log("Staring to load " + url);
+        doUpdateChart();
   }};
 
 

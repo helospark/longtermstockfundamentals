@@ -180,16 +180,18 @@ createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%
 
 createSeparator("Price ratios")
 createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50});
-createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100});
+createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false});
 createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {
   tooltip: 'Trailing PEG is the PE ratio divided by the median past [1..7] year annual EPS growth. Generally above 2 is expensive, below 1 is cheap.',
   suggestedMin: -2,
-  suggestedMax: 5});
+  suggestedMax: 5,
+  quarterlyEnabled: false});
 
 
 createChart("/financials/past_cape_to_growth_ratio", "Trailing PEG ratio variations", {
   suggestedMin: -2,
   suggestedMax: 5,
+  quarterlyEnabled: false,
   label: "CAPEG",
   tooltip: 'Variations of trailing PEG. CAPEG is the 4 year Shiller PE divided by the past [1..7] year annual EPS growth. The trailing revenue PEG is the same as the trailing PEG, but uses revenue growth instead of EPS growth.',
   additionalCharts: [
@@ -203,32 +205,33 @@ createChart("/financials/ev_over_ebitda", "EV over ebitda", {});
 createChart("/financials/p2b_ratio", "Price to Book ratio", {
   suggestedMin: 0,
   suggestedMax: 15,
+  quarterlyEnabled: false,
   label: "price / book value"
 });
-createChart("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5});
+createChart("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5, quarterlyEnabled: false});
 
 createAd();
 
 createSeparator("Debt information")
 
-createChart("/financials/cash_flow_to_debt", "Operating cash flow debt coverage", {unit: '%'});
-createChart("/financials/short_term_coverage_ratio", "Operating cash flow short term debt coverage", {unit: '%'});
-createChart("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {});
-createChart("/financials/altmanz", "Altman Z score", {});
+createChart("/financials/cash_flow_to_debt", "Operating cash flow debt coverage", {unit: '%', quarterlyEnabled: false});
+createChart("/financials/short_term_coverage_ratio", "Operating cash flow short term debt coverage", {unit: '%', quarterlyEnabled: false});
+createChart("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {quarterlyEnabled: false});
+createChart("/financials/altmanz", "Altman Z score", {quarterlyEnabled: false});
 createChart("/financials/interest_expense", "Interest expense", {});
-createChart("/financials/interest_rate", "Interest rate", {unit: '%'});
+createChart("/financials/interest_rate", "Interest rate", {unit: '%', quarterlyEnabled: false});
 createChart("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
 
 
 
 createSeparator("Assets")
-createChart("/financials/current_assets", "Current assets vs liabilities", {label: "Current assets", additionalCharts: [
+createChart("/financials/current_assets", "Current assets vs liabilities", {label: "Current assets", quarterlyEnabled: false, additionalCharts: [
   {
     "url": "/financials/current_liabilities",
     "label": "Current liabilities"
   }
 ]});
-createChart("/financials/total_assets", "Total assets vs liabilities", {label: "Total assets", additionalCharts: [
+createChart("/financials/total_assets", "Total assets vs liabilities", {label: "Total assets", quarterlyEnabled: false, additionalCharts: [
   {
     "url": "/financials/total_liabilities",
     "label": "Total liabilities"
@@ -236,6 +239,7 @@ createChart("/financials/total_assets", "Total assets vs liabilities", {label: "
 ]});
 createChart("/financials/intangible_assets_percent", "Intangible assets", {
    unit: '%',
+   quarterlyEnabled: false,
    label: "Total intangible assets to total assets",
    additionalCharts: [
    {
@@ -243,17 +247,17 @@ createChart("/financials/intangible_assets_percent", "Intangible assets", {
      "label": "Goodwill to total assets"
    }
 ]});
-createChart("/financials/cash", "Cash and cash equivalents", {});
+createChart("/financials/cash", "Cash and cash equivalents", {quarterlyEnabled: false});
 
-//createChart("/financials/non_current_assets", "Non current assets", {});
-//createChart("/financials/long_term_debt", "Long term debt", {});
+//createChart("/financials/non_current_assets", "Non current assets", {quarterlyEnabled: false});
+//createChart("/financials/long_term_debt", "Long term debt", {quarterlyEnabled: false});
 
 createAd();
 
 createSeparator("Return ratios")
-createChart("/financials/roic", "Return on invested capital", {unit: '%'});
-createChart("/financials/return_on_assets", "Return on assets", {unit: '%'});
-createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%'});
+createChart("/financials/roic", "Return on invested capital", {unit: '%', quarterlyEnabled: false});
+createChart("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false});
+createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false});
 
 
 createSeparator("Yields")
@@ -278,12 +282,12 @@ createChart("/financials/stock_compensation_per_net_revenue", "Stock compensatio
 createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
 createChart("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%'});
 createChart("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
-createChart("/financials/pietrosky_score", "Pietrosky score", {});
+createChart("/financials/pietrosky_score", "Pietrosky score", {quarterlyEnabled: false});
 
 
 
 createSeparator("Dividend")
-createChart("/financials/dividend_yield", "Dividend yield", {unit: '%', suggestedMin: -2, suggestedMax: 50});
+createChart("/financials/dividend_yield", "Dividend yield", {unit: '%', suggestedMin: -2, suggestedMax: 50, quarterlyEnabled: false});
 createChart("/financials/dividend_payout_ratio", "Dividend payout ratio", {unit: '%', suggestedMin: -2, suggestedMax: 150});
 createChart("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150});
 createChart("/financials/dividend_paid", "Dividend paid", {});
@@ -293,11 +297,11 @@ createAd();
 
 
 createSeparator("Growth")
-createChart("/financials/eps_growth_rate", "EPS growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/eps_growth_rate", "EPS growth annual", {type: 'bar', unit: '%', quarterlyEnabled: false});
 createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS annual growth x year intervals", {
   type: 'bar',
   unit: '%',
-  animation: true,
+  quarterlyEnabled: false,
   tooltip: 'Shows the annual EPS growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized EPS growth between 2013 and 2020.',
   slider: {
     id: "eps_growth_year_slider",
@@ -307,11 +311,11 @@ createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS annual growth x y
     default: 7
 }});
 
-createChart("/financials/fcf_growth_rate", "FCF growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/fcf_growth_rate", "FCF growth annual", {type: 'bar', unit: '%', quarterlyEnabled: false});
 createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x year intervals", {
   type: 'bar',
   unit: '%',
-  animation: true,
+  quarterlyEnabled: false,
   tooltip: 'Shows the annual FCF/share growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized FCF/share growth between 2013 and 2020.',
   slider: {
     id: "fcf_growth_year_slider",
@@ -321,13 +325,13 @@ createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x y
     default: 7
 }});
 
-createChart("/financials/revenue_growth_rate", "Revenue growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/revenue_growth_rate", "Revenue growth annual", {type: 'bar', unit: '%', quarterlyEnabled: false,});
 
 createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {
       type: 'bar',
       unit: '%',
-      animation: true,
       lazyLoad: false,
+      quarterlyEnabled: false,
       tooltip: 'Shows the annual revenue growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized revenue growth between 2013 and 2020.',
       slider: {
         id: "revenue_growth_rate_xyr_moving_avg_slider",
@@ -336,23 +340,24 @@ createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual gr
         max: 10,
         default: 7
 }});
-createChart("/financials/share_count_growth_rate", "Share count growth annual", {type: 'bar', unit: '%'});
-createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type: 'bar', unit: '%'});
+createChart("/financials/share_count_growth_rate", "Share count growth annual", {type: 'bar', unit: '%', quarterlyEnabled: false});
+createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type: 'bar', unit: '%', quarterlyEnabled: false});
 
 createAd();
 
 createSeparator("DCF")
-createChart("/financials/eps_dcf", "EPS DCF", {});
-createChart("/financials/fcf_dcf", "FCF DCF", {});
-createChart("/financials/dividend_dcf", "Dividend DCF", {});
-createChart("/financials/cash_per_share", "Cash per share", {});
-createChart("/financials/graham_number", "Graham number", {});
+createChart("/financials/eps_dcf", "EPS DCF", {quarterlyEnabled: false});
+createChart("/financials/fcf_dcf", "FCF DCF", {quarterlyEnabled: false});
+createChart("/financials/dividend_dcf", "Dividend DCF", {quarterlyEnabled: false});
+createChart("/financials/cash_per_share", "Cash per share", {quarterlyEnabled: false});
+createChart("/financials/graham_number", "Graham number", {quarterlyEnabled: false});
 
 createAd();
 
 createSeparator("Price")
 createChart("/financials/price", "Price vs calculated fair value", {
    label: "price",
+   quarterlyEnabled: false,
    tooltip: 'Calculated fair value is the value you get with the default form on the calculator page.',
    additionalCharts: [
   {
@@ -362,13 +367,14 @@ createChart("/financials/price", "Price vs calculated fair value", {
 ]});
 createChart("/financials/return_with_reinvested_dividend", "Total returns", {
   label: "Returns with reinvested dividends",
+  quarterlyEnabled: false,
   tooltip: 'Returns if each dividend received is reinvested into more stocks (assumes no transaction fee or tax)',
   additionalCharts: [{
     "url": "/financials/price",
     "label": "price"
   }
 ]});
-createChart("/financials/price_growth_rate", "Price growth", {type: 'bar'});
+createChart("/financials/price_growth_rate", "Price growth", {type: 'bar', quarterlyEnabled: false});
 
 createAd();
 
