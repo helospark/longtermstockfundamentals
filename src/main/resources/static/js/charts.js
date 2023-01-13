@@ -261,7 +261,8 @@ createChart("/financials/return_on_tangible_assets", "Return on tangible assets"
 
 
 createSeparator("Yields")
-createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, suggestedMax: 50, unit: '%', label: "EPS yield", additionalCharts: [
+createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, suggestedMax: 50, unit: '%', label: "EPS yield", quarterlyEnabled: false,
+ additionalCharts: [
   {
     "url": "/financials/fcf_yield",
     "label": "Free cash flow yield"
@@ -276,7 +277,7 @@ createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, s
 
 createSeparator("Other")
 createChart("/financials/share_count", "Share count", {});
-createChart("/financials/stock_compensation", "Stock compensation", {});
+createChart("/financials/stock_compensation", "Stock compensation", {quarterlyEnabled: false});
 createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
 createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
 createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
@@ -290,7 +291,7 @@ createSeparator("Dividend")
 createChart("/financials/dividend_yield", "Dividend yield", {unit: '%', suggestedMin: -2, suggestedMax: 50, quarterlyEnabled: false});
 createChart("/financials/dividend_payout_ratio", "Dividend payout ratio", {unit: '%', suggestedMin: -2, suggestedMax: 150});
 createChart("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150});
-createChart("/financials/dividend_paid", "Dividend paid", {});
+createChart("/financials/dividend_paid", "Dividend paid", {quarterlyEnabled: false});
 createChart("/financials/dividend_yield_per_current_price", "Dividend yield for invest price", {unit: '%', suggestedMin: -2, suggestedMax: 200});
 
 createAd();

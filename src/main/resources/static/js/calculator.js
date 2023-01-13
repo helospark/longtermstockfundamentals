@@ -102,7 +102,6 @@
   }
 
   function updateCalculation() {
-      console.log("Updating calc");
       revenue = Number($("#revenue").val()) * 1000000;
       startGrowth = Number($("#startGrowth").val()) / 100.0 + 1.0;
       endGrowth = Number($("#endGrowth").val()) / 100.0 + 1.0;
@@ -171,11 +170,18 @@
                + "price in ten years: <b>" + currencySymbol + endPrice.toFixed(2) + "</b>)");
       }
       
-
-      updateChart(chart, epses);
-      updateChart(revChart, revenues);
-      updateChart(marginChart, margins);
-      updateChart(shareCountChart, shareCounts);
+      if (chart !== undefined) {
+        updateChart(chart, epses);
+      }
+      if (revChart !== undefined) {
+        updateChart(revChart, revenues);
+      }
+      if (marginChart !== undefined) {
+        updateChart(marginChart, margins);
+      }
+      if (shareCountChart !== undefined) {
+        updateChart(shareCountChart, shareCounts);
+      }
   }
 
   $('#dcf_form input').each(
@@ -202,11 +208,11 @@
           });
 
 
-
+  console.log(dates);
 
   chart=createChart("/financials/eps", "EPS", {
        additionalLabelsAtEnd: dates,
-       lazyLoad: false,
+       lazyLoading: false,
        label: "past",
        quarterlyEnabled: false,
        runAfter: updateCalculation,
@@ -215,7 +221,7 @@
 
     revChart=createChart("/financials/revenue", "revenue", {
          additionalLabelsAtEnd: dates,
-         lazyLoad: false,
+         lazyLoading: false,
          label: "past",
          quarterlyEnabled: false,
          runAfter: updateCalculation,
@@ -228,7 +234,7 @@
          runAfter: updateCalculation,
          zeroBasedChangeListener: updateCalculation,
          quarterlyEnabled: false,
-         lazyLoad: false
+         lazyLoading: false
     });
     
     shareCountChart = createChart("/financials/share_count", "Share count", {
@@ -239,11 +245,12 @@
          quarterlyEnabled: false,
          lazyLoad: false
      });
+     
     
     createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {
       type: 'bar',
       unit: '%',
-      lazyLoad: false,
+      lazyLoading: false,
       quarterlyEnabled: false,
       slider: {
         id: "revenue_growth_rate_xyr_moving_avg_slider",
@@ -253,3 +260,4 @@
         default: 7
     }});
     
+    updateCalculation();

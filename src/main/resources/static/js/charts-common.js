@@ -61,7 +61,8 @@ function createChart(urlPath, title, chartOptions) {
   var legendDisplay = chartOptions.additionalCharts === undefined ? false : true;
   var animation = chartOptions.animation === undefined ? false : chartOptions.animation;
   var isLazyLoading = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
-  var dated = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
+  var dated = chartOptions.dated === undefined ? true : chartOptions.dated;
+  var defaultQuarterlyEnabled = chartOptions.defaultQuarterlyEnabled === undefined ? false : chartOptions.defaultQuarterlyEnabled;
   var quaterlySupported = chartOptions.quarterlyEnabled === undefined ? true : chartOptions.quarterlyEnabled;
   
   var colorPaletteLine = constColorPaletteLine;
@@ -135,8 +136,10 @@ function createChart(urlPath, title, chartOptions) {
       }
   }
   
-  var chart;// = new Chart(canvas, chartConfig);
-  
+  var chart;
+  if (!isLazyLoading) {
+    chart = new Chart(canvas, chartConfig);
+  }
   
   var button=document.createElement("button");
   button.innerHTML = "Logarithmic";
@@ -162,15 +165,22 @@ function createChart(urlPath, title, chartOptions) {
       setStartZeroBased(isCurrentlyEnabled);
 
       chart.update();
+
+      if (chartOptions.zeroBasedChangeListener !== undefined) {
+        chartOptions.zeroBasedChangeListener();
+      }
   }
   underChartBar.appendChild(button);
   underChartBar.appendChild(startAtZeroButton);
   
-  var quarterly = false;
+  var quarterly = defaultQuarterlyEnabled;
   if (quaterlySupported) {
     var quarterlyButton=document.createElement("button");
     quarterlyButton.innerHTML = "Quarterly";
     quarterlyButton.className="floatleft";
+    if (quarterly) {
+      quarterlyButton.classList.add("pressed");
+    }
     quarterlyButton.onclick=function() {
         quarterly = !quarterly;
         if (quarterly) {
@@ -274,9 +284,6 @@ function createChart(urlPath, title, chartOptions) {
           chart.options.scales.y.max = 0;
         }
       }
-      if (chartOptions.zeroBasedChangeListener !== undefined) {
-        chartOptions.zeroBasedChangeListener();
-      }
   }
 
   function doUpdateChart() {
@@ -345,6 +352,7 @@ function createChart(urlPath, title, chartOptions) {
                         chart.options.scales.y.max = maxValueToSet;
                       }
                       setStartZeroBased(false);
+                      chart.update();
           }).then(out => {
                    if (chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts.length > 0) {
                      for (elementIndex in chartOptions.additionalCharts) {
@@ -354,10 +362,10 @@ function createChart(urlPath, title, chartOptions) {
                      }
                    
                    }
+                   chart.update();
                    if (chartOptions.runAfter !== undefined) {
                      chartOptions.runAfter();
                    }
-                   chart.update();
                    chart.options.animation = true; // enable animation after display
           })
           .catch(err => { throw err });
@@ -437,9 +445,9 @@ function createChart(urlPath, title, chartOptions) {
     if (isScrolledIntoView(canvas) || !isLazyLoading) {
         if (inView) { return; }
         inView = true;
-        chart = new Chart(canvas, chartConfig);
-        
-        //console.log("Staring to load " + url);
+        if (chart == null) {
+          chart = new Chart(canvas, chartConfig);
+        }
         doUpdateChart();
   }};
 

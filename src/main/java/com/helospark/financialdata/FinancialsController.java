@@ -813,7 +813,6 @@ public class FinancialsController {
             FinancialsTtm financialsTtm = company.financials.get(i);
             if (quarterly) {
                 financialsTtm = new FinancialsTtm(financialsTtm, false);
-
             }
             Double value = Optional.ofNullable(dataSupplier.apply(financialsTtm)).map(a -> a.doubleValue()).orElse(null);
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value));
