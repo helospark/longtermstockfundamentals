@@ -279,15 +279,15 @@ public class DataLoader {
             //    System.out.println("Rejected: " + symbol);
             // return new CompanyFinancials();
         }
-        if (result.isEmpty()) {
-            return new CompanyFinancials(0.0, 0.0, latestDate, result, profile, dataQualityIssue);
-        }
-
         double priceOrigCurrency = prices.isEmpty() ? 0 : prices.get(0).close;
         LocalDate latestPriceDate = prices.isEmpty() ? LocalDate.now() : prices.get(0).getDate();
         double price = convertCurrencyIfNeeded(priceOrigCurrency, result.get(0), profile);
         double priceUsd = convertFx(priceOrigCurrency, profile.currency, "USD", latestPriceDate, true).orElse(price);
-        return new CompanyFinancials(price, priceUsd, latestDate, result, profile, dataQualityIssue);
+        if (result.isEmpty()) {
+            return new CompanyFinancials(price, priceUsd, priceOrigCurrency, latestDate, result, profile, dataQualityIssue);
+        }
+
+        return new CompanyFinancials(price, priceUsd, priceOrigCurrency, latestDate, result, profile, dataQualityIssue);
     }
 
     private static double convertCurrencyIfNeeded(double price, FinancialsTtm currentTtm, Profile profile) {
@@ -463,9 +463,9 @@ public class DataLoader {
             if (date.compareTo(LocalDate.of(2000, 1, 1)) < 0) {
                 date = LocalDate.of(2000, 1, 1);
             }
-            if (date.compareTo(LocalDate.of(2022, 12, 30)) > 0) {
-                date = LocalDate.of(2022, 12, 30);
-            }
+            //            if (date.compareTo(LocalDate.of(2022, 12, 30)) > 0) {
+            //                date = LocalDate.of(2022, 12, 30);
+            //            }
         }
         if (fromCurrency == null || toCurrency == null) {
             return Optional.empty();

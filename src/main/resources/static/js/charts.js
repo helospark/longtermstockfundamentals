@@ -276,6 +276,7 @@ createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, s
 
 
 createSeparator("Other")
+createChart("/financials/market_cap_usd", "Market cap $", {quarterlyEnabled: false, label: '$'});
 createChart("/financials/share_count", "Share count", {});
 createChart("/financials/stock_compensation", "Stock compensation", {quarterlyEnabled: false});
 createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});

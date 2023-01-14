@@ -1,6 +1,7 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
 import java.nio.ByteBuffer;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import com.helospark.financialdata.management.watchlist.WatchlistBadRequestExcep
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.domain.CalculatorParameters;
 import com.helospark.financialdata.management.watchlist.domain.WatchListResponse;
+import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
@@ -77,12 +79,13 @@ public class WatchlistService {
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
+                double latestPriceInTradingCurrency = DataLoader.convertFx(atGlance.latestStockPriceUsd, "USD", "tradingCurrency", LocalDate.now(), false).orElse(atGlance.latestStockPriceUsd);
                 Map<String, String> portfolioElement = new HashMap<>();
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
-                portfolioElement.put(CURRENT_PRICE_COL, formatString(atGlance.latestStockPrice));
+                portfolioElement.put(CURRENT_PRICE_COL, formatString(latestPriceInTradingCurrency));
                 portfolioElement.put(PRICE_TARGET_COL, formatString(currentElement.targetPrice));
-                portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(atGlance.latestStockPrice, currentElement.targetPrice)));
+                portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
                 portfolioElement.put(TAGS_COL, formatTags(currentElement.tags));
                 portfolioElement.put(NOTES_COL, currentElement.notes);
 

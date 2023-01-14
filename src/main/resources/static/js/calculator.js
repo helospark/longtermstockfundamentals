@@ -1,6 +1,4 @@
 
-  var currencySymbol = "";
-
   function pad(num, size) {
       num = num.toString();
       while (num.length < size) num = "0" + num;
@@ -113,6 +111,9 @@
       shareCount = Number($("#shareCount").val()) * 1000;
       endMultiple = Number($("#endMultiple").val());
       currentPrice = Number($("#current-price").text());
+      currentPriceInTradingCurrency = Number($("#current-price-in-trading-currency").text());
+      exchangeRate = Number($("#reporting-currency-to-trading-currency-exchange-rate").text());
+      currencySymbol = $("#trading-currency-symbol").text();
       
       years = 10;
       
@@ -165,9 +166,9 @@
          endPrice = (eps * endMultiple);
          expectedGrowth = Math.pow(epsSum / currentPrice, (1.0 / years)) - 1.0;
          
-         $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + value.toFixed(2) + "</span>");
-         $("#current_price").html("Current price: " + currencySymbol + currentPrice.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
-               + "price in ten years: <b>" + currencySymbol + endPrice.toFixed(2) + "</b>)");
+         $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + convertFx(value, exchangeRate).toFixed(2) + "</span>");
+         $("#current_price").html("Current price: " + currencySymbol + currentPriceInTradingCurrency.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
+               + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>)");
       }
       
       if (chart !== undefined) {
@@ -183,6 +184,10 @@
         updateChart(shareCountChart, shareCounts);
       }
   }
+  
+  function convertFx(a, fx) {
+    return a*fx;
+  }
 
   $('#dcf_form input').each(
       function(index) {  
@@ -196,19 +201,6 @@
   var stock = document.getElementById("stock").innerText;
   var stockToLoad = document.getElementById("stock").innerText;
 
-
-  let url = '/' + stockToLoad + "/financials/profile";
-  fetch(url)
-          .then(res => res.json())
-          .then(out => {
-             if (out.currencySymbol !== undefined) {
-               currencySymbol = out.currencySymbol;
-               updateCalculation();
-             }
-          });
-
-
-  console.log(dates);
 
   chart=createChart("/financials/eps", "EPS", {
        additionalLabelsAtEnd: dates,

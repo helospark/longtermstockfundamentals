@@ -1,10 +1,14 @@
 package com.helospark.financialdata;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Currency;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,6 +37,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @Controller
 @RequestMapping("/")
 public class ViewController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ViewController.class);
     @Autowired
     private SymbolAtGlanceProvider symbolIndexProvider;
     @Autowired
@@ -215,12 +220,34 @@ public class ViewController {
                     model.addAttribute("endShareChange", String.format("%.2f", endShareCountGrowth));
                     model.addAttribute("endMultiple", String.format("%.0f", endMultiple));
                     model.addAttribute("discount", String.format("%.0f", discount));
+                    var tradingCurrency = Optional.ofNullable(company.profile.currency).orElse("");
+                    var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
+                    if (tradingCurrency.equals(reportedCurrency)) {
+                        model.addAttribute("reportingCurrencyToTradingCurrencyRate", 1.0);
+                    } else {
+                        LocalDate now = LocalDate.now();
+                        Optional<Double> exchangeRate = DataLoader.convertFx(1.0, reportedCurrency, tradingCurrency, now, true);
+                        if (!exchangeRate.isPresent()) {
+                            LOGGER.error("Cannot convert exchange rates {}->{} at date {}", reportedCurrency, tradingCurrency, now);
+                        }
+                        model.addAttribute("reportingCurrencyToTradingCurrencyRate", exchangeRate.orElse(1.0));
+                    }
                 }
 
                 model.addAttribute("latestPrice", company.latestPrice);
+                model.addAttribute("latestPriceTradingCurrency", company.latestPriceTradingCurrency);
+                model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
             }
 
             return "calculator";
+        }
+    }
+
+    public static String getCurrencySymbol(String currencyName) {
+        try {
+            return Currency.getInstance(currencyName).getSymbol();
+        } catch (Exception e) {
+            return "";
         }
     }
 

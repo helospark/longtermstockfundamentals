@@ -93,6 +93,11 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.revenue));
     }
 
+    @GetMapping("/market_cap_usd")
+    public List<SimpleDataElement> getMarketCapUsd(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> financialsTtm.incomeStatementTtm.weightedAverageShsOut * financialsTtm.priceUsd);
+    }
+
     @GetMapping("/pe_ratio")
     public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
