@@ -73,7 +73,7 @@ public class DcfCalculator {
 
         double result = 0.0;
 
-        result += financial.keyMetrics.cashPerShare;
+        result += (double) financial.balanceSheet.cashAndShortTermInvestments / financial.incomeStatementTtm.weightedAverageShsOut;
 
         if (pastGrowth.isPresent()) {
             double startMultiplier = 0.7;

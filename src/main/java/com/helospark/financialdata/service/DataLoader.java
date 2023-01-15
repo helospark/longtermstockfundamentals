@@ -44,7 +44,6 @@ import com.helospark.financialdata.domain.FxRatesResponse;
 import com.helospark.financialdata.domain.HistoricalPrice;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.IncomeStatement;
-import com.helospark.financialdata.domain.KeyMetrics;
 import com.helospark.financialdata.domain.NoTtmNeeded;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.TresuryRate;
@@ -124,14 +123,12 @@ public class DataLoader {
             newTtm.cashFlow = copyFields(latestReport.cashFlow, new CashFlow());
             newTtm.cashFlowTtm = copyFields(latestReport.cashFlowTtm, new CashFlow());
             newTtm.balanceSheet = copyFields(latestReport.balanceSheet, new BalanceSheet());
-            newTtm.keyMetrics = copyFields(latestReport.keyMetrics, new KeyMetrics());
 
             newTtm.incomeStatement.date = newTtm.date;
             newTtm.incomeStatementTtm.date = newTtm.date;
             newTtm.cashFlow.date = newTtm.date;
             newTtm.cashFlowTtm.date = newTtm.date;
             newTtm.balanceSheet.date = newTtm.date;
-            newTtm.keyMetrics.date = newTtm.date;
 
             List<FinancialsTtm> newFinancialsList = new ArrayList<>();
             newFinancialsList.add(newTtm);
@@ -182,7 +179,6 @@ public class DataLoader {
         List<CashFlow> cashFlow = readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
         List<HistoricalPriceElement> historicalPrice = readHistoricalFile(symbol, "historical-price.json");
         List<EnterpriseValue> enterpriseValues = readFinancialFile(symbol, "enterprise-values.json", EnterpriseValue.class);
-        List<KeyMetrics> keyMetrics = readFinancialFile(symbol, "key-metrics.json", KeyMetrics.class);
         List<Profile> profiles = readFinancialFile(symbol, "profile.json", Profile.class);
 
         Profile profile;
@@ -196,7 +192,7 @@ public class DataLoader {
             profile.currencySymbol = getCurrencySymbol(incomeStatement);
         }
 
-        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, enterpriseValues, historicalPrice, keyMetrics, profile);
+        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, enterpriseValues, historicalPrice, profile);
 
         return result;
     }
@@ -210,7 +206,7 @@ public class DataLoader {
     }
 
     private static CompanyFinancials createToTtm(String symbol, List<BalanceSheet> balanceSheets, List<IncomeStatement> incomeStatements, List<CashFlow> cashFlows,
-            List<EnterpriseValue> enterpriseValue, List<HistoricalPriceElement> prices, List<KeyMetrics> keyMetrics, Profile profile) {
+            List<EnterpriseValue> enterpriseValue, List<HistoricalPriceElement> prices, Profile profile) {
         List<FinancialsTtm> result = new ArrayList<>();
 
         if (incomeStatements.isEmpty()) {
@@ -233,9 +229,8 @@ public class DataLoader {
             int cashFlowIndex = findIndexWithOrBeforeDate(cashFlows, incomeStatementDate);
             int balanceSheetIndex = findIndexWithOrBeforeDate(balanceSheets, incomeStatementDate);
             int historicalPriceIndex = findIndexWithOrBeforeDateSafe(enterpriseValue, incomeStatementDate);
-            int keyMetricsIndex = findIndexWithOrBeforeDateSafe(keyMetrics, incomeStatementDate);
 
-            if (cashFlowIndex == -1 || balanceSheetIndex == -1 || keyMetricsIndex == -1 ||
+            if (cashFlowIndex == -1 || balanceSheetIndex == -1 ||
                     cashFlowIndex + 3 >= cashFlows.size() ||
                     balanceSheetIndex + 3 >= balanceSheets.size()) {
                 break;
@@ -258,13 +253,12 @@ public class DataLoader {
             currentTtm.date = incomeStatementDate;
             currentTtm.balanceSheet = balanceSheets.get(balanceSheetIndex);
             currentTtm.cashFlow = cashFlows.get(cashFlowIndex);
-            currentTtm.keyMetrics = keyMetrics.get(keyMetricsIndex);
             currentTtm.incomeStatement = incomeStatements.get(i);
             currentTtm.cashFlowTtm = calculateTtm(cashFlows, cashFlowIndex, new CashFlow());
             currentTtm.incomeStatementTtm = calculateTtm(incomeStatements, i, new IncomeStatement());
 
-            price = convertCurrencyIfNeeded(price, currentTtm, profile);
-            currentTtm.price = price;
+            currentTtm.priceTradingCurrency = price;
+            currentTtm.price = convertCurrencyIfNeeded(price, currentTtm, profile);
             currentTtm.priceUsd = convertFx(price, profile.currency, "USD", currentTtm.incomeStatement.getDate(), true).orElse(price);
 
             result.add(currentTtm);
@@ -281,7 +275,7 @@ public class DataLoader {
         }
         double priceOrigCurrency = prices.isEmpty() ? 0 : prices.get(0).close;
         LocalDate latestPriceDate = prices.isEmpty() ? LocalDate.now() : prices.get(0).getDate();
-        double price = convertCurrencyIfNeeded(priceOrigCurrency, result.get(0), profile);
+        double price = result.isEmpty() ? 0 : convertCurrencyIfNeeded(priceOrigCurrency, result.get(0), profile);
         double priceUsd = convertFx(priceOrigCurrency, profile.currency, "USD", latestPriceDate, true).orElse(price);
         if (result.isEmpty()) {
             return new CompanyFinancials(price, priceUsd, priceOrigCurrency, latestDate, result, profile, dataQualityIssue);
@@ -362,7 +356,7 @@ public class DataLoader {
         }
     }
 
-    private static List<HistoricalPriceElement> readHistoricalFile(String symbol, String fileName) {
+    public static List<HistoricalPriceElement> readHistoricalFile(String symbol, String fileName) {
         File dataFile = new File(BASE_FOLDER + "/fundamentals/" + symbol + "/" + fileName);
         return loadHistoricalFile(dataFile);
     }

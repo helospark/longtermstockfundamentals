@@ -1,7 +1,6 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
 import java.nio.ByteBuffer;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,7 +26,6 @@ import com.helospark.financialdata.management.watchlist.WatchlistBadRequestExcep
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.domain.CalculatorParameters;
 import com.helospark.financialdata.management.watchlist.domain.WatchListResponse;
-import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
@@ -51,6 +49,8 @@ public class WatchlistService {
     private ObjectMapper objectMapper;
     @Autowired
     private SymbolAtGlanceProvider symbolIndexProvider;
+    @Autowired
+    private LatestPriceProvider latestPriceProvider;
 
     // Only for single server setup
     Cache<String, Optional<Watchlist>> watchlistCache = Caffeine.newBuilder()
@@ -79,7 +79,7 @@ public class WatchlistService {
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
-                double latestPriceInTradingCurrency = DataLoader.convertFx(atGlance.latestStockPriceUsd, "USD", "tradingCurrency", LocalDate.now(), false).orElse(atGlance.latestStockPriceUsd);
+                double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(ticker);
                 Map<String, String> portfolioElement = new HashMap<>();
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));

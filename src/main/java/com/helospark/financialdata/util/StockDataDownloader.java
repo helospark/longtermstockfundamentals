@@ -291,6 +291,7 @@ public class StockDataDownloader {
 
         double latestPrice = (offsetYeari == 0 ? company.latestPrice : company.financials.get(index).price);
         double latestPriceUsd = (offsetYeari == 0 ? company.latestPriceUsd : company.financials.get(index).priceUsd);
+        double latestPriceTradingCurrency = (offsetYeari == 0 ? company.latestPriceTradingCurrency : company.financials.get(index).price);
 
         data.actualDate = actualDate;
         data.marketCapUsd = (latestPriceUsd * financial.incomeStatementTtm.weightedAverageShsOut) / 1_000_000.0;
@@ -426,7 +427,7 @@ public class StockDataDownloader {
         // https://financialmodelingprep.com/api/v3/enterprise-values/AAPL?limit=40&apikey=API_KEY
         downloadUrlIfNeeded("fundamentals/" + symbol + "/enterprise-values.json", "/v3/enterprise-values/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/key-metrics/AAPL?limit=40&apikey=API_KEY
-        downloadUrlIfNeeded("fundamentals/" + symbol + "/key-metrics.json", "/v3/key-metrics/" + symbol, queryMap);
+        //downloadUrlIfNeeded("fundamentals/" + symbol + "/key-metrics.json", "/v3/key-metrics/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/historical-price-full/AAPL?serietype=line&apikey=API_KEY
         downloadUrlIfNeeded("fundamentals/" + symbol + "/historical-price.json", "/v3/historical-price-full/" + symbol, Map.of("serietype", "line"));
         // https://financialmodelingprep.com/api/v3/profile/AAPL?apikey=API_KEY

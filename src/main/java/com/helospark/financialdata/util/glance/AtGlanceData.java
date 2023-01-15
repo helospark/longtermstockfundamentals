@@ -8,7 +8,6 @@ import com.helospark.financialdata.management.screener.annotation.ScreenerElemen
 public class AtGlanceData {
     public String companyName;
     public String symbol;
-    public String tradingCurrency;
     public double latestStockPrice;
     public double latestStockPriceUsd;
     public long shareCount;

@@ -27,7 +27,9 @@ import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
+import com.helospark.financialdata.service.EnterpriseValueCalculator;
 import com.helospark.financialdata.service.FedRateProvider;
+import com.helospark.financialdata.service.GrahamNumberCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
@@ -571,17 +573,18 @@ public class FinancialsController {
 
     @GetMapping("/cash_per_share")
     public List<SimpleDataElement> getCashPerShare(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.keyMetrics.cashPerShare);
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> (double) financialsTtm.balanceSheet.cashAndShortTermInvestments / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
     }
 
     @GetMapping("/ev_over_ebitda")
     public List<SimpleDataElement> getEvOverEbitda(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.keyMetrics.enterpriseValue / financialsTtm.incomeStatementTtm.ebitda);
+        return getIncomeData(stock, quarterly, financialsTtm -> EnterpriseValueCalculator.calculateEv(financialsTtm, financialsTtm.price) / financialsTtm.incomeStatementTtm.ebitda);
     }
 
     @GetMapping("/graham_number")
     public List<SimpleDataElement> getGrahamNumber(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.keyMetrics.grahamNumber);
+        return getIncomeData(stock, quarterly, financialsTtm -> GrahamNumberCalculator.calculateGrahamNumber(financialsTtm).orElse(null));
     }
 
     @GetMapping("/stock_compensation_per_net_revenue")

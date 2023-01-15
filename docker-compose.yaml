@@ -10,3 +10,26 @@ services:
     ports:
       - 8000:8000
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /home/dynamodblocal/data/"
+  graphite:
+    image:  graphiteapp/graphite-statsd:1.1.8-8
+    container_name: graphite
+    restart: always
+    volumes:
+      - ~/my-dynamodb-data/graphite:/opt/graphite/storage
+      - ~/my-dynamodb-data/graphite_configs:/opt/graphite/conf
+    ports:
+      - 10080:80
+      - 12003:2003
+      - 12004:2004
+      - 18126:8126
+      - 18125:8125/udp
+  grafana:
+    image:  grafana/grafana:8.5.4
+    container_name: grafana
+    restart: always
+    volumes:
+      - ~/my-dynamodb-data/grafana:/var/lib/grafana
+    ports:
+      - 3000:3000
+    depends_on:
+      - graphite

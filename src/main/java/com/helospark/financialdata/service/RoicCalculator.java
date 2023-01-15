@@ -42,8 +42,15 @@ public class RoicCalculator {
         return ((double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.balanceSheet.totalAssets);
     }
 
-    public static double calculateROTA(FinancialsTtm financialsTtm) {
-        return (financialsTtm.incomeStatementTtm.netIncome / financialsTtm.keyMetrics.tangibleAssetValue);
+    public static Double calculateROTA(FinancialsTtm financialsTtm) {
+        if (financialsTtm.balanceSheet.goodwillAndIntangibleAssets == 0) {
+            return null;
+        }
+        return (financialsTtm.incomeStatementTtm.netIncome / calculateTangibleAssets(financialsTtm));
+    }
+
+    public static double calculateTangibleAssets(FinancialsTtm financialsTtm) {
+        return financialsTtm.balanceSheet.totalAssets - financialsTtm.balanceSheet.goodwillAndIntangibleAssets - financialsTtm.balanceSheet.totalLiabilities;
     }
 
 }
