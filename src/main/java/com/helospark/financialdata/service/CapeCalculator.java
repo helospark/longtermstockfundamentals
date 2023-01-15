@@ -33,6 +33,12 @@ public class CapeCalculator {
 
         double avgInflationAdjustedEps = sumEps / epsCount;
 
-        return currentYear.price / avgInflationAdjustedEps;
+        double result = currentYear.price / avgInflationAdjustedEps;
+
+        if (!Double.isFinite(result)) {
+            return null;
+        }
+
+        return result;
     }
 }

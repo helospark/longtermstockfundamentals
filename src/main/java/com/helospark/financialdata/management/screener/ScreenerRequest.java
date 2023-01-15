@@ -9,4 +9,13 @@ public class ScreenerRequest {
     public List<ScreenerOperation> operations;
 
     public List<String> exchanges;
+
+    public String lastItem;
+    public String prevItem;
+
+    @Override
+    public String toString() {
+        return "ScreenerRequest [operations=" + operations + ", exchanges=" + exchanges + ", lastItem=" + lastItem + ", prevItem=" + prevItem + "]";
+    }
+
 }

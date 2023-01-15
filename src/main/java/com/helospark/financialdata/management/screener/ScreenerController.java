@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -56,7 +55,7 @@ public class ScreenerController {
     private static final String ANNUAL_RETURN_COLUMN = "Annual return (%)";
     private static final String TOTAL_RETURN_COLUMN = "Total return (%)";
     private static final Logger LOGGER = LoggerFactory.getLogger(ScreenerController.class);
-    public static final int MAX_RESULTS = 100;
+    public static final int MAX_RESULTS = 101;
     public static double BACKTEST_INVEST_AMOUNT = 1000.0;
     Map<String, ScreenerDescription> idToDescription = new LinkedHashMap<>();
 
@@ -100,12 +99,10 @@ public class ScreenerController {
         }
     }
 
-    @GetMapping("/descriptions")
     public Map<String, ScreenerDescription> getScreenerDescriptions() {
         return idToDescription;
     }
 
-    @GetMapping("/operations")
     public List<ScreenerOperator> getScreenerOperators() {
         List<ScreenerOperator> result = new ArrayList<ScreenerOperator>();
         for (var element : screenerStrategies) {
@@ -129,13 +126,58 @@ public class ScreenerController {
     @PostMapping("/perform")
     @RateLimit(requestPerMinute = 20)
     public ScreenerResult screenStocks(@RequestBody ScreenerRequest request, HttpServletRequest httpRequest) {
+        LOGGER.info("Received screener request '{}'", request);
         validateRequest(request, httpRequest);
+        boolean nextPageRequested = request.lastItem != null;
+        boolean previousPageRequested = request.prevItem != null;
 
         LinkedHashMap<String, AtGlanceData> data = symbolAtGlanceProvider.getSymbolCompanyNameCache();
+
+        if (nextPageRequested) {
+            LinkedHashMap<String, AtGlanceData> filteredData = new LinkedHashMap<>();
+            boolean foundElement = false;
+            for (var entry : data.entrySet()) {
+                if (foundElement) {
+                    filteredData.put(entry.getKey(), entry.getValue());
+                }
+                if (entry.getKey().equals(request.lastItem)) {
+                    foundElement = true;
+                }
+            }
+            data = filteredData;
+        }
+        if (previousPageRequested) {
+            LinkedHashMap<String, AtGlanceData> filteredData = new LinkedHashMap<>();
+            boolean foundElement = false;
+            List<String> keySet = new ArrayList<>(data.keySet());
+            for (int i = keySet.size() - 1; i >= 0; --i) {
+                String key = keySet.get(i);
+                if (foundElement) {
+                    var value = data.get(key);
+                    filteredData.put(key, value);
+                }
+                if (key.equals(request.prevItem)) {
+                    foundElement = true;
+                }
+            }
+            data = filteredData;
+        }
         List<AtGlanceData> matchedStocks = findMatchingStocks(data, request, false);
 
+        if (previousPageRequested) {
+            Collections.reverse(matchedStocks);
+        }
+
         ScreenerResult result = new ScreenerResult();
-        result.hasMoreResults = (matchedStocks.size() >= MAX_RESULTS);
+        result.hasMoreResults = (matchedStocks.size() >= MAX_RESULTS) || previousPageRequested;
+        result.hasPreviousResults = nextPageRequested || (matchedStocks.size() >= MAX_RESULTS && previousPageRequested);
+
+        if (matchedStocks.size() >= MAX_RESULTS && !previousPageRequested) {
+            matchedStocks.remove(matchedStocks.size() - 1);
+        }
+        if (matchedStocks.size() >= MAX_RESULTS && previousPageRequested) {
+            matchedStocks.remove(0);
+        }
 
         result.columns.add("Symbol");
         result.columns.add("Company");
@@ -222,6 +264,7 @@ public class ScreenerController {
     @PostMapping("/backtest")
     @RateLimit(requestPerMinute = 20)
     public BacktestResult performBacktest(@RequestBody BacktestRequest request, HttpServletRequest httpRequest) {
+        LOGGER.info("Received backtest request '{}'", request);
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (!jwt.isPresent()) {
             AccountType accountType = loginController.getAccountType(jwt.get());

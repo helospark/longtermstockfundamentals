@@ -4,6 +4,7 @@ body {
 
 #content {
   margin: 8px;
+  overflow: hidden;
 }
 
 .chartDiv {

@@ -345,6 +345,9 @@ select, #start-date-dropdown, #end-date-dropdown {
 .watchlist-table-container .badge {
   margin-left: 2px;
 }
+
+
+
 @media (max-width: 1070px) {
  #autoComplete {
     width: 200px;

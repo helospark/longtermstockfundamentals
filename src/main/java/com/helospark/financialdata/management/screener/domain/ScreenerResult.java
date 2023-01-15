@@ -6,6 +6,7 @@ import java.util.Map;
 
 public class ScreenerResult {
     public boolean hasMoreResults;
+    public boolean hasPreviousResults;
     public List<String> columns = new ArrayList<>();
     public List<Map<String, String>> portfolio = new ArrayList<>();
 }

@@ -2,27 +2,6 @@
   <span id="login-expiry" th:text="${loginExpiry}" style="display:none"></span>
   <script>
     
-    async function refreshJwt() {
-        result = await fetch('/user/jwt/refresh', {
-                    method: 'POST',
-                    headers: {
-                      'Accept': 'application/json',
-                      'Content-Type': 'application/json'
-                    }
-                  });
-         
-         if (result.status != 200) {
-           console.log("[ERROR] Unable to refresh JWT");
-           return 60000; // try again in 1 minute
-         } else {
-           expiry = Number(result.headers.get("jwt-expiry")) - 60000;
-           if (expiry <= 1000) {
-             expiry = 1000;
-           }
-         }
-         return expiry;
-    }
-    
     expiryTime = Number($("#login-expiry").text()) - 60000;
     if (expiryTime < 0) {
       expiryTime = 0;

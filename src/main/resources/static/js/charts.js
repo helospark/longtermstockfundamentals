@@ -36,7 +36,6 @@ const autoCompleteJS = new autoComplete({
             selection: (event) => {
                 const selection = event.detail.selection.value;
                 window.location.href = "/stock/" + selection.key
-                console.log(selection);
             }
         }
     }
@@ -255,9 +254,9 @@ createChart("/financials/cash", "Cash and cash equivalents", {quarterlyEnabled: 
 createAd();
 
 createSeparator("Return ratios")
-createChart("/financials/roic", "Return on invested capital", {unit: '%', quarterlyEnabled: false});
-createChart("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false});
-createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false});
+createChart("/financials/roic", "Return on invested capital", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChart("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 
 
 createSeparator("Yields")
@@ -384,6 +383,5 @@ addFlags();
 
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
 var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-  console.log("ASDASDASD " + tooltipTriggerEl);
   return new bootstrap.Tooltip(tooltipTriggerEl)
 })

@@ -82,7 +82,10 @@ public class ViewController {
     public String inspire(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request) {
         fillModelWithCommonStockData(stock, model, request);
 
+        Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+
         model.addAttribute("inspirations", inspirationProvider.getAvailablePortfolios());
+        model.addAttribute("allowed", jwtOptional.isPresent());
 
         return "inspire";
     }

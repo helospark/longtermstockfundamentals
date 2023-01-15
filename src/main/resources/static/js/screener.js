@@ -6,8 +6,33 @@
   }
   
   function submitScreener() {
+    submitScreenerWithLastAndFirstItem(null, null, false);
+  }
+
+  function onPreviousPageRequested() {
+    lastDisplayedItem = $("#screener-result-table table tr:last-child td:first-child").text();
+    firstDisplayedItem = $("#screener-result-table table tr:first-child td:first-child").text();
+    submitScreenerWithLastAndFirstItem(lastDisplayedItem, firstDisplayedItem, false);
+  }
+  
+  function onNextPageRequested() {
+    lastDisplayedItem = $("#screener-result-table table tr:last-child td:first-child").text();
+    firstDisplayedItem = $("#screener-result-table table tr:first-child td:first-child").text();
+    submitScreenerWithLastAndFirstItem(lastDisplayedItem, firstDisplayedItem, true);
+  }
+
+  function submitScreenerWithLastAndFirstItem(lastItem, firstItem, next) {
     exchanges = $("#exchanges").val();
     screenerOperations = collectOperations();
+    
+    lastItemParam = null;
+    prevItemParam = null;
+    
+    if (next) {
+      lastItemParam = lastItem;
+    } else {
+      prevItemParam = firstItem;
+    }
     
     res = fetch('/screener/perform', {
           method: 'POST',
@@ -15,7 +40,7 @@
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({operations: screenerOperations, exchanges: exchanges})
+          body: JSON.stringify({operations: screenerOperations, exchanges: exchanges, lastItem: lastItemParam, prevItem: prevItemParam})
         }).then(res => {
           return res.json();
         }).then(data => {
@@ -31,11 +56,19 @@
 
                 $("#screener-result-table").html(resultHtml);
                 $('#screener-result-table table').DataTable({
+                   paging: false,
                   "iDisplayLength": 100,
-                  "order": []
+                  "order": [],
+                  "language": {
+                     "info": "Showing _TOTAL_ entries"
+                  }
                 });
+                if (data.hasPreviousResults) {
+                  $("#screener-result-table").append('<button style="float:left" class="btn btn-primary" onclick="onPreviousPageRequested()">&#60; Previous page</button>');
+                }
                 if (data.hasMoreResults) {
-                  $("#screener-result-table").append("<div class=\"screener-more-results\">* there are more results, filter more to see those</div>");
+                  //$("#screener-result-table").append("<div class=\"screener-more-results\">* there are more results, filter more to see those</div>");
+                  $("#screener-result-table").append('<button style="float:right" class="btn btn-primary" onclick="onNextPageRequested()">Next page &#62;</button>');
                 }
             }
         });
@@ -124,12 +157,10 @@
           var spYValues = [];
           var screenerYValues = [];
           
-          console.log(data.yearData);
           for (let [key, value] of Object.entries(data.yearData)) {
             xValues.push(key);
             spYValues.push(value.spAnnualReturnPercent);
             screenerYValues.push(value.screenerAnnualReturnPercent);
-            console.log(key + " = " + value);
           }
 
           colorPalette = ["rgba(0,0,255,0.6)", "rgba(255,0,0,0.6)"]
@@ -191,7 +222,6 @@
           
           yearInvestmentHtml = "";
           for (let [key, value] of Object.entries(data.yearData)) {
-             console.log("ASD: " + key + " " + value.investedStocks);
              yearInvestmentHtml += "<h2>" + key + "</h2>";
              yearInvestmentHtml +=  createTableHtml(data.columns, value.investedStocks, true);
           }
@@ -251,8 +281,6 @@
     }
     options += "</select>"
     
-    console.log(options);
-  
     $("#generic-modal .modal-content").html(`
         <div class="modal-header">
             <h5 class="modal-title">Load screener</h5>
@@ -286,11 +314,8 @@
       return;
     }
     
-    console.log(name + " " + JSON.stringify({operations: screenerOperations, exchanges: exchanges}));
-    
     var screenersString = localStorage.getItem('screeners');
     
-    console.log(screenersString);
     if (screenersString === undefined || screenersString === null) {
       screenersToSave = {};
     } else {
@@ -301,8 +326,6 @@
     
     screenersToSave[name] = {operations: screenerOperations, exchanges: exchanges};
     
-    console.log("TOSAVE: " + screenersToSave);
-
     localStorage.setItem('screeners', JSON.stringify(screenersToSave));
     localStorage.setItem('last-loaded-screener', name);
     
@@ -319,7 +342,6 @@
     
     var screenersString = localStorage.getItem('screeners');
     
-    console.log(screenersString);
     if (screenersString === undefined || screenersString === null) {
       showErrorDialog("Cannot find screener with that name");
       return;
@@ -327,7 +349,6 @@
     screenersToSave = JSON.parse(screenersString);
     
     result = screenersToSave[name];
-    console.log("NAME= " + name);
     if (result === undefined || result === null) {
       showErrorDialog("Cannot find screener with that name");
       return;
@@ -355,7 +376,6 @@
       $("#conditions").append(newRow);
     }
     
-    console.log("EXCHANGES=" + data.exchanges[1]);
     $("#exchanges").val(data.exchanges);
     
     submitScreener();
@@ -403,7 +423,6 @@ if (typeof localStorage !== 'undefined') {
     if (!(screenersString === undefined || screenersString === null)) {
       screenersToSave = JSON.parse(screenersString);
       if (screenersToSave[lastLoadedScreener] !== undefined && lastLoadedScreener[lastLoadedScreener] !== null) {
-        console.log(lastLoadedScreener);
         loadScreenerWithName(lastLoadedScreener);
         runInit = true;
       }

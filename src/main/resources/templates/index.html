@@ -22,7 +22,7 @@
 <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" ></script>
 <script th:unless="${isLoggedIn}" th:src="'https://www.google.com/recaptcha/api.js?render=' + ${recaptchaSiteKey}"></script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4680762769337689" crossorigin="anonymous"></script>
+<script th:unless="${isPaidAccount}" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4680762769337689" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
 <script src="/js/common.js"></script>
 
@@ -139,8 +139,8 @@
           </div>
       </div>
     </div>
-    <script>
-    
+    <script th:if="${isLoggedIn}">
+      
        fetch('/watchlist', {
           method: 'GET',
           headers: {
@@ -420,13 +420,13 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Registration successful</h5>
-        <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         Registration successful, please active your account via your email.
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal">Close</button>
       </div>
     </div>
   </div>
@@ -436,23 +436,23 @@
     <div class="modal-dialog modal-xl">
         <div class="modal-content"><div class="modal-header">
             <h5 class="modal-title">Plans</h5>
-            <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="modal-body">
               <div th:replace="fragments/plans-fragment"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
 </div>
-<div class="modal fade" id="login-modal" tabindex="-1" aria-labelledby="login-modal" aria-hidden="true">
+<div class="modal fade" id="login-modal" tabindex="-1" aria-labelledby="login-modal" aria-hidden="true" th:unless="${isLoggedIn}">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Login</h5>
-        <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div th:replace="fragments/login-fragment"></div>
@@ -499,13 +499,13 @@ function showStaticText(uri, name) {
         $("#generic-large-modal .modal-content").html(`
             <div class="modal-header">
                 <h5 class="modal-title">` + name + `</h5>
-                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="modal-body">
                 ` + result + `
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal" data-dismiss="modal">Close</button>
             </div>`);
         $("#generic-large-modal").modal("show");
      });
@@ -521,7 +521,7 @@ function showContact() {
           Email: <a href="mailto: support@longtermstockfundamentals.com">support@longtermstockfundamentals.com</a>
       </div>
       <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-default" data-bs-dismiss="modal" data-dismiss="modal">Close</button>
       </div>`);
    $("#generic-large-modal").modal("show");
 }

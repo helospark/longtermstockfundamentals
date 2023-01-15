@@ -270,11 +270,15 @@ function createChart(urlPath, title, chartOptions) {
         startAtZeroButton.classList.add("pressed");
       }
       if (isCurrentlyEnabled) {
+        slider.slider('values', 0, chart.options.scales.y.originalMin);
+        slider.slider('values', 1, chart.options.scales.y.originalMax);
         chart.options.scales.y.min = chart.options.scales.y.originalMin;
         chart.options.scales.y.max = chart.options.scales.y.originalMax;
         chart.options.scales.y.originalMin = undefined;
         chart.options.scales.y.originalMax = undefined;
       } else {
+        slider.slider('values', 0, chart.options.scales.y.min);
+        slider.slider('values', 1, chart.options.scales.y.max);
         chart.options.scales.y.originalMin = chart.options.scales.y.min;
         chart.options.scales.y.originalMax = chart.options.scales.y.max;
         if (chart.options.scales.y.min > 0) {
@@ -341,14 +345,16 @@ function createChart(urlPath, title, chartOptions) {
                          minValueToSet = maxValueToSet + 1.0;
                       }
 
-                      if (!isNaN(minValueToSet)) {
+                      if (!isNaN(min)) {
                         slider.slider("option", "min", min);
-                        //slider.slider('values', 0, minValueToSet);
+                      }
+                      if (!isNaN(max)) {
+                        slider.slider("option", "max", max);
+                      }
+                      if (!isNaN(minValueToSet)) {
                         chart.options.scales.y.min = minValueToSet;
                       }
                       if (!isNaN(maxValueToSet)) {
-                        slider.slider("option", "max", max);
-                        //slider.slider('values', 1, maxValueToSet);
                         chart.options.scales.y.max = maxValueToSet;
                       }
                       setStartZeroBased(false);
@@ -424,14 +430,19 @@ function createChart(urlPath, title, chartOptions) {
                             label: element.label
                           });
                         }
-                    
-                        if (!isNaN(minValueToSet)) {
+
+
+                        if (!isNaN(min)) {
                           slider.slider("option", "min", min);
+                        }
+                        if (!isNaN(max)) {
+                          slider.slider("option", "max", max);
+                        }
+                        if (!isNaN(minValueToSet)) {
                           slider.slider('values', 0, minValueToSet);
                           chart.options.scales.y.min = minValueToSet;
                         }
                         if (!isNaN(maxValueToSet)) {
-                          slider.slider("option", "max", max);
                           slider.slider('values', 1, maxValueToSet);
                           chart.options.scales.y.max = maxValueToSet;
                         }

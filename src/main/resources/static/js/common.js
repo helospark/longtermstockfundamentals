@@ -103,7 +103,6 @@
            var value = rows[i][columns[j]];
            if (columns[j] === "Symbol") {
               symbol = rows[i][columns[j]];
-           console.log(columns[j] + " " + value);
               value = '<a href="/stock/' + symbol + '">' + symbol + '</a>';
            }
            resultHtml += "<td>" + value + "</td>";
@@ -166,7 +165,6 @@
             targetPrice = fairValueSpan.text();
             onCalculator = true;
           }
-          console.log(data);
           
           formHtml = "";
           formHtml = `
@@ -249,3 +247,25 @@
     });
     
   }
+  
+  
+  async function refreshJwt() {
+    result = await fetch('/user/jwt/refresh', {
+                method: 'POST',
+                headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json'
+                }
+              });
+     
+     if (result.status != 200) {
+       console.log("[ERROR] Unable to refresh JWT");
+       return 60000; // try again in 1 minute
+     } else {
+       expiry = Number(result.headers.get("jwt-expiry")) - 60000;
+       if (expiry <= 1000) {
+         expiry = 1000;
+       }
+     }
+     return expiry;
+}
