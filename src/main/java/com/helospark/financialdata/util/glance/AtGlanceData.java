@@ -13,7 +13,7 @@ public class AtGlanceData {
     public long shareCount;
     public LocalDate actualDate;
 
-    @ScreenerElement(name = "Market cap (millions)")
+    @ScreenerElement(name = "Market cap ($ million)")
     public double marketCapUsd;
     @ScreenerElement(name = "Trailing PEG")
     public float trailingPeg;
@@ -59,7 +59,7 @@ public class AtGlanceData {
 
     @ScreenerElement(name = "Dividend yield", format = AtGlanceFormat.PERCENT)
     public float dividendYield;
-    @ScreenerElement(name = "Dividend EPS payout ratio", format = AtGlanceFormat.PERCENT)
+    @ScreenerElement(name = "Dividend net income payout ratio", format = AtGlanceFormat.PERCENT)
     public float dividendPayoutRatio;
     @ScreenerElement(name = "Dividend FCF payout ratio", format = AtGlanceFormat.PERCENT)
     public float dividendFcfPayoutRatio;

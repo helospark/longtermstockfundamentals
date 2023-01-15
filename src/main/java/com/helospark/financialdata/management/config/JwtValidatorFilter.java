@@ -51,6 +51,7 @@ public class JwtValidatorFilter implements Filter {
             if (jwtCookie.isPresent()) {
                 Optional<DecodedJWT> decodedJwt = jwtService.getDecodedJwt(jwtCookie.get().getValue());
                 if (!decodedJwt.isPresent()) {
+                    MDC.put("email", "-");
                     httpRequest = new CookieRemovingWrapper(httpRequest, Set.of(LoginController.JWT_COOKIE_NAME));
                     loginController.addAuthorizationCookie(httpResponse, 0, "");
                 } else {

@@ -394,8 +394,66 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>`);
     $("#generic-modal").modal("show");
-}
+  }
 
+
+  function showScreenerHelp() {
+    $("#generic-large-modal .modal-content").html(`
+        <div class="modal-header">
+            <h5 class="modal-title">Information</h5>
+        </div>
+        <div class="modal-body" id="modal-body">
+          ` + getScreenerHelpHtml() + `
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>`);
+    $("#generic-large-modal").modal("show");
+  }
+
+  function getScreenerHelpHtml() {
+    return `
+      <h4>Screener</h4>
+      Screeners are used to find stocks matching your selected condition.<br>
+      You can add up to 20 conditions and select any exchanges to perform the search<br>
+      <p>
+      Conditions:
+      <p><b>Market cap ($ million):</b> Market cap is shareCount * sharePrice
+      <p><b>Trailing PEG:</b> PE ratio / (median 7 year trailing annual growth)
+      <p><b>ROIC:</b> Return on invested capital is ebit/(totalAsset - totalCurrentLiabilities)
+      <p><b>AltmanZ score:</b> Score to predict likelyhood of bankruptcy. Also useful to see how financially strong a company is, see <a href="https://en.wikipedia.org/wiki/Altman_Z-score">Wikipedia</a>
+      <p><b>Piotrosky score:</b> Score between 0 and 9 (inclusive) to determine a company's financial steps, see <a href="https://www.investopedia.com/terms/p/piotroski-score.asp">investopedia</a>
+      <p><b>PE:</b> Trailing price to earnings ratio
+      <p><b>Current ratio:</b> Measure of a company's capability to pay it's short term liabilities, see <a href="https://www.investopedia.com/terms/c/currentratio.asp">Investopedia</a>
+      <p><b>Quick ratio:</b>  Measure of a company's capability to pay it's short term liabilities without selling assets, see <a href="https://www.investopedia.com/terms/q/quickratio.asp">Investopedia</a>
+      <p><b>5 year * growth:</b> Annualized growth from 5 years ago until today
+      <p><b>Shiller PE:</b> price / 10 year inflation adjusted earnings. Also known as CAPE
+      <p><b>(EPS, FCF, Revenue) standard deviation:</b> Standard deviation of the 7 year growth when calculated for every quarter in 4 year intervals. Low number means stable consistent growth. Generally below 20 is quite low.
+      <p><b>EPS FCF correlation:</b> Correlation between EPS and FCF per share. 1.0 would means perfect correlation. Generally large correlation means very mature stable companies.
+      <p><b>Dividend yield:</b> Value in percent, yield = dividend / price * 100.0
+      <p><b>Dividend net income payout ratio:</b> Percentage of the net income paid out per share. Generally you want this under 100%, otherwise dividend may have to be cut or additional debt has to be taken.
+      <p><b>Dividend FCF payout ratio:</b> Percentage of the FCF paid out per share. Generally you want this under 100%, otherwise dividend may have to be cut or additional debt has to be taken.
+      <p><b>Profitable year count:</b> Number of years the company reported positive EPS continously
+      <p><b>Stock based compensation per market cap:</b> Percent of stock based compensation per marketcap. Generally you want this low
+      <p><b>Ideal 10yr (EPS, FCF, revenue) growth correlation:</b> Metric correlation between an ideal growth curve from 10 years ago. Numbers close to 1.0 represents very consistent growth.
+      <p><b>Ideal 20yr (EPS, FCF, revenue) growth correlation:</b> Metric correlation between an ideal growth curve from 20 years ago. Numbers close to 1.0 represents very consistent growth.
+      <p><b>Default calculator fair value margin of safety:</b> The margin of safety you get if you click calculator menu in the top and navigate to a stock without changing the form values. 0% means fairly valued for 10% return.
+      <p><b>Composite fair value margin of safety</b> The margin of safety using EPS DCF formula
+      <p><b>Free cash flow yield:</b> FCF per share / price * 100.0
+      <p><b>Earnings yield:</b> EPS / price * 100.0
+      <h4>Backtest</h4>
+      Backtest performs simulated investment based on your screener conditions for a historical interval.<br>
+      It selects every stocks (max 100) matching your screener conditions every year in your selected interval simulates a $1000 investment in that and also
+       adds $1000 S&P 500 shares and returns are calculated based on this.
+      <p>
+      Take the results with a grain of salt, because:
+      <ul>
+       <li> - Many delisted stocks fundamentals are not available, causing a skewed results (especially more than 10+ years ago with small caps)</li>
+       <li> - Dividends are not taken into account for neither S&P 500 and your screener's selected stocks</li>
+       <li> - Past performance is no guarantee on future returns</li>
+      </ul>
+    `;
+  }
 
 $( document ).ready(function() {
 

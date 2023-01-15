@@ -408,6 +408,8 @@ public class ScreenerController {
         result.yearData = yearResults;
         result.investedInAllMatching = yearResults.values().stream().allMatch(a -> a.investedInAllMatching);
 
+        LOGGER.info("Backtest result invested={} medianReturn={} avgReturn={} beatPercent={}", result.investedAmount, result.screenerMedianPercent, result.screenerAvgPercent, result.beatPercent);
+
         return result;
     }
 

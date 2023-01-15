@@ -74,7 +74,7 @@ public class JwtService {
             }
             return Optional.of(decodedJWT);
         } catch (Exception exception) {
-            LOGGER.error("Cannot validate token '{}'", token, exception);
+            LOGGER.warn("Cannot validate token '{}'", token, exception);
             return Optional.empty();
         }
     }

@@ -31,6 +31,7 @@
   <div>
     <h2 style="float:left">Stock screener</h2>
     <div class="additional-menu-items" style="float:right; font-size: 30pt;margin-right: 30px;">
+      <i class="fa-solid fa-circle-question" onclick="showScreenerHelp()"></i>
       <a href="javascript:;" onclick="loadScreener()" class="fa-solid fa-folder-open"></a>
       <a href="javascript:;" onclick="saveScreener()" class="fa-solid fa-floppy-disk"></a>
     </div>
@@ -95,6 +96,12 @@
   </div>
   <div id="generic-modal" class="modal fade" role="dialog">
       <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+          </div>
+      </div>
+  </div>
+  <div id="generic-large-modal" class="modal fade" role="dialog">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content">
           </div>
       </div>
