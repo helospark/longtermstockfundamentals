@@ -28,7 +28,7 @@
 </head>
 <body>
 
-<div th:replace="fragments/navbar :: my_fragment(active='inspire')"></div>
+<div th:replace="~{fragments/navbar :: my_fragment(active='inspire')}"></div>
 <div class="clearFloat"></div>
 
 <div id="content">
@@ -114,10 +114,10 @@ $(".nav-link").click(function () { loadPage($(this))});
 <span id="allowed" style="display:none" th:text="${allowed}"></span>
 <span id="accountType" style="display:none" th:text="${accountType}"></span>
 <span id="viewLimit" style="display:none" th:text="${viewLimit}"></span>
-<div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
-<div th:replace="fragments/content-blocking-modal"></div>
-<div th:replace="fragments/general-message-modal"></div>
-<div th:replace="fragments/content-blocking-modal"></div>
+<div th:replace="~{fragments/jwt-refresher :: jwt_refresher}"></div>
+<div th:replace="~{fragments/content-blocking-modal}"></div>
+<div th:replace="~{fragments/general-message-modal}"></div>
+<div th:replace="~{fragments/content-blocking-modal}"></div>
 
 <script src="../js/autocomplete.js"></script>
 

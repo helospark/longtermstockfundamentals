@@ -153,8 +153,8 @@
   </div>
   <span id="login-account-type" th:text="${loginAccountType}" style="display:none"></span>
 	<script src="/js/profile.js"></script>
-  <div th:replace="fragments/general-message-modal"></div>
-  <div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
+  <div th:replace="~{fragments/general-message-modal}"></div>
+  <div th:replace="~{fragments/jwt-refresher :: jwt_refresher}"></div>
 </body>
 </html>
 

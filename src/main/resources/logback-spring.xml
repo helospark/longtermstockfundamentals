@@ -75,7 +75,6 @@
     <logger name="com.helospark.financialdata.management.payment.PaymentController" level="DEBUG" additivity="true">
       <appender-ref ref="ASYNC_FILE_APPENDER_PAYMENT" />
     </logger>
-    <logger name="org.thymeleaf.standard.processor.AbstractStandardFragmentInsertionTagProcessor" level="ERROR"></logger>
     <root level="DEBUG">
       <appender-ref ref="ASYNC_FILE_APPENDER" />
      
@@ -87,7 +86,6 @@
     <logger name="com.helospark.financialdata.management.payment.PaymentController" level="DEBUG" additivity="true">
       <appender-ref ref="ASYNC_FILE_APPENDER_PAYMENT" />
     </logger>
-    <logger name="org.thymeleaf.standard.processor.AbstractStandardFragmentInsertionTagProcessor" level="ERROR"></logger>
     <root level="DEBUG">
       <appender-ref ref="ASYNC_FILE_APPENDER" />
     </root>

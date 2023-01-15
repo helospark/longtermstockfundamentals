@@ -162,7 +162,7 @@
     </script>
 
     <div id="plans-div" class="contact_section_2" th:if="${isLoggedIn}">
-      <div th:replace="fragments/plans-fragment"></div>
+      <div th:replace="~{fragments/plans-fragment}"></div>
     </div>
 
 
@@ -198,7 +198,7 @@
                                  <div id="registration-spinner" class="spinner-border" role="status" style="display:none"></div>
                                </div>
                           </form>
-                          <div th:replace="fragments/sign-in-with-google-fragment"></div>
+                          <div th:replace="~{fragments/sign-in-with-google-fragment}"></div>
                     </div>
                     <span id="recaptcha-site-key" th:text="${recaptchaSiteKey}" style="display:none"></span>
                     <script>
@@ -439,7 +439,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body" id="modal-body">
-              <div th:replace="fragments/plans-fragment"></div>
+              <div th:replace="~{fragments/plans-fragment}"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-bs-dismiss="modal" data-dismiss="modal">Close</button>
@@ -455,7 +455,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div th:replace="fragments/login-fragment"></div>
+        <div th:replace="~{fragments/login-fragment}"></div>
       </div>
     </div>
   </div>
@@ -535,9 +535,9 @@ function showPlans() {
 }
 
 </script>
-<div th:replace="fragments/general-message-modal"></div>
-<div th:replace="fragments/jwt-refresher :: jwt_refresher"></div>
-<div th:replace="fragments/after-payment-fragment"></div>
+<div th:replace="~{fragments/general-message-modal}"></div>
+<div th:replace="~{fragments/jwt-refresher :: jwt_refresher}"></div>
+<div th:replace="~{fragments/after-payment-fragment}"></div>
 
 </body>
 </html>
