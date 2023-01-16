@@ -11,14 +11,24 @@ public class BacktestResult {
     public double screenerAvgPercent;
     public double sp500AvgPercent;
 
+    public double screenerWithDividendsAvgPercent;
+    public double sp500WithDividendsAvgPercent;
+
     public double screenerMedianPercent;
     public double sp500MedianPercent;
+
+    public double screenerWithDividendsMedianPercent;
+    public double sp500WithDividendsMedianPercent;
 
     public boolean investedInAllMatching;
 
     public double investedAmount;
+
     public double sp500Returned;
+    public double sp500ReturnedWithDividends;
+
     public double screenerReturned;
+    public double screenerReturnedWithDividends;
 
     public Map<Integer, BacktestYearInformation> yearData;
     public Set<String> columns;

@@ -3,13 +3,13 @@ package com.helospark.financialdata.service;
 import static com.helospark.financialdata.CommonConfig.BASE_FOLDER;
 import static com.helospark.financialdata.CommonConfig.FX_BASE_FOLDER;
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
-import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDateSafe;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Currency;
@@ -38,7 +38,7 @@ import com.google.common.util.concurrent.Striped;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
-import com.helospark.financialdata.domain.EnterpriseValue;
+import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FxRatesResponse;
 import com.helospark.financialdata.domain.HistoricalPrice;
@@ -62,6 +62,8 @@ public class DataLoader {
 
     static Cache<String, FxRatesResponse> fxCache;
     static List<TresuryRate> tresuryRateCache;
+
+    static Set<String> realiableIpoData = Set.of("NTR");
 
     static {
         init();
@@ -178,7 +180,6 @@ public class DataLoader {
         List<IncomeStatement> incomeStatement = readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
         List<CashFlow> cashFlow = readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
         List<HistoricalPriceElement> historicalPrice = readHistoricalFile(symbol, "historical-price.json");
-        List<EnterpriseValue> enterpriseValues = readFinancialFile(symbol, "enterprise-values.json", EnterpriseValue.class);
         List<Profile> profiles = readFinancialFile(symbol, "profile.json", Profile.class);
 
         Profile profile;
@@ -192,7 +193,7 @@ public class DataLoader {
             profile.currencySymbol = getCurrencySymbol(incomeStatement);
         }
 
-        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, enterpriseValues, historicalPrice, profile);
+        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, historicalPrice, profile);
 
         return result;
     }
@@ -206,7 +207,7 @@ public class DataLoader {
     }
 
     private static CompanyFinancials createToTtm(String symbol, List<BalanceSheet> balanceSheets, List<IncomeStatement> incomeStatements, List<CashFlow> cashFlows,
-            List<EnterpriseValue> enterpriseValue, List<HistoricalPriceElement> prices, Profile profile) {
+            List<HistoricalPriceElement> prices, Profile profile) {
         List<FinancialsTtm> result = new ArrayList<>();
 
         if (incomeStatements.isEmpty()) {
@@ -228,12 +229,19 @@ public class DataLoader {
             LocalDate incomeStatementDate = incomeStatements.get(i).date;
             int cashFlowIndex = findIndexWithOrBeforeDate(cashFlows, incomeStatementDate);
             int balanceSheetIndex = findIndexWithOrBeforeDate(balanceSheets, incomeStatementDate);
-            int historicalPriceIndex = findIndexWithOrBeforeDateSafe(enterpriseValue, incomeStatementDate);
+            int historicalPriceIndex2 = findIndexWithOrBeforeDate(prices, incomeStatementDate);
 
-            if (cashFlowIndex == -1 || balanceSheetIndex == -1 ||
+            if (cashFlowIndex == -1 || balanceSheetIndex == -1 || historicalPriceIndex2 == -1 ||
                     cashFlowIndex + 3 >= cashFlows.size() ||
                     balanceSheetIndex + 3 >= balanceSheets.size()) {
+                /*if (historicalPriceIndex == -1 && !(cashFlowIndex == -1 || balanceSheetIndex == -1)) {
+                    System.out.println(symbol + " historical price ends at " + incomeStatementDate + " vs " + incomeStatements.get(incomeStatements.size() - 1).getDate());
+                }*/
                 break;
+            }
+            if (profile != null && profile.ipoDate != null && incomeStatementDate.compareTo(profile.ipoDate) < 0) {
+                //System.out.println("Ignoring data before IPO: " + symbol + " " + profile.ipoDate + " vs " + incomeStatements.get(incomeStatements.size() - 1).date);
+                //break; // some stocks have data before they went public, ignore those
             }
 
             LocalDate balanceSheetDate = balanceSheets.get(balanceSheetIndex).date;
@@ -247,15 +255,24 @@ public class DataLoader {
                     ++dataQualityIssue;
                 }
             }
-            double price = historicalPriceIndex >= 0 ? enterpriseValue.get(historicalPriceIndex).stockPrice : 0.1;
+            double price = prices.get(historicalPriceIndex2).close;
 
             FinancialsTtm currentTtm = new FinancialsTtm();
             currentTtm.date = incomeStatementDate;
             currentTtm.balanceSheet = balanceSheets.get(balanceSheetIndex);
             currentTtm.cashFlow = cashFlows.get(cashFlowIndex);
             currentTtm.incomeStatement = incomeStatements.get(i);
-            currentTtm.cashFlowTtm = calculateTtm(cashFlows, cashFlowIndex, new CashFlow());
-            currentTtm.incomeStatementTtm = calculateTtm(incomeStatements, i, new IncomeStatement());
+
+            int endCashflowTtmIndex = calculateEndTtmIndex(cashFlowIndex, cashFlows, symbol);
+            int endIncomeStatementTtmIndex = calculateEndTtmIndex(i, incomeStatements, symbol);
+
+            if (endCashflowTtmIndex != cashFlowIndex + 4 || endIncomeStatementTtmIndex != i + 4) {
+                //System.out.println("There is a missing report for " + symbol + " " + endCashflowTtmIndex + " " + cashFlowIndex);
+                ++dataQualityIssue;
+            }
+
+            currentTtm.cashFlowTtm = calculateTtm(cashFlows, cashFlowIndex, new CashFlow(), endCashflowTtmIndex);
+            currentTtm.incomeStatementTtm = calculateTtm(incomeStatements, i, new IncomeStatement(), endIncomeStatementTtmIndex);
 
             currentTtm.priceTradingCurrency = price;
             currentTtm.price = convertCurrencyIfNeeded(price, currentTtm, profile);
@@ -284,6 +301,18 @@ public class DataLoader {
         return new CompanyFinancials(price, priceUsd, priceOrigCurrency, latestDate, result, profile, dataQualityIssue);
     }
 
+    private static int calculateEndTtmIndex(int cashFlowIndex, List<? extends DateAware> cashFlows, String symbol) {
+        LocalDate startDate = cashFlows.get(cashFlowIndex).getDate();
+        int endCashflowTtmIndex = cashFlowIndex;
+        for (; endCashflowTtmIndex < cashFlowIndex + 4; ++endCashflowTtmIndex) {
+            LocalDate currentDate = cashFlows.get(endCashflowTtmIndex).getDate();
+            if (Math.abs(ChronoUnit.DAYS.between(currentDate, startDate)) > 400) {
+                break;
+            }
+        }
+        return endCashflowTtmIndex;
+    }
+
     private static double convertCurrencyIfNeeded(double price, FinancialsTtm currentTtm, Profile profile) {
         if (!currentTtm.incomeStatement.reportedCurrency.equals(profile.currency)) {
             Optional<Double> convertedCurrency = convertFx(price, profile.currency, currentTtm.incomeStatement.reportedCurrency, currentTtm.incomeStatement.getDate(), true);
@@ -295,22 +324,23 @@ public class DataLoader {
         return price;
     }
 
-    private static <T> T calculateTtm(List<T> cashFlows, int current, T result) {
+    private static <T extends DateAware> T calculateTtm(List<T> cashFlows, int current, T result, int endIndex) {
         try {
             for (var field : result.getClass().getFields()) {
                 if (field.getAnnotation(NoTtmNeeded.class) != null) {
                     field.set(result, field.get(cashFlows.get(current)));
                 } else {
+
                     if (field.getType().equals(Long.TYPE)) {
                         long value = 0;
-                        for (int i = current; i < current + 4; ++i) {
+                        for (int i = current; i < endIndex; ++i) {
                             value += (long) field.get(cashFlows.get(i));
                         }
                         field.set(result, value);
                     }
                     if (field.getType().equals(Double.TYPE)) {
                         double value = 0;
-                        for (int i = current; i < current + 4; ++i) {
+                        for (int i = current; i < endIndex; ++i) {
                             value += (double) field.get(cashFlows.get(i));
                         }
                         field.set(result, value);

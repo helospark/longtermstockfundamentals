@@ -231,6 +231,10 @@ select, #start-date-dropdown, #end-date-dropdown {
   color: #444;
 }
 
+.additional-menu-items i:hover {
+  cursor: pointer;
+}
+
 .add-to-watchlist-icon {
   color:black;
   text-decoration:none;

@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -29,6 +31,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
@@ -52,6 +56,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @RestController
 @RequestMapping("/screener")
 public class ScreenerController {
+    private static final String ANNUAL_RETURNS_WITH_DIVIDENDS_REINVESTED = "Annual return with divs reinvested (%)";
     private static final String ANNUAL_RETURN_COLUMN = "Annual return (%)";
     private static final String TOTAL_RETURN_COLUMN = "Total return (%)";
     private static final Logger LOGGER = LoggerFactory.getLogger(ScreenerController.class);
@@ -65,6 +70,10 @@ public class ScreenerController {
     private List<ScreenerStrategy> screenerStrategies;
     @Autowired
     private LoginController loginController;
+    static Cache<LocalDate, Double> spPriceCache = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.DAYS)
+            .maximumSize(2000)
+            .build();
 
     public ScreenerController() {
         for (var field : AtGlanceData.class.getDeclaredFields()) {
@@ -296,15 +305,20 @@ public class ScreenerController {
         columns.add("Current price");
         columns.add(TOTAL_RETURN_COLUMN);
         columns.add(ANNUAL_RETURN_COLUMN);
+        columns.add(ANNUAL_RETURNS_WITH_DIVIDENDS_REINVESTED);
         LocalDate currentDate = LocalDate.now();
 
         double totalInvested = 0;
         double totalScreenerReturned = 0;
+        double totalScreenerReturnedWithDividends = 0.0;
         double totalSpReturned = 0;
+        double totalSpReturnedWithDividends = 0;
         for (int year = request.startYear; year < request.endYear; ++year) {
             List<Map<String, String>> bought = new ArrayList<>();
             double yearSp500Sum = 0.0;
+            double yearSp500SumWithDividends = 0.0;
             double yearScreenerSum = 0.0;
+            double yearScreenerWithDividendSum = 0.0;
             int yearCount = 0;
 
             LocalDate date = LocalDate.of(year, 1, 1);
@@ -321,19 +335,32 @@ public class ScreenerController {
 
                     LocalDate actualDate = stockThen.actualDate;
 
-                    double sp500PriceThen = StandardAndPoorPerformanceProvider.getPriceAt(actualDate);
+                    double sp500PriceThen = spPriceCache.get(actualDate, date2 -> StandardAndPoorPerformanceProvider.getPriceAt(actualDate));
                     double sp500PriceNow = StandardAndPoorPerformanceProvider.getLatestPrice();
 
                     double stockPriceThen = stockThen.latestStockPriceUsd;
                     double stockPriceNow = stockNow.get().latestStockPriceUsd;
 
                     double screenerIncrease = (stockPriceNow / stockPriceThen) * BACKTEST_INVEST_AMOUNT;
+
+                    double initialShareCount = BACKTEST_INVEST_AMOUNT / stockPriceThen;
+                    double totalSharesWithDividendsReinvested = calculateTotalSharesWithDividendsReinvested(initialShareCount, year, request.endYear, stockThen.symbol);
+
+                    double finalScreenerCost = stockPriceNow * totalSharesWithDividendsReinvested;
+
+                    double initialSpShareCount = BACKTEST_INVEST_AMOUNT / sp500PriceThen;
+                    double totalSpSharesWithDividendsReinvested = calculateTotalSPSharesWithDividendsReinvested(initialSpShareCount, year, request.endYear);
+
+                    double finalSpCost = sp500PriceNow * totalSpSharesWithDividendsReinvested;
+
                     if (!Double.isFinite(screenerIncrease)) {
                         continue;
                     }
 
                     yearSp500Sum += (sp500PriceNow / sp500PriceThen) * BACKTEST_INVEST_AMOUNT;
+                    yearSp500SumWithDividends += (finalSpCost);
                     yearScreenerSum += screenerIncrease;
+                    yearScreenerWithDividendSum += (finalScreenerCost);
 
                     Map<String, String> columnResult = new HashMap<>();
                     columnResult.put("Symbol", createSymbolLink(stockNow.get().symbol));
@@ -342,6 +369,7 @@ public class ScreenerController {
                     columnResult.put("Current price", formatString(stockPriceNow));
                     columnResult.put(TOTAL_RETURN_COLUMN, formatString(((stockPriceNow / stockPriceThen) - 1.0) * 100.0));
                     columnResult.put(ANNUAL_RETURN_COLUMN, formatString((Math.pow((stockPriceNow / stockPriceThen), (1.0 / yearAgo)) - 1.0) * 100.0));
+                    columnResult.put(ANNUAL_RETURNS_WITH_DIVIDENDS_REINVESTED, formatString((Math.pow((finalScreenerCost / BACKTEST_INVEST_AMOUNT), (1.0 / yearAgo)) - 1.0) * 100.0));
 
                     bought.add(columnResult);
                 }
@@ -352,19 +380,27 @@ public class ScreenerController {
             yearInfo.investedAmount = yearTotalInvested;
 
             yearInfo.spTotalReturnPercent = ((yearSp500Sum / yearTotalInvested) - 1.0) * 100.0;
+            yearInfo.spTotalReturnPercentWithDividends = ((yearSp500SumWithDividends / yearTotalInvested) - 1.0) * 100.0;
             yearInfo.screenerTotalReturnPercent = ((yearScreenerSum / yearTotalInvested) - 1.0) * 100.0;
+            yearInfo.screenerTotalReturnPercentWithDividends = ((yearScreenerWithDividendSum / yearTotalInvested) - 1.0) * 100.0;
 
             yearInfo.spAnnualReturnPercent = (Math.pow(yearSp500Sum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
+            yearInfo.spAnnualReturnPercentWithDividends = (Math.pow(yearSp500SumWithDividends / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
             yearInfo.screenerAnnualReturnPercent = (Math.pow(yearScreenerSum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
+            yearInfo.screenerAnnualReturnPercentWithDividends = (Math.pow(yearScreenerWithDividendSum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
 
             yearInfo.spReturnDollar = yearSp500Sum;
+            yearInfo.spReturnDollarWithDividends = yearSp500SumWithDividends;
             yearInfo.screenerReturnDollar = yearScreenerSum;
+            yearInfo.screenerReturnDollarWithDividends = yearScreenerWithDividendSum;
 
             yearInfo.investedInAllMatching = matchedStocks.size() < MAX_RESULTS;
 
             totalInvested += yearTotalInvested;
             totalScreenerReturned += yearScreenerSum;
+            totalScreenerReturnedWithDividends += yearScreenerWithDividendSum;
             totalSpReturned += yearSp500Sum;
+            totalSpReturnedWithDividends += yearSp500SumWithDividends;
 
             yearInfo.investedStocks = bought;
 
@@ -390,27 +426,71 @@ public class ScreenerController {
 
         result.investedAmount = totalInvested;
         result.sp500Returned = totalSpReturned;
+        result.sp500ReturnedWithDividends = totalSpReturnedWithDividends;
         result.screenerReturned = totalScreenerReturned;
+        result.screenerReturnedWithDividends = totalScreenerReturnedWithDividends;
 
-        result.screenerAvgPercent = yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> a.screenerAnnualReturnPercent).average().orElse(0.0);
-        result.sp500AvgPercent = yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> a.spAnnualReturnPercent).average().orElse(0.0);
+        result.screenerAvgPercent = calculateAverage(yearResults, a -> a.screenerAnnualReturnPercent);
+        result.screenerMedianPercent = calculateMedian(yearResults, a -> a.screenerAnnualReturnPercent);
 
-        List<Double> screenerReturns = yearResults.values().stream().filter(a -> a.investedAmount > 0).map(a -> a.screenerAnnualReturnPercent).collect(Collectors.toList());
-        List<Double> spReturns = yearResults.values().stream().filter(a -> a.investedAmount > 0).map(a -> a.spAnnualReturnPercent).collect(Collectors.toList());
-        Collections.sort(screenerReturns);
-        Collections.sort(spReturns);
+        result.sp500AvgPercent = calculateAverage(yearResults, a -> a.spAnnualReturnPercent);
+        result.sp500MedianPercent = calculateMedian(yearResults, a -> a.spAnnualReturnPercent);
 
-        if (screenerReturns.size() > 0 && spReturns.size() > 0) {
-            result.screenerMedianPercent = screenerReturns.get(screenerReturns.size() / 2);
-            result.sp500MedianPercent = spReturns.get(spReturns.size() / 2);
-        }
+        result.sp500WithDividendsAvgPercent = calculateAverage(yearResults, a -> a.spAnnualReturnPercentWithDividends);
+        result.sp500WithDividendsMedianPercent = calculateMedian(yearResults, a -> a.spAnnualReturnPercentWithDividends);
+
+        result.screenerWithDividendsAvgPercent = calculateAverage(yearResults, a -> a.screenerAnnualReturnPercentWithDividends);
+        result.screenerWithDividendsMedianPercent = calculateMedian(yearResults, a -> a.screenerAnnualReturnPercentWithDividends);
 
         result.yearData = yearResults;
         result.investedInAllMatching = yearResults.values().stream().allMatch(a -> a.investedInAllMatching);
 
-        LOGGER.info("Backtest result invested={} medianReturn={} avgReturn={} beatPercent={}", result.investedAmount, result.screenerMedianPercent, result.screenerAvgPercent, result.beatPercent);
+        LOGGER.info("Backtest result invested={} medianReturn={} avgReturn={} medianReturnWithDividends={} avgReturnWithDividends={} beatPercent={}", result.investedAmount,
+                result.screenerMedianPercent, result.screenerAvgPercent,
+                result.screenerWithDividendsMedianPercent, result.screenerWithDividendsAvgPercent, result.beatPercent);
 
         return result;
+    }
+
+    public double calculateAverage(Map<Integer, BacktestYearInformation> yearResults, Function<BacktestYearInformation, Double> valueSupplier) {
+        return yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> valueSupplier.apply(a)).average().orElse(0.0);
+    }
+
+    public Double calculateMedian(Map<Integer, BacktestYearInformation> yearResults, Function<BacktestYearInformation, Double> valueSupplier) {
+        List<Double> screenerReturns = yearResults.values().stream().filter(a -> a.investedAmount > 0).map(valueSupplier).collect(Collectors.toList());
+        Collections.sort(screenerReturns);
+        if (screenerReturns.size() > 0) {
+            return screenerReturns.get(screenerReturns.size() / 2);
+        }
+        return 0.0;
+    }
+
+    private double calculateTotalSPSharesWithDividendsReinvested(double initialSpShareCount, int year, int endYear) {
+        double shareCount = initialSpShareCount;
+        for (int i = year + 1; i < endYear; ++i) {
+            Double dividendsPaid = StandardAndPoorPerformanceProvider.getDividendsPaidInYear(i);
+            LocalDate date = LocalDate.of(i, 1, 1);
+            Double priceAtDate = spPriceCache.get(date, date2 -> StandardAndPoorPerformanceProvider.getPriceAt(date2));
+            if (dividendsPaid != null) {
+                shareCount += (dividendsPaid * shareCount) / priceAtDate;
+            }
+        }
+        return shareCount;
+    }
+
+    private double calculateTotalSharesWithDividendsReinvested(double initialShareCount, int year, int endYear, String symbol) {
+        double shareCount = initialShareCount;
+        for (int i = year + 1; i < endYear; ++i) {
+            Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(i).orElse(null);
+            if (data != null) {
+                AtGlanceData dataAtYear = data.get(symbol);
+                if (dataAtYear != null && dataAtYear.dividendYield < 100.0) { // data issues
+                    float dividendPaid = dataAtYear.dividendPaid;
+                    shareCount += (dividendPaid * shareCount) / dataAtYear.latestStockPrice;
+                }
+            }
+        }
+        return shareCount;
     }
 
     public String formatString(Double value) {
@@ -474,6 +554,10 @@ public class ScreenerController {
             return (Double) value;
         } else if (value.getClass().equals(Float.class)) {
             return ((Float) value).doubleValue();
+        } else if (value.getClass().equals(Byte.class)) {
+            return ((Byte) value).doubleValue();
+        } else if (value.getClass().equals(Integer.class)) {
+            return ((Integer) value).doubleValue();
         } else {
             throw new RuntimeException("Unknown type");
         }

@@ -12,6 +12,7 @@ public class AtGlanceData {
     public double latestStockPriceUsd;
     public long shareCount;
     public LocalDate actualDate;
+    public float dividendPaid;
 
     @ScreenerElement(name = "Market cap ($ million)")
     public double marketCapUsd;
@@ -87,6 +88,16 @@ public class AtGlanceData {
     public float fvCalculatorMoS;
     @ScreenerElement(name = "Composite fair value margin of safety")
     public float fvCompositeMoS;
+    @ScreenerElement(name = "Flag count (star)")
+    public byte starFlags;
+    @ScreenerElement(name = "Flag count (red)")
+    public byte redFlags;
+    @ScreenerElement(name = "Flag count (yellow)")
+    public byte yellowFlags;
+    @ScreenerElement(name = "Flag count (green)")
+    public byte greenFlags;
+
+    public int dataQualityIssue;
 
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield")
     public double getFreeCashFlowYield() {

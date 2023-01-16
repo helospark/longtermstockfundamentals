@@ -37,6 +37,8 @@ import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.google.common.util.concurrent.RateLimiter;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.CompanyListElement;
+import com.helospark.financialdata.domain.FlagInformation;
+import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.domain.FxSupportedSymbolsResponse;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.service.AltmanZCalculator;
@@ -44,6 +46,7 @@ import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
+import com.helospark.financialdata.service.FlagsProviderService;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.GrowthCorrelationCalculator;
 import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
@@ -291,10 +294,10 @@ public class StockDataDownloader {
 
         double latestPrice = (offsetYeari == 0 ? company.latestPrice : company.financials.get(index).price);
         double latestPriceUsd = (offsetYeari == 0 ? company.latestPriceUsd : company.financials.get(index).priceUsd);
-        double latestPriceTradingCurrency = (offsetYeari == 0 ? company.latestPriceTradingCurrency : company.financials.get(index).price);
 
         data.actualDate = actualDate;
         data.marketCapUsd = (latestPriceUsd * financial.incomeStatementTtm.weightedAverageShsOut) / 1_000_000.0;
+        data.dividendPaid = (float) (-1.0 * financial.cashFlowTtm.dividendsPaid / financial.incomeStatementTtm.weightedAverageShsOut);
         data.latestStockPrice = latestPrice;
         data.latestStockPriceUsd = latestPriceUsd;
         data.shareCount = financial.incomeStatementTtm.weightedAverageShsOut;
@@ -303,7 +306,7 @@ public class StockDataDownloader {
         data.altman = (float) AltmanZCalculator.calculateAltmanZScore(financial, latestPrice);
         data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(Double.NaN).floatValue();
         data.eps = financial.incomeStatementTtm.eps;
-        data.pe = RatioCalculator.calculatePriceToEarningsRatio(financial).floatValue();
+        data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial)).orElse(Double.NaN).floatValue();
         data.fcfPerShare = (double) financial.cashFlowTtm.freeCashFlow / financial.incomeStatementTtm.weightedAverageShsOut;
         data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN).floatValue();
         data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN).floatValue();
@@ -314,7 +317,7 @@ public class StockDataDownloader {
         data.dividendGrowthRate = GrowthCalculator.getDividendGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
-        data.cape = CapeCalculator.calculateCapeRatioQ(company.financials, 10, index).floatValue();
+        data.cape = Optional.ofNullable(CapeCalculator.calculateCapeRatioQ(company.financials, 10, index)).orElse(Double.NaN).floatValue();
 
         data.epsSD = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.revSD = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN).floatValue();
@@ -338,6 +341,30 @@ public class StockDataDownloader {
 
         data.fvCalculatorMoS = (float) ((DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
         data.fvCompositeMoS = (float) ((DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
+
+        List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
+
+        int numRed = 0;
+        int numYellow = 0;
+        int numGreen = 0;
+        int numStar = 0;
+        for (var element : flags) {
+            if (element.type == FlagType.RED) {
+                ++numRed;
+            } else if (element.type == FlagType.YELLOW) {
+                ++numYellow;
+            } else if (element.type == FlagType.GREEN) {
+                ++numGreen;
+            } else if (element.type == FlagType.STAR) {
+                ++numStar;
+            }
+        }
+
+        data.starFlags = (byte) numStar;
+        data.redFlags = (byte) numRed;
+        data.yellowFlags = (byte) numYellow;
+        data.greenFlags = (byte) numGreen;
+        data.dataQualityIssue = company.dataQualityIssue;
 
         return Optional.of(data);
     }
@@ -425,7 +452,7 @@ public class StockDataDownloader {
         // https://financialmodelingprep.com/api/v3/ratios/AAPL?limit=40&apikey=API_KEY
         //        downloadUrlIfNeeded("fundamentals/" + symbol + "/ratios.json", "/v3/ratios/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/enterprise-values/AAPL?limit=40&apikey=API_KEY
-        downloadUrlIfNeeded("fundamentals/" + symbol + "/enterprise-values.json", "/v3/enterprise-values/" + symbol, queryMap);
+        // downloadUrlIfNeeded("fundamentals/" + symbol + "/enterprise-values.json", "/v3/enterprise-values/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/key-metrics/AAPL?limit=40&apikey=API_KEY
         //downloadUrlIfNeeded("fundamentals/" + symbol + "/key-metrics.json", "/v3/key-metrics/" + symbol, queryMap);
         // https://financialmodelingprep.com/api/v3/historical-price-full/AAPL?serietype=line&apikey=API_KEY

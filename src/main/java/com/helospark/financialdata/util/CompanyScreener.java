@@ -8,7 +8,7 @@ import com.helospark.financialdata.util.analyzer.HighRoicScreener;
 public class CompanyScreener {
 
     public static void main(String[] args) {
-        Set<String> symbols = DataLoader.provideAllSymbols();
+        Set<String> symbols = DataLoader.provideSymbolsFromNasdaqNyse();
 
         new HighRoicScreener().analyze(symbols);
     }

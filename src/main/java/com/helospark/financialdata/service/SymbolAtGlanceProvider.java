@@ -33,7 +33,7 @@ public class SymbolAtGlanceProvider {
     LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache;
 
     Cache<Integer, Optional<Map<String, AtGlanceData>>> cache = Caffeine.newBuilder()
-            .expireAfterWrite(10, TimeUnit.DAYS)
+            .expireAfterWrite(100, TimeUnit.DAYS)
             .maximumSize(100)
             .build();
 

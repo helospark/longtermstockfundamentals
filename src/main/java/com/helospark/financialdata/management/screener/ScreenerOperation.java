@@ -8,7 +8,7 @@ public class ScreenerOperation {
 
     @Override
     public String toString() {
-        return "ScreenerOperation [id=" + id + ", operation=" + operation + ", number1=" + number1 + ", number2=" + number2 + "]";
+        return "ScreenerOperation [id=" + id + ", operation='" + operation + "', number1=" + number1 + ", number2=" + number2 + "]";
     }
 
 }

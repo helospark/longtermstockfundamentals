@@ -129,25 +129,34 @@
                   <tr>
                     <th scope="col"></th>
                     <th scope="col">Median annual return</th>
+                    <th scope="col">Median annual return with dividends</th>
                     <th scope="col">Avg annual return</th>
+                    <th scope="col">Avg annual return with dividends</th>
                     <th scope="col">Invested $</th>
                     <th scope="col">Returned $</th>
+                    <th scope="col">Returned with dividends $</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
                     <th scope="row">Screener</th>
                     <td>` + data.screenerMedianPercent.toLocaleString('en-US', {maximumFractionDigits: 2}) + `%</td>
+                    <td>` + data.screenerWithDividendsMedianPercent.toLocaleString('en-US', {maximumFractionDigits: 2}) + `%</td>
                     <td>` + data.screenerAvgPercent.toLocaleString('en-US', {maximumFractionDigits: 2}) + `%</td>
+                    <td>` + data.screenerWithDividendsAvgPercent.toLocaleString('en-US', {maximumFractionDigits: 2}) + `%</td>
                     <td>$` + data.investedAmount.toLocaleString('en-US', {maximumFractionDigits: 0}) + `</td>
                     <td>$` + data.screenerReturned.toLocaleString('en-US', {maximumFractionDigits: 0}) + `</td>
+                    <td>$` + data.screenerReturnedWithDividends.toLocaleString('en-US', {maximumFractionDigits: 0}) + `</td>
                   </tr>
                   <tr>
                     <th scope="row">S&P500</th>
                     <td>` + data.sp500MedianPercent.toLocaleString('en-US', {maximumFractionDigits: 2}) + `%</td>
+                    <td>` + data.sp500WithDividendsMedianPercent.toLocaleString('en-US', {maximumFractionDigits: 2}) + `%</td>
                     <td>` + data.sp500AvgPercent.toLocaleString('en-US', {maximumFractionDigits: 2})  + `%</td>
+                    <td>` + data.sp500WithDividendsAvgPercent.toLocaleString('en-US', {maximumFractionDigits: 2}) + `%</td>
                     <td>$` + data.investedAmount.toLocaleString('en-US', {maximumFractionDigits: 0}) + `</td>
                     <td>$` + data.sp500Returned.toLocaleString('en-US', {maximumFractionDigits: 0}) + `</td>
+                    <td>$` + data.sp500ReturnedWithDividends.toLocaleString('en-US', {maximumFractionDigits: 0}) + `</td>
                   </tr>
                 </tbody>
               </table>
@@ -156,15 +165,19 @@
           var xValues = [];
           var spYValues = [];
           var screenerYValues = [];
+          var spYValuesWithDividends = [];
+          var screenerYValuesWithDividends = [];
           
           for (let [key, value] of Object.entries(data.yearData)) {
             xValues.push(key);
             spYValues.push(value.spAnnualReturnPercent);
             screenerYValues.push(value.screenerAnnualReturnPercent);
+            spYValuesWithDividends.push(value.spAnnualReturnPercentWithDividends - value.spAnnualReturnPercent);
+            screenerYValuesWithDividends.push(value.screenerAnnualReturnPercentWithDividends - value.screenerAnnualReturnPercent);
           }
 
-          colorPalette = ["rgba(0,0,255,0.6)", "rgba(255,0,0,0.6)"]
-          colorPaletteLine =  [ "rgba(0,0,255,0.8)", "rgba(255,0,0,0.8)" ]
+          colorPalette = ["rgba(0,0,255,0.6)", "rgba(255,0,0,0.6)", "rgba(0,0,255,0.4)", "rgba(255,0,0,0.5)"]
+          colorPaletteLine =  [ "rgba(0,0,255,0.8)", "rgba(255,0,0,0.8)", "rgba(0,0,255,0.6)", "rgba(255,0,0,0.6)" ]
           
           var chartConfig = {
             type: 'bar',
@@ -177,7 +190,8 @@
                 backgroundColor: colorPalette[0],
                 data: screenerYValues,
                 pointHitRadius: 300,
-                label: 'Screener annual return'
+                label: 'Screener annual return',
+                stack: 'Stack 0'
               },{
                 fill: true,
                 pointRadius: 2,
@@ -185,7 +199,26 @@
                 backgroundColor: colorPalette[1],
                 data: spYValues,
                 pointHitRadius: 300,
-                label: 'S&P 500 annual return'
+                label: 'S&P 500 annual return',
+                stack: 'Stack 1'
+              },{
+                fill: true,
+                pointRadius: 2,
+                borderColor: colorPaletteLine[2],
+                backgroundColor: colorPalette[2],
+                data: screenerYValuesWithDividends,
+                pointHitRadius: 300,
+                label: 'Screener annual return with dividends reinvested',
+                stack: 'Stack 0'
+              },{
+                fill: true,
+                pointRadius: 2,
+                borderColor: colorPaletteLine[3],
+                backgroundColor: colorPalette[3],
+                data: spYValuesWithDividends,
+                pointHitRadius: 300,
+                label: 'S&P 500 annual return with dividends reinvested',
+                stack: 'Stack 1'
               }]
             }, 
             options: {
@@ -201,17 +234,45 @@
                 },
                 tooltip: {
                     callbacks: {
-                        label: (item) =>
-                            `${item.dataset.label}: ${item.formattedValue}%`,
+                      label: function(tooltipItem) {
+                          if (tooltipItem.datasetIndex == 0) {
+                            baseIndex = 0;
+                            pairIndex = 2;
+                          } else if (tooltipItem.datasetIndex == 1) {
+                            baseIndex = 1;
+                            pairIndex = 3;
+                          } else if (tooltipItem.datasetIndex == 2) {
+                            baseIndex = 0;
+                            pairIndex = 2;
+                          } else if (tooltipItem.datasetIndex == 3) {
+                            baseIndex = 1;
+                            pairIndex = 3;
+                          }
+                          
+                          var corporation = chartConfig.data.datasets[baseIndex].label;
+                          var corporationPair = chartConfig.data.datasets[pairIndex].label;
+                          
+                          var returns = chartConfig.data.datasets[baseIndex].data[tooltipItem.dataIndex];
+                          var returnsFixed = returns.toFixed(2);
+                          var returnsWithDividend = (chartConfig.data.datasets[pairIndex].data[tooltipItem.dataIndex] + returns).toFixed(2);
+                          
+                          console.log(baseIndex + " " + returns);
+                          
+                          return [`${corporationPair}: ${returnsWithDividend}%`, `${corporation}: ${returnsFixed}%`]
+                          
+                      }
+
                     },
                 },
               },
               scales: {
                 x: {
                   display: true,
+                  stacked: true
                 },
                 y: {
                   display: true,
+                  stacked: true,
                   type: 'linear'
                 }
               },
@@ -413,11 +474,13 @@
 
   function getScreenerHelpHtml() {
     return `
-      <h4>Screener</h4>
+      <h2>Screener</h2>
       Screeners are used to find stocks matching your selected condition.<br>
       You can add up to 20 conditions and select any exchanges to perform the search<br>
       <p>
-      Conditions:
+      <b>Default order of the items is NOT a representation of how good it is (ordering is random).</b>
+      <p>
+      <h5>Conditions:</h5>
       <p><b>Market cap ($ million):</b> Market cap is shareCount * sharePrice
       <p><b>Trailing PEG:</b> PE ratio / (median 7 year trailing annual growth)
       <p><b>ROIC:</b> Return on invested capital is ebit/(totalAsset - totalCurrentLiabilities)
@@ -438,18 +501,19 @@
       <p><b>Ideal 10yr (EPS, FCF, revenue) growth correlation:</b> Metric correlation between an ideal growth curve from 10 years ago. Numbers close to 1.0 represents very consistent growth.
       <p><b>Ideal 20yr (EPS, FCF, revenue) growth correlation:</b> Metric correlation between an ideal growth curve from 20 years ago. Numbers close to 1.0 represents very consistent growth.
       <p><b>Default calculator fair value margin of safety:</b> The margin of safety you get if you click calculator menu in the top and navigate to a stock without changing the form values. 0% means fairly valued for 10% return.
-      <p><b>Composite fair value margin of safety</b> The margin of safety using EPS DCF formula
+      <p><b>Composite fair value margin of safety:</b> The margin of safety using EPS DCF formula
       <p><b>Free cash flow yield:</b> FCF per share / price * 100.0
       <p><b>Earnings yield:</b> EPS / price * 100.0
-      <h4>Backtest</h4>
+      <p><b>Flag count (star, green, yellow, red):</b> The count of the type of check flags in the bottom of the charts page
+
+      <h2>Backtest</h2>
       Backtest performs simulated investment based on your screener conditions for a historical interval.<br>
       It selects every stocks (max 100) matching your screener conditions every year in your selected interval simulates a $1000 investment in that and also
        adds $1000 S&P 500 shares and returns are calculated based on this.
       <p>
       Take the results with a grain of salt, because:
       <ul>
-       <li> - Many delisted stocks fundamentals are not available, causing a skewed results (especially more than 10+ years ago with small caps)</li>
-       <li> - Dividends are not taken into account for neither S&P 500 and your screener's selected stocks</li>
+       <li> - Many delisted stocks fundamentals are not available, causing a skewed results (especially more than 10+ years ago with small caps). Filter for large caps to minimise the effect.</li>
        <li> - Past performance is no guarantee on future returns</li>
       </ul>
     `;
