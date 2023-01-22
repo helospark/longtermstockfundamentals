@@ -163,7 +163,7 @@ createChart("/financials/pfcf", "FCF per share", {});
 createAd();
 
 createSeparator("Margins")
-createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -10, unit: '%', label: "Gross margin", additionalCharts: [
+createChart("/financials/gross_margin", "Gross margin", {suggestedMin: -20, unit: '%', label: "Gross margin", additionalCharts: [
   {
     "url": "/financials/operating_margin",
     "label": "Operating margin"
@@ -283,7 +283,7 @@ createChart("/financials/stock_compensation_per_net_revenue", "Stock compensatio
 createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
 createChart("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%'});
 createChart("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
-createChart("/financials/pietrosky_score", "Pietrosky score", {quarterlyEnabled: false});
+createChart("/financials/pietrosky_score", "Piotrosky score", {quarterlyEnabled: false});
 
 
 

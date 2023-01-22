@@ -511,6 +511,8 @@
       It selects every stocks (max 100) matching your screener conditions every year in your selected interval simulates a $1000 investment in that and also
        adds $1000 S&P 500 shares and returns are calculated based on this.
       <p>
+      Returns are calculated in USD even for stocks that are not trading/reporting in USD.
+      <p>
       Take the results with a grain of salt, because:
       <ul>
        <li> - Many delisted stocks fundamentals are not available, causing a skewed results (especially more than 10+ years ago with small caps). Filter for large caps to minimise the effect.</li>

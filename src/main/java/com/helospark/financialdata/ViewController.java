@@ -26,6 +26,7 @@ import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.ViewedStocksService;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.FreeStockRepository;
+import com.helospark.financialdata.management.watchlist.repository.LatestPriceProvider;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.MarginCalculator;
@@ -50,6 +51,8 @@ public class ViewController {
     private InspirationProvider inspirationProvider;
     @Autowired
     private ScreenerController screenerController;
+    @Autowired
+    private LatestPriceProvider latestPriceProvider;
 
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
@@ -237,8 +240,10 @@ public class ViewController {
                     }
                 }
 
-                model.addAttribute("latestPrice", company.latestPrice);
-                model.addAttribute("latestPriceTradingCurrency", company.latestPriceTradingCurrency);
+                double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
+                Optional<Double> priceInReportCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, company.profile.currency, company.profile.reportedCurrency, LocalDate.now(), false);
+                model.addAttribute("latestPrice", priceInReportCurrency.orElse(company.latestPrice));
+                model.addAttribute("latestPriceTradingCurrency", latestPriceInTradingCurrency);
                 model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
             }
 

@@ -14,7 +14,7 @@ public class ProfitabilityCalculator {
                 return Optional.of(i);
             }
         }
-        return Optional.empty();
+        return Optional.of(0);
     }
 
     public static boolean hasNegativeFreeCashFlow(CompanyFinancials company, int index, int years) {

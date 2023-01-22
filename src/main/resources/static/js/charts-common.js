@@ -236,7 +236,7 @@ function createChart(urlPath, title, chartOptions) {
       slide: function( event, ui ) {
           var start = ui.values[0],
           end = ui.values[1];
-
+          
           chart.options.scales.y.min = start;
           chart.options.scales.y.max = end;
           chart.update();
@@ -335,6 +335,19 @@ function createChart(urlPath, title, chartOptions) {
                       max = Math.max.apply(Math, yValues);
                       min = Math.min.apply(Math, yValues);
                   
+                      if (min < 0) {
+                        min *= 1.04;
+                      }
+                      if (max < 0) {
+                        max *= 0.96;
+                      }
+                      if (min > 0) {
+                        min *= 0.96;
+                      }
+                      if (max > 0) {
+                        max *= 1.04;
+                      }
+                  
                       minValueToSet = chartOptions.suggestedMin !== undefined ? chartOptions.suggestedMin : min;
                       maxValueToSet = chartOptions.suggestedMax !== undefined ? chartOptions.suggestedMax : max;
                       
@@ -345,6 +358,7 @@ function createChart(urlPath, title, chartOptions) {
                          minValueToSet = maxValueToSet + 1.0;
                       }
 
+                      console.log(url + " " + min + " " + max + " " + minValueToSet + " " + maxValueToSet);
                       if (!isNaN(min)) {
                         slider.slider("option", "min", min);
                       }
@@ -399,8 +413,29 @@ function createChart(urlPath, title, chartOptions) {
                         max = Math.max.apply(Math, newYValues);
                         min = Math.min.apply(Math, newYValues);
                     
-                        minValueToSet = min;
-                        maxValueToSet = max;
+                        for (i = 0; i < chart.data.datasets.length; ++i) {
+                          max2 = Math.max.apply(Math, chart.data.datasets[i].data);
+                          min2 = Math.min.apply(Math, chart.data.datasets[i].data);
+                      
+                          if (max2 > max) {
+                            max = max2;
+                          }
+                          if (min2 < min) {
+                            min = min2;
+                          }
+                        }
+                        if (min < 0) {
+                          minValueToSet = min * 1.07;
+                        }
+                        if (max < 0) {
+                          maxValueToSet = max * 0.93;
+                        }
+                        if (min > 0) {
+                          minValueToSet = min * 0.93;
+                        }
+                        if (max > 0) {
+                          maxValueToSet = max * 1.07;
+                        }
                     
                         if (chart.options.scales.y.min < minValueToSet) {
                            minValueToSet = chart.options.scales.y.min;
@@ -432,17 +467,23 @@ function createChart(urlPath, title, chartOptions) {
                         }
 
 
-                        if (!isNaN(min)) {
-                          slider.slider("option", "min", min);
+                        if (!isNaN(minValueToSet)) {
+                          slider.slider("option", "min", minValueToSet);
                         }
-                        if (!isNaN(max)) {
-                          slider.slider("option", "max", max);
+                        if (!isNaN(maxValueToSet)) {
+                          slider.slider("option", "max", maxValueToSet);
                         }
                         if (!isNaN(minValueToSet)) {
                           slider.slider('values', 0, minValueToSet);
+                          if (chart.options.scales.y.originalMin != undefined) {
+                            chart.options.scales.y.originalMin = minValueToSet;
+                          }
                           chart.options.scales.y.min = minValueToSet;
                         }
                         if (!isNaN(maxValueToSet)) {
+                          if (chart.options.scales.y.originalMax != undefined) {
+                            chart.options.scales.y.originalMax = maxValueToSet;
+                          }
                           slider.slider('values', 1, maxValueToSet);
                           chart.options.scales.y.max = maxValueToSet;
                         }

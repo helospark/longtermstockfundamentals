@@ -136,6 +136,9 @@
     <div class="" th:if="${isLoggedIn}">
       <div class="watchlist-table-container">
           <div id="watchlist-table" class="row">
+             <div class="spinner-border" role="status" style="margin-left: auto;margin-right: auto;">
+                <span class="sr-only">Loading...</span>
+             </div>
           </div>
       </div>
     </div>
@@ -150,7 +153,7 @@
            return res.json();
         }).then(data => {
            watchlistHtml = createWatchlistTableHtml(data.columns, data.portfolio, false);
-           $("#watchlist-table").append(watchlistHtml);
+           $("#watchlist-table").html(watchlistHtml);
            $('#watchlist-table table').DataTable({
               paging: false,
              "iDisplayLength": 100,

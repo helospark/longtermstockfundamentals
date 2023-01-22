@@ -4,5 +4,5 @@ import java.io.Serializable;
 import java.util.List;
 
 public class HistoricalPrice implements Serializable {
-    public List<HistoricalPriceElement> historical;
+    public List<HistoricalPriceElement> historical = List.of();
 }

@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -73,13 +74,19 @@ public class WatchlistService {
 
         List<WatchlistElement> watchlistElements = decodeWatchlist(watchlist);
 
+        Map<String, CompletableFuture<Double>> prices = new HashMap<>();
+        for (int i = 0; i < watchlistElements.size(); ++i) {
+            String symbol = watchlistElements.get(i).symbol;
+            prices.put(symbol, latestPriceProvider.provideLatestPriceAsync(symbol));
+        }
+
         for (int i = 0; i < watchlistElements.size(); ++i) {
             WatchlistElement currentElement = watchlistElements.get(i);
             String ticker = currentElement.symbol;
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
-                double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(ticker);
+                double latestPriceInTradingCurrency = getPrice(prices, ticker);
                 Map<String, String> portfolioElement = new HashMap<>();
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
@@ -98,6 +105,14 @@ public class WatchlistService {
         }
 
         return result;
+    }
+
+    public Double getPrice(Map<String, CompletableFuture<Double>> prices, String ticker) {
+        try {
+            return prices.get(ticker).get();
+        } catch (Exception e) {
+            return latestPriceProvider.provideLatestPrice(ticker);
+        }
     }
 
     public @PolyNull Optional<Watchlist> loadWatchlist(String email) {

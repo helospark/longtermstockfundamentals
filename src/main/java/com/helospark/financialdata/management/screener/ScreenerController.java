@@ -490,6 +490,9 @@ public class ScreenerController {
                 }
             }
         }
+        if (!Double.isFinite(shareCount)) {
+            return initialShareCount;
+        }
         return shareCount;
     }
 
