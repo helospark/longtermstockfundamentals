@@ -21,7 +21,11 @@ public class RatioCalculator {
     }
 
     public static double calculatePriceToBookRatio(FinancialsTtm data) {
-        return data.price / calculateBookValuePerShare(data);
+        return calculatePriceToBookRatio(data, data.price);
+    }
+
+    public static double calculatePriceToBookRatio(FinancialsTtm data, double price) {
+        return price / calculateBookValuePerShare(data);
     }
 
     public static double calculatePriceToTangibleBookRatio(FinancialsTtm data) {
@@ -55,6 +59,27 @@ public class RatioCalculator {
 
     public static Double calculateFcfPayoutRatio(FinancialsTtm financialsTtm) {
         return (double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.freeCashFlow;
+    }
+
+    public static double calculatePriceToSalesRatio(FinancialsTtm financial, double latestPrice) {
+        double marketCap = financial.incomeStatementTtm.weightedAverageShsOut * latestPrice;
+        double result = marketCap / financial.incomeStatementTtm.revenue;
+        return result;
+    }
+
+    public static Double calculateInterestCoverageRatio(FinancialsTtm financialsTtm) {
+        Double coverage = null;
+        if (financialsTtm.incomeStatementTtm.interestExpense > 0) {
+            double ebit = RoicCalculator.calculateEbit(financialsTtm);
+            coverage = (ebit / financialsTtm.incomeStatementTtm.interestExpense);
+        }
+        return coverage;
+    }
+
+    public static double calculateDebtToEquityRatio(FinancialsTtm financial) {
+        double debt = financial.balanceSheet.totalDebt;
+        double equity = financial.balanceSheet.totalStockholdersEquity;
+        return debt / equity;
     }
 
 }

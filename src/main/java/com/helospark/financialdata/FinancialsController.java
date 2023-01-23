@@ -270,12 +270,7 @@ public class FinancialsController {
     @GetMapping("/interest_coverage")
     public List<SimpleDataElement> getInterestCoverage(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> {
-            Double coverage = null;
-            if (financialsTtm.incomeStatementTtm.interestExpense > 0) {
-                double ebit = RoicCalculator.calculateEbit(financialsTtm);
-                coverage = (ebit / financialsTtm.incomeStatementTtm.interestExpense);
-            }
-            return coverage;
+            return RatioCalculator.calculateInterestCoverageRatio(financialsTtm);
         });
     }
 

@@ -256,8 +256,6 @@
                           var returnsFixed = returns.toFixed(2);
                           var returnsWithDividend = (chartConfig.data.datasets[pairIndex].data[tooltipItem.dataIndex] + returns).toFixed(2);
                           
-                          console.log(baseIndex + " " + returns);
-                          
                           return [`${corporationPair}: ${returnsWithDividend}%`, `${corporation}: ${returnsFixed}%`]
                           
                       }
@@ -336,7 +334,7 @@
       screenersToLoad = JSON.parse(screenersString);
     }
     
-    options = "<select id=\"screener-name\">";
+    options = "<select style=\"max-width: 450px;\" id=\"screener-name\">";
     for (let [key, value] of Object.entries(screenersToLoad)) {
       options += "<option value='" + key + "'>" + key + "</option>";
     }
@@ -487,6 +485,7 @@
       <p><b>AltmanZ score:</b> Score to predict likelyhood of bankruptcy. Also useful to see how financially strong a company is, see <a href="https://en.wikipedia.org/wiki/Altman_Z-score">Wikipedia</a>
       <p><b>Piotrosky score:</b> Score between 0 and 9 (inclusive) to determine a company's financial steps, see <a href="https://www.investopedia.com/terms/p/piotroski-score.asp">investopedia</a>
       <p><b>PE:</b> Trailing price to earnings ratio
+      <p><b>Interest coverage ratio:</b> Interest / EBIT
       <p><b>Current ratio:</b> Measure of a company's capability to pay it's short term liabilities, see <a href="https://www.investopedia.com/terms/c/currentratio.asp">Investopedia</a>
       <p><b>Quick ratio:</b>  Measure of a company's capability to pay it's short term liabilities without selling assets, see <a href="https://www.investopedia.com/terms/q/quickratio.asp">Investopedia</a>
       <p><b>5 year * growth:</b> Annualized growth from 5 years ago until today
@@ -502,6 +501,7 @@
       <p><b>Ideal 20yr (EPS, FCF, revenue) growth correlation:</b> Metric correlation between an ideal growth curve from 20 years ago. Numbers close to 1.0 represents very consistent growth.
       <p><b>Default calculator fair value margin of safety:</b> The margin of safety you get if you click calculator menu in the top and navigate to a stock without changing the form values. 0% means fairly valued for 10% return.
       <p><b>Composite fair value margin of safety:</b> The margin of safety using EPS DCF formula
+      <p><b>Graham number margin of safety:</b> The margin of safety using <a href="https://www.investopedia.com/terms/g/graham-number.asp">Graham number formula</a>
       <p><b>Free cash flow yield:</b> FCF per share / price * 100.0
       <p><b>Earnings yield:</b> EPS / price * 100.0
       <p><b>Flag count (star, green, yellow, red):</b> The count of the type of check flags in the bottom of the charts page

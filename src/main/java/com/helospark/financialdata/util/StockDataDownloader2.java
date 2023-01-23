@@ -65,7 +65,9 @@ import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
+import com.helospark.financialdata.service.EnterpriseValueCalculator;
 import com.helospark.financialdata.service.FlagsProviderService;
+import com.helospark.financialdata.service.GrahamNumberCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.GrowthCorrelationCalculator;
 import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
@@ -365,6 +367,12 @@ public class StockDataDownloader2 {
         data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(Double.NaN).floatValue();
         data.eps = financial.incomeStatementTtm.eps;
         data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial)).orElse(Double.NaN).floatValue();
+        data.evToEbitda = (float) (EnterpriseValueCalculator.calculateEv(financial, latestPrice) / financial.incomeStatementTtm.ebitda);
+        data.ptb = (float) RatioCalculator.calculatePriceToBookRatio(financial, latestPrice);
+        data.pts = (float) RatioCalculator.calculatePriceToSalesRatio(financial, latestPrice);
+        data.icr = Optional.ofNullable(RatioCalculator.calculateInterestCoverageRatio(financial)).orElse(Double.NaN).floatValue();
+        data.dtoe = (float) RatioCalculator.calculateDebtToEquityRatio(financial);
+        data.roe = (float) RoicCalculator.calculateROE(financial);
         data.fcfPerShare = (double) financial.cashFlowTtm.freeCashFlow / financial.incomeStatementTtm.weightedAverageShsOut;
         data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN).floatValue();
         data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN).floatValue();
@@ -399,6 +407,7 @@ public class StockDataDownloader2 {
 
         data.fvCalculatorMoS = (float) ((DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
         data.fvCompositeMoS = (float) ((DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
+        data.grahamMoS = (float) ((GrahamNumberCalculator.calculateGrahamNumber(financial).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 

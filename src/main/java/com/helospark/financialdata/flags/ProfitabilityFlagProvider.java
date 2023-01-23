@@ -37,7 +37,7 @@ public class ProfitabilityFlagProvider implements FlagProvider {
                     flags.add(new FlagInformation(FlagType.STAR, format("Company has been continously profitable for %d yrs", profitableYears)));
                 } else if (profitableYears > 5) {
                     flags.add(new FlagInformation(FlagType.GREEN, format("Company has been continously profitable for %d yrs", profitableYears)));
-                } else if (profitableYears < 3) {
+                } else if (profitableYears < 3 && profitableYears > 0) {
                     flags.add(new FlagInformation(FlagType.YELLOW, format("Company has just been profitable for %d yrs", profitableYears)));
                 }
 

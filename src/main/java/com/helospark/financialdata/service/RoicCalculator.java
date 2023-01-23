@@ -53,4 +53,8 @@ public class RoicCalculator {
         return financialsTtm.balanceSheet.totalAssets - financialsTtm.balanceSheet.goodwillAndIntangibleAssets - financialsTtm.balanceSheet.totalLiabilities;
     }
 
+    public static double calculateROE(FinancialsTtm financial) {
+        return ((double) financial.incomeStatementTtm.netIncome) / financial.balanceSheet.totalStockholdersEquity;
+    }
+
 }

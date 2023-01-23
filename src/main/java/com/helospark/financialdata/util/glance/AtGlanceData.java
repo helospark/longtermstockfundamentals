@@ -22,7 +22,7 @@ public class AtGlanceData {
     public float roic;
     @ScreenerElement(name = "AltmanZ score")
     public float altman;
-    @ScreenerElement(name = "Pietrosky score")
+    @ScreenerElement(name = "Piotrosky score")
     public float pietrosky;
 
     public double eps;
@@ -30,10 +30,22 @@ public class AtGlanceData {
 
     @ScreenerElement(name = "PE")
     public float pe;
+    @ScreenerElement(name = "Enterprise value to EBIT")
+    public float evToEbitda;
+    @ScreenerElement(name = "Price to book ratio")
+    public float ptb;
+    @ScreenerElement(name = "Price to sales ratio")
+    public float pts;
+    @ScreenerElement(name = "Interest coverage ratio")
+    public float icr;
     @ScreenerElement(name = "Current ratio")
     public float currentRatio;
     @ScreenerElement(name = "Quick ratio")
     public float quickRatio;
+    @ScreenerElement(name = "Debt to equity ratio")
+    public float dtoe;
+    @ScreenerElement(name = "Return on equity")
+    public float roe;
     @ScreenerElement(name = "5 year annual EPS growth", format = AtGlanceFormat.PERCENT)
     public float epsGrowth;
     @ScreenerElement(name = "5 year annual FCF growth", format = AtGlanceFormat.PERCENT)
@@ -88,6 +100,8 @@ public class AtGlanceData {
     public float fvCalculatorMoS;
     @ScreenerElement(name = "Composite fair value margin of safety")
     public float fvCompositeMoS;
+    @ScreenerElement(name = "Graham number margin of safety")
+    public float grahamMoS;
     @ScreenerElement(name = "Flag count (star)")
     public byte starFlags;
     @ScreenerElement(name = "Flag count (red)")

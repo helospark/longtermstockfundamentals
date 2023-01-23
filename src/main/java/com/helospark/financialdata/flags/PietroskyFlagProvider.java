@@ -30,9 +30,9 @@ public class PietroskyFlagProvider implements FlagProvider {
             Optional<Integer> pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, company.financials.get(index));
             if (pietrosky.isPresent()) {
                 if (pietrosky.get() >= 8) {
-                    flags.add(new FlagInformation(FlagType.GREEN, format("Good pietrosky score (%d)", pietrosky.get())));
+                    flags.add(new FlagInformation(FlagType.GREEN, format("Good piotrosky score (%d)", pietrosky.get())));
                 } else if (pietrosky.get() <= 2) {
-                    flags.add(new FlagInformation(FlagType.RED, format("Poor pietrosky score (%d)", pietrosky.get())));
+                    flags.add(new FlagInformation(FlagType.RED, format("Poor piotrosky score (%d)", pietrosky.get())));
                 }
             }
         }
