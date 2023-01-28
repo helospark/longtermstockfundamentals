@@ -413,7 +413,9 @@ public class DataLoader {
                 return result;
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            System.out.println("Unable to load " + dataFile);
+            e.printStackTrace();
+            return List.of();
         }
     }
 

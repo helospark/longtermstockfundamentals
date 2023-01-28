@@ -31,6 +31,7 @@
 
 <div id="content">
   <span id="stock" th:text="${stock}" style="display:none"></span>
+  <span id="stockToLoad" th:text="${stockToLoad}" style="display:none"></span>
   <h2 style="float:left"><span id="stock-name" th:text="${companyName} + ' DCF calculator'"></span></h2>
   <h5 id="add-to-watchlist-header" style="float:left" th:if="${isLoggedIn}"><span class="badge bg-primary" onclick="addToWatchlist()">Watchlist</span></h5>
   <div class="clearFloat"></div>

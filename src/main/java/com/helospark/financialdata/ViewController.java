@@ -310,4 +310,9 @@ public class ViewController {
 
     }
 
+    @GetMapping("/sp500")
+    public String sp500(Model model) {
+        return "sp500";
+    }
+
 }

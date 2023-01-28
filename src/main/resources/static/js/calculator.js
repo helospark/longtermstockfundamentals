@@ -199,7 +199,7 @@
    
    
   var stock = document.getElementById("stock").innerText;
-  var stockToLoad = document.getElementById("stock").innerText;
+  var stockToLoad = document.getElementById("stockToLoad").innerText;
 
 
   chart=createChart("/financials/eps", "EPS", {

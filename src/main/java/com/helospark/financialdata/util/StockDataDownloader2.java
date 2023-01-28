@@ -39,6 +39,9 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -88,6 +91,7 @@ import com.helospark.financialdata.util.glance.AtGlanceData;
 public class StockDataDownloader2 {
     private static final Logger LOGGER = LoggerFactory.getLogger(StockDataDownloader2.class);
     public static final String SYMBOL_CACHE_FILE = BASE_FOLDER + "/info/symbols/atGlance.json";
+    public static final String DOWNLOAD_DATES = BASE_FOLDER + "/info/download-dates.json";
     public static final String SYMBOL_CACHE_HISTORY_FILE = BASE_FOLDER + "/info/symbols/";
     static final ObjectMapper objectMapper = new ObjectMapper();
     static final String API_KEY = System.getProperty("API_KEY");
@@ -106,7 +110,7 @@ public class StockDataDownloader2 {
         init();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
         List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
 
         List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
@@ -122,15 +126,30 @@ public class StockDataDownloader2 {
         Collections.shuffle(newSymbols);
         Queue<String> symbolsQueue = new ConcurrentLinkedQueue<>(newSymbols);
 
+        File downloadDates = new File(DOWNLOAD_DATES);
+
+        Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+
         List<CompletableFuture<?>> futures = new ArrayList<>();
         for (int i = 0; i < threads; ++i) {
+            int threadIndex = i;
             futures.add(CompletableFuture.runAsync(() -> {
+                int k = 0;
                 while (true) {
                     String symbol = symbolsQueue.poll();
                     if (symbol == null) {
                         break;
                     }
-                    downloadStockData(symbol);
+                    try {
+                        downloadStockData(symbol, symbolToDates);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    ++k;
+
+                    if (threadIndex == 0 && k % 1000 == 0) {
+                        writeLastAttemptedFile(downloadDates, symbolToDates);
+                    }
                 }
             }, executor));
         }
@@ -139,9 +158,23 @@ public class StockDataDownloader2 {
             futures.get(i).join();
         }
         executor.shutdownNow();
+        writeLastAttemptedFile(downloadDates, symbolToDates);
 
         createExchangeCache();
         createSymbolCache();
+    }
+
+    public static Map<String, DownloadDateData> loadDateData(File downloadDates) throws IOException, StreamReadException, DatabindException {
+        Map<String, DownloadDateData> symbolToDates = new ConcurrentHashMap<>();
+        try {
+            if (downloadDates.exists()) {
+                symbolToDates = new ConcurrentHashMap<>(objectMapper.readValue(downloadDates, new TypeReference<Map<String, DownloadDateData>>() {
+                }));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return symbolToDates;
     }
 
     private static <T> T downloadSimpleUrlCached(String urlPath, String folder, Class<T> clazz) {
@@ -155,7 +188,7 @@ public class StockDataDownloader2 {
                 fullUri += ("&" + entry.getKey() + "=" + entry.getValue());
             }
 
-            LOGGER.debug(fullUri);
+            System.out.println(fullUri);
             rateLimiter.acquire();
             String data = downloadUri(fullUri);
             ;
@@ -275,6 +308,7 @@ public class StockDataDownloader2 {
                     int queueSize = allSymbolsSet.size() - queue.size();
                     if (queueSize % 1000 == 0) {
                         LOGGER.info("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
+                        System.out.println("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
                     }
 
                     for (int i = 1; i < 35; ++i) {
@@ -315,7 +349,7 @@ public class StockDataDownloader2 {
             if (!backtestFile.exists()) {
                 try (GZIPOutputStream fos = new GZIPOutputStream(new FileOutputStream(backtestFile))) {
                     objectMapper.writeValue(fos, entry.getValue());
-                    LOGGER.debug(backtestFile.getAbsolutePath() + " written");
+                    System.out.println(backtestFile.getAbsolutePath() + " written");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -372,7 +406,7 @@ public class StockDataDownloader2 {
         data.pts = (float) RatioCalculator.calculatePriceToSalesRatio(financial, latestPrice);
         data.icr = Optional.ofNullable(RatioCalculator.calculateInterestCoverageRatio(financial)).orElse(Double.NaN).floatValue();
         data.dtoe = (float) RatioCalculator.calculateDebtToEquityRatio(financial);
-        data.roe = (float) RoicCalculator.calculateROE(financial);
+        data.roe = (float) (RoicCalculator.calculateROE(financial) * 100.0);
         data.fcfPerShare = (double) financial.cashFlowTtm.freeCashFlow / financial.incomeStatementTtm.weightedAverageShsOut;
         data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN).floatValue();
         data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN).floatValue();
@@ -471,7 +505,7 @@ public class StockDataDownloader2 {
             File symbolsFile = new File(FX_BASE_FOLDER + "/symbols.json");
             if (!symbolsFile.exists()) {
                 String symbolsUri2 = "https://api.exchangerate.host/symbols";
-                LOGGER.debug(symbolsUri2);
+                System.out.println(symbolsUri2);
                 symbolsFile.getParentFile().mkdirs();
                 String data = downloadUri(symbolsUri2);
 
@@ -490,7 +524,7 @@ public class StockDataDownloader2 {
                     if (!currencyFile.exists()) {
                         rateLimiterForFx.acquire();
                         String uri = "https://api.exchangerate.host/timeseries?start_date=" + localDate.toString() + "&end_date=" + localDate.plusYears(1).toString() + "&base=" + currency;
-                        LOGGER.debug(uri);
+                        System.out.println(uri);
                         String data = downloadUri(uri);
 
                         try (FileOutputStream fos = new FileOutputStream(currencyFile)) {
@@ -522,7 +556,7 @@ public class StockDataDownloader2 {
                     File currencyFile = new File(FX_BASE_FOLDER + "/" + currency + "_" + localDate.getYear() + ".json");
                     rateLimiterForFx.acquire();
                     String uri = "https://api.exchangerate.host/timeseries?start_date=" + localDate.toString() + "&end_date=" + now + "&base=" + currency;
-                    LOGGER.debug(uri);
+                    System.out.println(uri);
                     String data = downloadUri(uri);
 
                     try (FileOutputStream fos = new FileOutputStream(currencyFile)) {
@@ -538,51 +572,96 @@ public class StockDataDownloader2 {
         }
     }
 
-    private static void downloadStockData(String symbol) {
+    private static void downloadStockData(String symbol, Map<String, DownloadDateData> symbolToDates) {
+        String originalSymbol = symbol;
+        DownloadDateData downloadDateData = symbolToDates.get(originalSymbol);
+        LocalDate now = LocalDate.now();
+
+        boolean downloadFinancials = false;
+        boolean downloadPricesNeeded = false;
+        if (downloadDateData != null) {
+            LocalDate expectedDownloadFinancialDate = downloadDateData.lastReportDate.plusDays(downloadDateData.previousReportPeriod);
+
+            if (now.compareTo(expectedDownloadFinancialDate) > 0) {
+                if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastAttemptedDownload)) > 5) {
+                    downloadFinancials = true;
+                }
+                if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 500) {
+                    downloadFinancials = false;
+                }
+            }
+            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastPriceDownload)) > 2 && Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 500) {
+                downloadPricesNeeded = true;
+            }
+        } else {
+            downloadFinancials = true;
+            downloadPricesNeeded = true;
+            downloadDateData = new DownloadDateData(LocalDate.of(1900, 1, 1), now, now, 90);
+        }
+
         symbol = symbol.replace("^", "%5E");
-        Map<String, String> queryMap = new HashMap<>(Map.of("limit", asString(NUM_QUARTER)));
 
-        queryMap.put("period", "quarter");
+        if (downloadFinancials) {
+            Map<String, String> queryMap = new HashMap<>(Map.of("limit", asString(NUM_QUARTER)));
 
-        File lastAttemptedFile = new File(BASE_FOLDER + "/fundamentals/" + symbol + "/last-downloaded.txt");
+            queryMap.put("period", "quarter");
 
-        boolean updateNeeded = true;
-        if (lastAttemptedFile.exists()) {
-            LocalDate lastAttempted = readLastAttempted(lastAttemptedFile);
-            if (lastAttempted != null && Math.abs(ChronoUnit.DAYS.between(lastAttempted, LocalDate.now())) < 10) {
-                updateNeeded = false;
+            DownloadResult incomeResult = downloadJsonListUrlIfNeededWithoutRetry("fundamentals/" + symbol + "/income-statement.json",
+                    "/v3/income-statement/" + symbol, queryMap, IncomeStatement.class, 100);
+            var incomeStatements = ((List<IncomeStatement>) incomeResult.data);
+
+            boolean downloadHappened = false;
+            if (incomeStatements.size() > 0 && !incomeStatements.get(0).getDate().equals(downloadDateData.lastReportDate)) {
+                downloadHappened = true;
+            }
+
+            if (downloadHappened) {
+                downloadJsonListUrlIfNeededWithoutRetry("fundamentals/" + symbol + "/balance-sheet.json", "/v3/balance-sheet-statement/" + symbol, queryMap,
+                        BalanceSheet.class, 100);
+                downloadJsonListUrlIfNeededWithoutRetry("fundamentals/" + symbol + "/cash-flow.json", "/v3/cash-flow-statement/" + symbol, queryMap, CashFlow.class,
+                        100);
+            }
+
+            //  downloadInsiderTrading("fundamentals/" + symbol, symbol, incomeStatements);
+
+            //            var balanceStatements = ((List<BalanceSheet>) balanceResult.data);
+            //            var cashflowStatements = ((List<CashFlow>) cashFlowResult.data);
+            long numberOfDaysDiff = 30;
+            if (incomeStatements.size() > 1) {
+                numberOfDaysDiff = Math.abs(ChronoUnit.DAYS.between(incomeStatements.get(1).getDate(), incomeStatements.get(0).getDate()));
+                if (numberOfDaysDiff < 90) {
+                    numberOfDaysDiff = 90;
+                }
+                if (numberOfDaysDiff > 370) {
+                    numberOfDaysDiff = 370;
+                }
+            }
+            LocalDate lastReportDate = now;
+            if (incomeStatements.size() > 0) {
+                lastReportDate = incomeStatements.get(0).getDate();
+            }
+            downloadDateData.lastReportDate = lastReportDate;
+            downloadDateData.previousReportPeriod = (int) numberOfDaysDiff;
+            downloadDateData.lastAttemptedDownload = now;
+        }
+        if (downloadPricesNeeded) {
+            boolean downloaded = downloadHistoricalJsonUrlIfNeeded("fundamentals/" + symbol + "/historical-price.json", "/v3/historical-price-full/" + symbol, Map.of("serietype", "line"), 10);
+            if (downloaded) {
+                downloadDateData.lastPriceDownload = now;
             }
         }
 
-        if (updateNeeded) {
-            DownloadResult incomeResult = downloadJsonListUrlIfNeededWithoutRetry("fundamentals/" + symbol + "/income-statement.json",
-                    "/v3/income-statement/" + symbol, queryMap, IncomeStatement.class, 100);
-            DownloadResult balanceResult = downloadJsonListUrlIfNeededWithoutRetry("fundamentals/" + symbol + "/balance-sheet.json", "/v3/balance-sheet-statement/" + symbol, queryMap,
-                    BalanceSheet.class, 100);
-            DownloadResult cashFlowResult = downloadJsonListUrlIfNeededWithoutRetry("fundamentals/" + symbol + "/cash-flow.json", "/v3/cash-flow-statement/" + symbol, queryMap, CashFlow.class, 100);
-            //  downloadInsiderTrading("fundamentals/" + symbol, symbol, incomeStatements);
-            downloadUrlIfNeeded("fundamentals/" + symbol + "/profile.json", "/v3/profile/" + symbol, Map.of());
+        downloadUrlIfNeeded("fundamentals/" + symbol + "/profile.json", "/v3/profile/" + symbol, Map.of());
 
-            downloadHistoricalJsonUrlIfNeeded("fundamentals/" + symbol + "/historical-price.json", "/v3/historical-price-full/" + symbol, Map.of("serietype", "line"), 10);
-        }
-        writeLastAttemptedFile(lastAttemptedFile);
+        symbolToDates.put(originalSymbol, downloadDateData);
     }
 
-    private static void writeLastAttemptedFile(File lastAttemptedFile) {
+    private static void writeLastAttemptedFile(File lastAttemptedFile, Map<String, DownloadDateData> data) {
         try (FileOutputStream fos = new FileOutputStream(lastAttemptedFile)) {
-            fos.write(LocalDate.now().toString().getBytes());
+            fos.write(objectMapper.writeValueAsBytes(data));
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private static LocalDate readLastAttempted(File lastAttemptedFile) {
-        try (FileInputStream fis = new FileInputStream(lastAttemptedFile)) {
-            return LocalDate.parse(new String(fis.readAllBytes()));
-        } catch (Exception e) {
-            return null;
-        }
-
     }
 
     private static void downloadInsiderTrading(String baseFolder, String symbol, List<IncomeStatement> incomeStatements) {
@@ -726,7 +805,7 @@ public class StockDataDownloader2 {
                     fullUri += ("&" + entry.getKey() + "=" + entry.getValue());
                 }
 
-                LOGGER.debug(fullUri);
+                System.out.println(fullUri);
                 rateLimiter.acquire();
                 String data = downloadUri(fullUri);
 
@@ -770,7 +849,7 @@ public class StockDataDownloader2 {
         }
     }
 
-    private static void downloadHistoricalJsonUrlIfNeeded(String folderAndfile, String uriPath, Map<String, String> queryParams, int updateIntervalInDays) {
+    private static boolean downloadHistoricalJsonUrlIfNeeded(String folderAndfile, String uriPath, Map<String, String> queryParams, int updateIntervalInDays) {
         File absoluteFile = new File(BASE_FOLDER + "/" + folderAndfile);
         JavaType type = objectMapper.getTypeFactory().constructParametricType(HistoricalPrice.class, TypeBindings.create(HistoricalPrice.class, (JavaType[]) null));
         // https://financialmodelingprep.com/api/v3/historical-price-full/AAPL?from=2018-03-12&to=2019-03-12&apikey=API_KEY&serietype=line
@@ -779,8 +858,12 @@ public class StockDataDownloader2 {
         HistoricalPrice elements = null;
         boolean downloadNeeded = true;
         if (absoluteFile.exists()) {
-            elements = DataLoader.readClassFromFile(absoluteFile, HistoricalPrice.class);
-            lastDate = elements.historical.size() > 0 ? elements.historical.get(0).getDate() : null;
+            try {
+                elements = DataLoader.readClassFromFile(absoluteFile, HistoricalPrice.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            lastDate = (elements != null && elements.historical.size() > 0) ? elements.historical.get(0).getDate() : null;
             if (lastDate != null) {
                 long daysDiff = Math.abs(ChronoUnit.DAYS.between(LocalDate.now(), lastDate));
                 if (daysDiff > updateIntervalInDays) {
@@ -810,6 +893,7 @@ public class StockDataDownloader2 {
                 actuallyDownloadAndSaveFile(absoluteFile, uriPath, queryParams, type);
             }
         }
+        return downloadNeeded;
     }
 
     // TODO: almost same as above, but with different types
@@ -903,7 +987,7 @@ public class StockDataDownloader2 {
                 fullUri += ("&" + entry.getKey() + "=" + entry.getValue());
             }
 
-            LOGGER.debug(fullUri + " " + absoluteFile.getAbsolutePath());
+            System.out.println(fullUri + " " + absoluteFile.getAbsolutePath());
             rateLimiter.acquire();
 
             String data = downloadUri(fullUri);
@@ -957,5 +1041,24 @@ public class StockDataDownloader2 {
     public static double loadLatestPrice(String symbol) {
         // https://financialmodelingprep.com/api/v3/quote-short/AAPL?apikey=API_KEY
         return downloadSimpleUrlCachedWithoutSaving("/v3/quote-short/" + symbol, Map.of(), CurrentPrice[].class)[0].price;
+    }
+
+    static class DownloadDateData {
+        public LocalDate lastReportDate;
+        public LocalDate lastAttemptedDownload;
+        public LocalDate lastPriceDownload;
+        public int previousReportPeriod;
+
+        public DownloadDateData() {
+
+        }
+
+        public DownloadDateData(LocalDate lastReportDate, LocalDate lastAttemptedDownload, LocalDate lastPriceDownload, int previousReportPeriod) {
+            this.lastReportDate = lastReportDate;
+            this.lastAttemptedDownload = lastAttemptedDownload;
+            this.lastPriceDownload = lastPriceDownload;
+            this.previousReportPeriod = previousReportPeriod;
+        }
+
     }
 }

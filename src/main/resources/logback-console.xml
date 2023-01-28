@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <property name="log.filename.prefix" value="appLog" />
+  <property name="pattern" value="%-5p %d{yyyy-MM-dd HH:mm:ss.SSS} %c [thread=%thread] [ip=%X{clientIp}] [requestId=%X{requestId}] [email=%X{email}] %msg %ex%n" />
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <layout class="ch.qos.logback.classic.PatternLayout">
+      <Pattern>
+         ${pattern}
+      </Pattern>
+    </layout>
+  </appender>
+  <root level="INFO">
+    <appender-ref ref="CONSOLE" />
+  </root>
+
+</configuration>
