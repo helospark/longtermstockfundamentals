@@ -5,15 +5,18 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.helospark.financialdata.domain.EconomicPriceElement;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.SimpleDataElement;
 import com.helospark.financialdata.service.CpiAdjustor;
+import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
@@ -21,6 +24,8 @@ import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 @RestController
 @RequestMapping("/sp500/data")
 public class Sp500Controller {
+    private static final Set<String> VALID_INDICATORS = Set.of("CPI", "15YearFixedRateMortgageAverage", "30YearFixedRateMortgageAverage",
+            "unemploymentRate", "consumerSentiment", "realGDP", "GDP");
 
     @GetMapping("/price")
     public List<SimpleDataElement> getPrice() {
@@ -33,6 +38,27 @@ public class Sp500Controller {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < asd.size(); i += steps) {
             result.add(new SimpleDataElement(asd.get(i).date.toString(), asd.get(i).close));
+        }
+        return result;
+    }
+
+    @GetMapping("/price_infl_adjusted")
+    public List<SimpleDataElement> getPriceInflationAdjusted() {
+        var asd = StandardAndPoorPerformanceProvider.prices;
+
+        int maxElements = 300;
+
+        int steps = asd.size() / maxElements;
+
+        LocalDate now = LocalDate.now();
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < asd.size(); i += steps) {
+            LocalDate dateThen = asd.get(i).date;
+            double priceThen = asd.get(i).close;
+            double adjustedPriceThen = CpiAdjustor.adjustForInflationToOldDate(priceThen, dateThen, now);
+
+            result.add(new SimpleDataElement(dateThen.toString(), adjustedPriceThen));
         }
         return result;
     }
@@ -164,7 +190,7 @@ public class Sp500Controller {
         LocalDate now = LocalDate.now();
 
         List<SimpleDataElement> result = new ArrayList<>();
-        int i = 4;
+        int i = 0;
         while (true) {
             double yearsAgo = (i / 4.0);
             LocalDate date = now.minusMonths((int) (yearsAgo * 12.0));
@@ -187,6 +213,37 @@ public class Sp500Controller {
             result.add(new SimpleDataElement(newElement.date.toString(), growth));
 
             i += 2;
+        }
+
+        return result;
+    }
+
+    @GetMapping("/price_growth_reinv_dividends_x_yr")
+    public List<SimpleDataElement> getPriceGrowthInIntervalsWithDividends(@RequestParam(name = "year", required = false, defaultValue = "10") int years) {
+        List<SimpleDataElement> asd = getPriceWithReinvestedDividends();
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < asd.size(); i++) {
+            SimpleDataElement currentElement = asd.get(i);
+            LocalDate date = LocalDate.parse(currentElement.date);
+            LocalDate offsetDate = date.minusMonths((int) (years * 12.0));
+
+            int oldIndex = Helpers.findIndexWithOrBeforeDate(asd, offsetDate);
+
+            if (oldIndex == -1) {
+                break;
+            }
+
+            Double priceNow = currentElement.value;
+            Double priceThen = asd.get(oldIndex).value;
+
+            if (priceThen == null || priceNow == null) {
+                break;
+            }
+
+            double growth = GrowthCalculator.calculateGrowth(priceNow, priceThen, years);
+
+            result.add(new SimpleDataElement(currentElement.date, growth));
         }
 
         return result;
@@ -222,4 +279,58 @@ public class Sp500Controller {
 
         return result;
     }
+
+    @GetMapping("/price_for_indicator")
+    public List<SimpleDataElement> getPriceCpi(@RequestParam("indicator") String indicator) {
+        if (!VALID_INDICATORS.contains(indicator)) {
+            throw new RuntimeException("Invalid indicator");
+        }
+
+        var asd = StandardAndPoorPerformanceProvider.prices;
+
+        List<EconomicPriceElement> cpi = DataLoader.loadEconomicFile(indicator);
+
+        int maxElements = 300;
+        int step = cpi.size() / maxElements;
+        if (step == 0) {
+            step = 1;
+        }
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < cpi.size(); i += step) {
+            var cpiElement = cpi.get(i);
+            LocalDate date = cpiElement.date;
+            int index = Helpers.findIndexWithOrBeforeDate(asd, date);
+            if (index != -1) {
+                double priceThen = asd.get(index).close;
+                result.add(new SimpleDataElement(date.toString(), priceThen));
+            } else {
+                result.add(new SimpleDataElement(date.toString(), null));
+            }
+        }
+        return result;
+    }
+
+    @GetMapping("/indicator")
+    public List<SimpleDataElement> getIndicator(@RequestParam("indicator") String indicator) {
+        if (!VALID_INDICATORS.contains(indicator)) {
+            throw new RuntimeException("Invalid indicator");
+        }
+
+        List<EconomicPriceElement> unemployment = DataLoader.loadEconomicFile(indicator);
+
+        int maxElements = 300;
+        int step = unemployment.size() / maxElements;
+        if (step == 0) {
+            step = 1;
+        }
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < unemployment.size(); i += step) {
+            var cpiElement = unemployment.get(i);
+            result.add(new SimpleDataElement(cpiElement.date.toString(), cpiElement.value));
+        }
+        return result;
+    }
+
 }

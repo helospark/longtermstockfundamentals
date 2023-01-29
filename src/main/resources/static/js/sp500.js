@@ -83,20 +83,25 @@ createChart("/data/price", "Price", {
   unit: '$',
   quarterlyEnabled: false,
   additionalCharts: [{
-    "url": "/data/price_with_reinvested_dividends",
-    "label": "Price with reinvested dividends"
-  }, {
+    "url": "/data/price_infl_adjusted",
+    "label": "Inflation adjusted price"
+  }]
+});
+createChart("/data/price_with_reinvested_dividends", "Price with reinvested dividend", {
+  label: "Price",
+  unit: '$',
+  quarterlyEnabled: false,
+  additionalCharts: [{
     "url": "/data/price_reinv_dividends_infl_adjusted",
     "label": "Price with reinvested dividends (infl adjusted)"
   }]
 });
 
+createSeparator("Growth");
 createChart("/data/price_growth", "Annual growth till today", {type: 'bar', unit: '%', quarterlyEnabled: false});
-
-createChart("/data/price_growth_intervals", "Growth x year intervals", {
+createChart("/data/price_growth_intervals", "Annual growth x year intervals", {
       type: 'bar',
       unit: '%',
-      lazyLoad: false,
       quarterlyEnabled: false,
       tooltip: 'Shows the annual growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized growth between 2013 and 2020.',
       slider: {
@@ -108,13 +113,23 @@ createChart("/data/price_growth_intervals", "Growth x year intervals", {
 }});
 
 createChart("/data/price_growth_reinv_dividends", "Annual growth till today with reinvested dividends", {type: 'bar', unit: '%', quarterlyEnabled: false});
+createChart("/data/price_growth_reinv_dividends_x_yr", "Dividends reinvested growth x year intervals", {
+      type: 'bar',
+      unit: '%',
+      quarterlyEnabled: false,
+      tooltip: 'Shows the annual growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized growth between 2013 and 2020.',
+      slider: {
+        id: "price_growth_intervals_divs",
+        parameterName: "year",
+        min: 1,
+        max: 70,
+        default: 10
+}});
 
 createChart("/data/price_growth_reinv_dividends_infl_adjust", "Annual growth till today with reinvested dividends (inflation adjusted)", {type: 'bar', unit: '%', quarterlyEnabled: false});
-
 createChart("/data/price_growth_x_yrs_intervals_divs_infl_adjusted", "Dividends reinvested, inflation adjusted growth x year intervals", {
       type: 'bar',
       unit: '%',
-      lazyLoad: false,
       quarterlyEnabled: false,
       tooltip: 'Shows the annual growth every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized growth between 2013 and 2020.',
       slider: {
@@ -124,6 +139,73 @@ createChart("/data/price_growth_x_yrs_intervals_divs_infl_adjusted", "Dividends 
         max: 70,
         default: 10
 }});
+
+
+createSeparator("Price vs economy");
+createChart("/data/price_for_indicator", "Price vs unemployment", {
+  label: "Price",
+  unit: '%',
+  staticParameters: {
+    "indicator": "unemploymentRate"
+  },
+  quarterlyEnabled: false,
+  additionalCharts: [{
+    "url": "/data/indicator",
+    "label": "Unemployment rate",
+    "secondYAxis": true
+  }]
+});
+createChart("/data/price_for_indicator", "Price vs consumer sentiment", {
+  label: "Price",
+  staticParameters: {
+    "indicator": "consumerSentiment"
+  },
+  quarterlyEnabled: false,
+  additionalCharts: [{
+    "url": "/data/indicator",
+    "label": "Consumer sentiment",
+    "secondYAxis": true
+  }]
+});
+createChart("/data/price_for_indicator", "Price vs real GDP", {
+  label: "Price",
+  unit: '$',
+  staticParameters: {
+    "indicator": "realGDP"
+  },
+  quarterlyEnabled: false,
+  additionalCharts: [{
+    "url": "/data/indicator",
+    "label": "Real GDP",
+    "secondYAxis": true
+  }]
+});
+createChart("/data/price_for_indicator", "Price vs GDP", {
+  label: "Price",
+  unit: '$',
+  staticParameters: {
+    "indicator": "GDP"
+  },
+  quarterlyEnabled: false,
+  additionalCharts: [{
+    "url": "/data/indicator",
+    "label": "GDP",
+    "secondYAxis": true
+  }]
+});
+createChart("/data/price_for_indicator", "Price vs mortgage", {
+  label: "Price",
+  unit: '$',
+  staticParameters: {
+    "indicator": "15YearFixedRateMortgageAverage"
+  },
+  quarterlyEnabled: false,
+  additionalCharts: [{
+    "url": "/data/indicator",
+    "label": "15 year fixed mortgage",
+    "secondYAxis": true
+  }]
+});
 
 
 

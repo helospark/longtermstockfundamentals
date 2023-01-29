@@ -64,6 +64,7 @@ function createChart(urlPath, title, chartOptions) {
   var dated = chartOptions.dated === undefined ? true : chartOptions.dated;
   var defaultQuarterlyEnabled = chartOptions.defaultQuarterlyEnabled === undefined ? false : chartOptions.defaultQuarterlyEnabled;
   var quaterlySupported = chartOptions.quarterlyEnabled === undefined ? true : chartOptions.quarterlyEnabled;
+  var isSecondYAxisNeeded = chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts[0].secondYAxis === true ? true : false;
   
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
@@ -85,7 +86,8 @@ function createChart(urlPath, title, chartOptions) {
         backgroundColor: colorPalette[0],
         data: yValues,
         pointHitRadius: 300,
-        label: label
+        label: label,
+        yAxisID: "y"
       }]
     }, 
     options: {
@@ -134,6 +136,17 @@ function createChart(urlPath, title, chartOptions) {
               tooltipFormat: 'yyyy-MM-dd'
           }
       }
+  }
+  if (isSecondYAxisNeeded) {
+     chartConfig.options.scales.y1 = {
+        type: 'linear',
+        display: true,
+        position: 'right',
+
+        grid: {
+          drawOnChartArea: false
+        },
+     }
   }
   
   var chart;
@@ -301,7 +314,8 @@ function createChart(urlPath, title, chartOptions) {
         }
         
         let url = '/' + stockToLoad + urlPath;
-        parameters = new Map();
+        var parameters = new Map();
+        var parameterString = "";
         
         if (quarterly) {
           parameters.set('quarterly', 'true');
@@ -309,8 +323,12 @@ function createChart(urlPath, title, chartOptions) {
         if (chartOptions.slider !== undefined) {
           parameters.set(chartOptions.slider.parameterName, $(optionSlider).val());
         }
+        if (chartOptions.staticParameters !== undefined) {
+          for (let [key, value] of Object.entries(chartOptions.staticParameters)) {
+            parameters.set(key, value);
+          }
+        }
         
-        parameterString = "";
         i = 0;
         for (let [key, value] of parameters) {
           parameterString += (key + "=" + value);
@@ -402,6 +420,7 @@ function createChart(urlPath, title, chartOptions) {
             .then(out => {
                         var newXValues = [];
                         var newYValues = [];
+                        var updateSecondAxis = isSecondYAxisNeeded && chart.data.datasets.length == 1;
                         if (chartToUpdate != -1) {
                           newYValues = chart.data.datasets[chartToUpdate].data;
                           newXValues = chart.data.datasets[chartToUpdate].label;
@@ -410,50 +429,55 @@ function createChart(urlPath, title, chartOptions) {
                             newXValues[out.length - index - 1] = out[index].date;
                             newYValues[out.length - index - 1] = out[index].value;
                         }
-                        max = Math.max.apply(Math, newYValues);
-                        min = Math.min.apply(Math, newYValues);
-                    
-                        for (i = 0; i < chart.data.datasets.length; ++i) {
-                          max2 = Math.max.apply(Math, chart.data.datasets[i].data);
-                          min2 = Math.min.apply(Math, chart.data.datasets[i].data);
+                        if (!isSecondYAxisNeeded) {
+                          max = Math.max.apply(Math, newYValues);
+                          min = Math.min.apply(Math, newYValues);
                       
-                          if (max2 > max) {
-                            max = max2;
-                          }
-                          if (min2 < min) {
-                            min = min2;
-                          }
-                        }
-                        if (min < 0) {
-                          minValueToSet = min * 1.07;
-                        }
-                        if (max < 0) {
-                          maxValueToSet = max * 0.93;
-                        }
-                        if (min > 0) {
-                          minValueToSet = min * 0.93;
-                        }
-                        if (max > 0) {
-                          maxValueToSet = max * 1.07;
-                        }
-                    
-                        if (chart.options.scales.y.min < minValueToSet) {
-                           minValueToSet = chart.options.scales.y.min;
-                        }
-                        if (chart.options.scales.y.max > maxValueToSet) {
-                           maxValueToSet = chart.options.scales.y.max;
-                        }
-                        if (chartOptions.suggestedMin !== undefined && minValueToSet < chartOptions.suggestedMin) {
-                           minValueToSet = chartOptions.suggestedMin;
-                        }
-                        if (chartOptions.suggestedMax !== undefined && chartOptions.suggestedMax < maxValueToSet) {
-                           maxValueToSet = chartOptions.suggestedMax;
-                        }
+                          for (i = 0; i < chart.data.datasets.length; ++i) {
+                            max2 = Math.max.apply(Math, chart.data.datasets[i].data);
+                            min2 = Math.min.apply(Math, chart.data.datasets[i].data);
                         
-
-                        
-                        if (minValueToSet >= maxValueToSet) {
-                           minValueToSet = maxValueToSet + 1.0;
+                            if (max2 > max) {
+                              max = max2;
+                            }
+                            if (min2 < min) {
+                              min = min2;
+                            }
+                          }
+                          if (min < 0) {
+                            minValueToSet = min * 1.07;
+                          }
+                          if (max < 0) {
+                            maxValueToSet = max * 0.93;
+                          }
+                          if (min > 0) {
+                            minValueToSet = min * 0.93;
+                          }
+                          if (max > 0) {
+                            maxValueToSet = max * 1.07;
+                          }
+                      
+                          if (chart.options.scales.y.min < minValueToSet) {
+                             minValueToSet = chart.options.scales.y.min;
+                          }
+                          if (chart.options.scales.y.max > maxValueToSet) {
+                             maxValueToSet = chart.options.scales.y.max;
+                          }
+                          if (chartOptions.suggestedMin !== undefined && minValueToSet < chartOptions.suggestedMin) {
+                             minValueToSet = chartOptions.suggestedMin;
+                          }
+                          if (chartOptions.suggestedMax !== undefined && chartOptions.suggestedMax < maxValueToSet) {
+                             maxValueToSet = chartOptions.suggestedMax;
+                          }
+                          
+  
+                          
+                          if (minValueToSet >= maxValueToSet) {
+                             minValueToSet = maxValueToSet + 1.0;
+                          }
+                          yAxisID='y';
+                        } else {
+                           yAxisID='y1';
                         }
                         if (chartToUpdate == -1) {
                           chart.data.datasets.unshift({
@@ -462,7 +486,8 @@ function createChart(urlPath, title, chartOptions) {
                             backgroundColor: colorPalette[chart.data.datasets.length % colorPalette.length],
                             data: newYValues,
                             pointHitRadius: 300,
-                            label: element.label
+                            label: element.label,
+                            yAxisID: yAxisID
                           });
                         }
 

@@ -54,6 +54,7 @@ import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.CompanyListElement;
 import com.helospark.financialdata.domain.CurrentPrice;
 import com.helospark.financialdata.domain.DateAware;
+import com.helospark.financialdata.domain.EconomicPriceElement;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.domain.FxSupportedSymbolsResponse;
@@ -474,11 +475,23 @@ public class StockDataDownloader2 {
         //https: //financialmodelingprep.com/api/v4/treasury?from=2021-06-30&to=2021-09-30&apikey=API_KEY
         downloadUrlIfNeeded("info/tresury_rates.json", "/v4/treasury", Map.of("from", "1990-01-01", "to", LocalDate.now().toString()));
         // https://financialmodelingprep.com/api/v3/historical-price-full/%5EGSPC?serietype=line&apikey=API_KEY
-        downloadHistoricalJsonUrlIfNeeded("info/s&p500_price.json", "/v3/historical-price-full/%5EGSPC", Map.of("serietype", "line"), 5);
+
+        //downloadHistoricalJsonUrlIfNeeded("info/s&p500_price.json", "/v3/historical-price-full/%5EGSPC", Map.of("serietype", "line"), 5);
+
         // https://financialmodelingprep.com/api/v3/historical/sp500_constituent?apikey=API_KEY
         //downloadEconomicJsonUrlIfNeeded("info/s&p500_historical_constituent.json", "/v3/historical/sp500_constituent", Map.of(), 10);
         // https://financialmodelingprep.com/api/v3/historical/dowjones_constituent?apikey=API_KEY
         //downloadUrlIfNeeded("info/dowjones_constituent_historical_constituent.json", "/v3/historical/dowjones_constituent", Map.of());
+
+        downloadEconomicJsonUrlIfNeeded("info/CPI.json", "/v4/economic", Map.of("name", "CPI", "from", "1947-01-01", "to", LocalDate.now().toString()), 35);
+        downloadEconomicJsonUrlIfNeeded("info/15YearFixedRateMortgageAverage.json", "/v4/economic",
+                Map.of("name", "15YearFixedRateMortgageAverage", "from", "1947-01-01", "to", LocalDate.now().toString()), 35);
+        downloadEconomicJsonUrlIfNeeded("info/30YearFixedRateMortgageAverage.json", "/v4/economic",
+                Map.of("name", "30YearFixedRateMortgageAverage", "from", "1947-01-01", "to", LocalDate.now().toString()), 35);
+        downloadEconomicJsonUrlIfNeeded("info/unemploymentRate.json", "/v4/economic", Map.of("name", "unemploymentRate", "from", "1947-01-01", "to", LocalDate.now().toString()), 35);
+        downloadEconomicJsonUrlIfNeeded("info/consumerSentiment.json", "/v4/economic", Map.of("name", "consumerSentiment", "from", "1947-01-01", "to", LocalDate.now().toString()), 35);
+        downloadEconomicJsonUrlIfNeeded("info/realGDP.json", "/v4/economic", Map.of("name", "realGDP", "from", "1947-01-01", "to", LocalDate.now().toString()), 95);
+        downloadEconomicJsonUrlIfNeeded("info/GDP.json", "/v4/economic", Map.of("name", "GDP", "from", "1947-01-01", "to", LocalDate.now().toString()), 95);
 
         /*
         for (var element : List.of("GDP", "realGDP", "nominalPotentialGDP", "realGDPPerCapita", "federalFunds", "CPI",
@@ -899,13 +912,13 @@ public class StockDataDownloader2 {
     // TODO: almost same as above, but with different types
     private static void downloadEconomicJsonUrlIfNeeded(String folderAndfile, String uriPath, Map<String, String> queryParams, int updateIntervalInDays) {
         File absoluteFile = new File(BASE_FOLDER + "/" + folderAndfile);
-        JavaType type = objectMapper.getTypeFactory().constructParametricType(List.class, HistoricalPrice.class);
+        JavaType type = objectMapper.getTypeFactory().constructParametricType(List.class, EconomicPriceElement.class);
 
         LocalDate lastDate = null;
-        List<HistoricalPriceElement> elements = null;
+        List<EconomicPriceElement> elements = null;
         boolean downloadNeeded = true;
         if (absoluteFile.exists()) {
-            elements = DataLoader.readListOfClassFromFile(absoluteFile, HistoricalPriceElement.class);
+            elements = DataLoader.readListOfClassFromFile(absoluteFile, EconomicPriceElement.class);
             lastDate = elements.size() > 0 ? elements.get(0).getDate() : null;
             if (lastDate != null) {
                 long daysDiff = Math.abs(ChronoUnit.DAYS.between(LocalDate.now(), lastDate));
@@ -925,8 +938,8 @@ public class StockDataDownloader2 {
                 newQueryParams.put("from", lastDate.plusDays(1L).toString());
                 newQueryParams.put("to", LocalDate.now().toString());
 
-                List<HistoricalPriceElement> downloadedData = (List<HistoricalPriceElement>) actuallyDownloadFileAndGet(absoluteFile, uriPath, queryParams, type);
-                List<HistoricalPriceElement> newElements = new ArrayList<>(downloadedData);
+                List<EconomicPriceElement> downloadedData = (List<EconomicPriceElement>) actuallyDownloadFileAndGet(absoluteFile, uriPath, queryParams, type);
+                List<EconomicPriceElement> newElements = new ArrayList<>(downloadedData);
                 newElements.addAll(elements);
                 actuallySaveFile(absoluteFile, newElements);
             } else {

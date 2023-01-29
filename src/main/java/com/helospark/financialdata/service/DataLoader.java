@@ -39,6 +39,7 @@ import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.DateAware;
+import com.helospark.financialdata.domain.EconomicPriceElement;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FxRatesResponse;
 import com.helospark.financialdata.domain.HistoricalPrice;
@@ -608,5 +609,10 @@ public class DataLoader {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static List<EconomicPriceElement> loadEconomicFile(String string) {
+        File file = new File(BASE_FOLDER + "/info/" + string + ".json");
+        return readListOfClassFromFile(file, EconomicPriceElement.class);
     }
 }
