@@ -561,6 +561,8 @@ public class ScreenerController {
             return ((Byte) value).doubleValue();
         } else if (value.getClass().equals(Integer.class)) {
             return ((Integer) value).doubleValue();
+        } else if (value.getClass().equals(Short.class)) {
+            return ((Short) value).doubleValue();
         } else {
             throw new RuntimeException("Unknown type");
         }

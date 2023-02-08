@@ -52,7 +52,7 @@ public class FinancialsController {
 
     @GetMapping("/eps")
     public List<SimpleDataElement> getEps(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.eps);
+        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
     }
 
     @GetMapping("/revenue")
@@ -634,6 +634,12 @@ public class FinancialsController {
         return result;
     }
 
+    @GetMapping("/sloan")
+    public List<SimpleDataElement> getSloan(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        return getIncomeData(company, quarterly, financialsTtm -> RatioCalculator.calculateSloanPercent(financialsTtm));
+    }
+
     @GetMapping("/eps_growth_rate")
     public List<SimpleDataElement> getGrowthRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
@@ -753,11 +759,30 @@ public class FinancialsController {
     public List<SimpleDataElement> getPriceGrowth(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = 1; i < company.financials.size(); ++i) {
+        double latestPrice = company.latestPrice;
+        for (int i = 4; i < company.financials.size(); ++i) {
             FinancialsTtm element = company.financials.get(i);
             double yearsAgo = calculateYearsAgo(element.getDate());
-            Optional<Double> growth = GrowthCalculator.getPriceGrowthInInterval(company.financials, yearsAgo, 0);
-            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+            double growth = GrowthCalculator.calculateGrowth(latestPrice, element.price, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/price_with_dividends_growth_rate")
+    public List<SimpleDataElement> getPriceGrowthWithDividends(@PathVariable("stock") String stock) {
+        List<SimpleDataElement> company = getPriceWithReinvestedDividends(stock);
+        if (company.size() <= 0) {
+            return List.of();
+        }
+        double now = company.get(0).value;
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 4; i < company.size(); ++i) {
+            SimpleDataElement element = company.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            double growth = GrowthCalculator.calculateGrowth(now, element.value, yearsAgo);
+            result.add(new SimpleDataElement(element.date, growth));
         }
 
         return result;

@@ -96,6 +96,16 @@ createChart("/data/price_with_reinvested_dividends", "Price with reinvested divi
     "label": "Price with reinvested dividends (infl adjusted)"
   }]
 });
+createChart("/data/price_with_reinvested_dividends", "Price with reinvested dividend", {
+  label: "Price",
+  unit: '$',
+  quarterlyEnabled: false,
+  additionalCharts: [{
+    "url": "/data/price",
+    "label": "Price with reinvested dividends (infl adjusted)"
+  }]
+});
+
 
 createSeparator("Growth");
 createChart("/data/price_growth", "Annual growth till today", {type: 'bar', unit: '%', quarterlyEnabled: false});
@@ -140,7 +150,7 @@ createChart("/data/price_growth_x_yrs_intervals_divs_infl_adjusted", "Dividends 
         default: 10
 }});
 
-
+/*
 createSeparator("Price vs economy");
 createChart("/data/price_for_indicator", "Price vs unemployment", {
   label: "Price",
@@ -206,7 +216,7 @@ createChart("/data/price_for_indicator", "Price vs mortgage", {
     "secondYAxis": true
   }]
 });
-
+*/
 
 
 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))

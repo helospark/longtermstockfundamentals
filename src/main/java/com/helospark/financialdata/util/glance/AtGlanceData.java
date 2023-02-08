@@ -78,9 +78,15 @@ public class AtGlanceData {
     public float dividendFcfPayoutRatio;
 
     @ScreenerElement(name = "Profitable year count")
-    public float profitableYears;
+    public short profitableYears;
+    @ScreenerElement(name = "FCF profitable year count")
+    public short fcfProfitableYears;
     @ScreenerElement(name = "Stock based compensation per market cap", format = AtGlanceFormat.PERCENT)
     public float stockCompensationPerMkt;
+    @ScreenerElement(name = "CAPEX to revenue percent", format = AtGlanceFormat.PERCENT)
+    public float cpxToRev;
+    @ScreenerElement(name = "Sloan ratio")
+    public float sloan;
 
     @ScreenerElement(name = "Ideal 10yr revenue growth correlation")
     public float ideal10yrRevCorrelation;

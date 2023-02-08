@@ -400,6 +400,8 @@ public class StockDataDownloader2 {
         data.roic = (float) (RoicCalculator.calculateRoic(financial) * 100.0);
         data.altman = (float) AltmanZCalculator.calculateAltmanZScore(financial, latestPrice);
         data.pietrosky = PietroskyScoreCalculator.calculatePietroskyScore(company, financial).map(a -> a.doubleValue()).orElse(Double.NaN).floatValue();
+        data.sloan = (float) (RatioCalculator.calculateSloanPercent(financial));
+
         data.eps = financial.incomeStatementTtm.eps;
         data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial)).orElse(Double.NaN).floatValue();
         data.evToEbitda = (float) (EnterpriseValueCalculator.calculateEv(financial, latestPrice) / financial.incomeStatementTtm.ebitda);
@@ -429,8 +431,10 @@ public class StockDataDownloader2 {
         data.dividendPayoutRatio = (float) (RatioCalculator.calculatePayoutRatio(financial) * 100.0);
         data.dividendFcfPayoutRatio = (float) (RatioCalculator.calculateFcfPayoutRatio(financial) * 100.0);
 
-        data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).floatValue();
+        data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).shortValue();
+        data.fcfProfitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).shortValue();
         data.stockCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financial).floatValue();
+        data.cpxToRev = (float) (((double) financial.cashFlowTtm.capitalExpenditure / financial.incomeStatementTtm.revenue * -1.0) * 100.0);
 
         data.ideal10yrRevCorrelation = (float) IdealGrowthCorrelationCalculator.calculateRevenueCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal10yrEpsCorrelation = (float) IdealGrowthCorrelationCalculator.calculateEpsCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
@@ -938,7 +942,7 @@ public class StockDataDownloader2 {
                 newQueryParams.put("from", lastDate.plusDays(1L).toString());
                 newQueryParams.put("to", LocalDate.now().toString());
 
-                List<EconomicPriceElement> downloadedData = (List<EconomicPriceElement>) actuallyDownloadFileAndGet(absoluteFile, uriPath, queryParams, type);
+                List<EconomicPriceElement> downloadedData = (List<EconomicPriceElement>) actuallyDownloadFileAndGet(absoluteFile, uriPath, newQueryParams, type);
                 List<EconomicPriceElement> newElements = new ArrayList<>(downloadedData);
                 newElements.addAll(elements);
                 actuallySaveFile(absoluteFile, newElements);

@@ -61,6 +61,11 @@ public class RatioCalculator {
         return (double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.freeCashFlow;
     }
 
+    public static double calculateSloanPercent(FinancialsTtm financialsTtm) {
+        return (((double) (financialsTtm.incomeStatementTtm.netIncome - financialsTtm.cashFlowTtm.operatingCashFlow - financialsTtm.cashFlowTtm.netCashUsedForInvestingActivites))
+                / financialsTtm.balanceSheet.totalAssets) * 100.0;
+    }
+
     public static double calculatePriceToSalesRatio(FinancialsTtm financial, double latestPrice) {
         double marketCap = financial.incomeStatementTtm.weightedAverageShsOut * latestPrice;
         double result = marketCap / financial.incomeStatementTtm.revenue;

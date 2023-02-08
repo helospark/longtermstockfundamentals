@@ -194,6 +194,15 @@ public class DataLoader {
             profile.currencySymbol = getCurrencySymbol(incomeStatement);
         }
 
+        if (symbol.startsWith("GOOG")) {
+            for (var element : incomeStatement) {
+                if (element.weightedAverageShsOut < 8_000_000_000L) {
+                    element.weightedAverageShsOut *= 2;
+                    element.weightedAverageShsOutDil *= 2;
+                }
+            }
+        }
+
         CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, historicalPrice, profile);
 
         return result;

@@ -2,6 +2,7 @@ package com.helospark.financialdata.service;
 
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,7 +32,10 @@ public class GrowthCalculator {
             return Optional.empty();
         }
 
-        double distance = years - offset;
+        FinancialsTtm financialsNow = financials.get(newIndex);
+        FinancialsTtm financialThen = financials.get(oldIndex);
+        double distance = calculateYearsDifference(financialsNow, financialThen);
+
         double resultPercent = calculatePercentChange(now, then, distance);
 
         return Optional.of(resultPercent);
@@ -75,9 +79,9 @@ public class GrowthCalculator {
     }
 
     private static double maxEpsOf(List<FinancialsTtm> financials, int start, int end) {
-        double max = financials.get(start).incomeStatementTtm.eps;
+        double max = (double) financials.get(start).incomeStatementTtm.netIncome / financials.get(start).incomeStatementTtm.weightedAverageShsOut;
         for (int i = start + 1; i < end; ++i) {
-            double newEps = financials.get(i).incomeStatementTtm.eps;
+            double newEps = (double) financials.get(i).incomeStatementTtm.netIncome / financials.get(i).incomeStatementTtm.weightedAverageShsOut;
             if (newEps > max) {
                 max = newEps;
             }
@@ -86,9 +90,9 @@ public class GrowthCalculator {
     }
 
     private static double minEpsOf(List<FinancialsTtm> financials, int start, int end) {
-        double min = financials.get(start).incomeStatementTtm.eps;
+        double min = (double) financials.get(start).incomeStatementTtm.netIncome / financials.get(start).incomeStatementTtm.weightedAverageShsOut;
         for (int i = start + 1; i < end && i < financials.size(); ++i) {
-            double newEps = financials.get(i).incomeStatementTtm.eps;
+            double newEps = (double) financials.get(i).incomeStatementTtm.netIncome / financials.get(i).incomeStatementTtm.weightedAverageShsOut;
             if (newEps < min) {
                 min = newEps;
             }
@@ -162,7 +166,9 @@ public class GrowthCalculator {
             return Optional.empty();
         }
 
-        double distance = years - offset;
+        FinancialsTtm financialsNow = financials.get(newIndex);
+        FinancialsTtm financialThen = financials.get(oldIndex);
+        double distance = calculateYearsDifference(financialsNow, financialThen);
 
         double resultPercent = calculatePercentChange(now, then, distance);
 
@@ -181,13 +187,19 @@ public class GrowthCalculator {
             return Optional.empty();
         }
 
-        double now = financials.get(newIndex).price;
-        double then = financials.get(oldIndex).price;
+        FinancialsTtm financialsNow = financials.get(newIndex);
+        FinancialsTtm financialThen = financials.get(oldIndex);
+        double now = financialsNow.price;
+        double then = financialThen.price;
 
-        double distance = years - offset;
+        double distance = calculateYearsDifference(financialsNow, financialThen);
         double resultPercent = calculatePercentChange(now, then, distance);
 
         return Optional.of(resultPercent);
+    }
+
+    private static double calculateYearsDifference(FinancialsTtm financialsNow, FinancialsTtm financialThen) {
+        return Math.abs(ChronoUnit.DAYS.between(financialsNow.getDate(), financialThen.getDate()) / 365.0);
     }
 
     public static Optional<Double> getShareCountGrowthInInterval(List<FinancialsTtm> financials, double years, double offset) {
@@ -201,7 +213,9 @@ public class GrowthCalculator {
         double now = financials.get(newIndex).incomeStatementTtm.weightedAverageShsOut;
         double then = financials.get(oldIndex).incomeStatementTtm.weightedAverageShsOut;
 
-        double distance = years - offset;
+        FinancialsTtm financialsNow = financials.get(newIndex);
+        FinancialsTtm financialThen = financials.get(oldIndex);
+        double distance = calculateYearsDifference(financialsNow, financialThen);
         double resultPercent = calculatePercentChange(now, then, distance);
 
         return Optional.of(resultPercent);

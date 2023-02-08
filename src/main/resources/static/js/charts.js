@@ -216,7 +216,15 @@ createSeparator("Debt information")
 createChart("/financials/cash_flow_to_debt", "Operating cash flow debt coverage", {unit: '%', quarterlyEnabled: false});
 createChart("/financials/short_term_coverage_ratio", "Operating cash flow short term debt coverage", {unit: '%', quarterlyEnabled: false});
 createChart("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {quarterlyEnabled: false});
-createChart("/financials/altmanz", "Altman Z score", {quarterlyEnabled: false});
+createChart("/financials/altmanz", "Altman Z score", {
+  quarterlyEnabled: false
+
+});
+createChart("/financials/sloan", "Sloan ratio", {
+  quarterlyEnabled: false,
+  tooltip: 'Sloan ratio shows if earnings closely match cashflows. Between -10% to 10% is considered safe, outside of -25% to 25% is in danger zone',
+  unit: '%'
+});
 createChart("/financials/interest_expense", "Interest expense", {});
 createChart("/financials/interest_rate", "Interest rate", {unit: '%', quarterlyEnabled: false});
 createChart("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
@@ -277,7 +285,7 @@ createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, s
 createSeparator("Other")
 createChart("/financials/market_cap_usd", "Market cap $", {quarterlyEnabled: false, label: '$'});
 createChart("/financials/share_count", "Share count", {});
-createChart("/financials/stock_compensation", "Stock compensation", {quarterlyEnabled: false});
+createChart("/financials/stock_compensation", "Stock compensation", {quarterlyEnabled: true});
 createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
 createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
 createChart("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
@@ -376,6 +384,7 @@ createChart("/financials/return_with_reinvested_dividend", "Total returns", {
   }
 ]});
 createChart("/financials/price_growth_rate", "Price growth", {type: 'bar', quarterlyEnabled: false});
+createChart("/financials/price_with_dividends_growth_rate", "Returns (with dividends reinvested)", {type: 'bar', quarterlyEnabled: false});
 
 createAd();
 
