@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.helospark.financialdata.CommonConfig;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
@@ -205,6 +206,9 @@ public class ScreenerController {
         }
 
         for (var stock : matchedStocks) {
+            if (stock.symbol.equals("FB")) { // ticker changed
+                continue;
+            }
             Map<String, String> columnResult = new HashMap<>();
             columnResult.put("Symbol", createSymbolLink(stock.symbol));
             columnResult.put("Company", stock.companyName);
@@ -330,7 +334,7 @@ public class ScreenerController {
                 matchedStocks = findMatchingStocks(data, request, true);
 
                 for (var stockThen : matchedStocks) {
-                    var stockNow = symbolAtGlanceProvider.getAtGlanceData(stockThen.symbol);
+                    var stockNow = getLatestStockData(stockThen);
                     ++yearCount;
 
                     LocalDate actualDate = stockThen.actualDate;
@@ -450,6 +454,21 @@ public class ScreenerController {
                 result.screenerWithDividendsMedianPercent, result.screenerWithDividendsAvgPercent, result.beatPercent);
 
         return result;
+    }
+
+    public Optional<AtGlanceData> getLatestStockData(AtGlanceData stockThen) {
+        Optional<AtGlanceData> result = symbolAtGlanceProvider.getAtGlanceData(stockThen.symbol);
+        if (result.isPresent()) {
+            return result;
+        } else {
+            for (int i = CommonConfig.NOW.getYear() - 1; i >= 1991; --i) {
+                AtGlanceData data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(i).orElse(null).get(stockThen.symbol);
+                if (data != null) {
+                    return Optional.of(data);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     public double calculateAverage(Map<Integer, BacktestYearInformation> yearResults, Function<BacktestYearInformation, Double> valueSupplier) {

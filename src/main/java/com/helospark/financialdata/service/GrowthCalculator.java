@@ -248,6 +248,36 @@ public class GrowthCalculator {
         return calculatePercentChange(now, then, yearsAgo);
     }
 
+    public static Optional<Double> getNetIncomeGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear) {
+        return getNetIncomeGrowthInInterval(financials, year, offsetYear, true);
+    }
+
+    public static Optional<Double> getNetIncomeGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear, boolean ignoreNegativeTransition) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (offsetYear * 12.0)));
+
+        if (oldIndex >= financials.size() || oldIndex < 0 ||
+                newIndex > financials.size() || newIndex == -1) {
+            return Optional.empty();
+        }
+
+        double now = financials.get(newIndex).incomeStatementTtm.netIncome;
+        double then = financials.get(oldIndex).incomeStatementTtm.netIncome;
+
+        if (ignoreNegativeTransition && isNegativeTransition(now, then)) {
+            return Optional.empty();
+        }
+
+        double distance = year - offsetYear;
+        double resultPercent = calculatePercentChange(now, then, distance);
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(resultPercent);
+    }
+
     private static double calculatePercentChange(double now, double then, double distance) {
         if (now < 0.0 && then < 0.0) {
             return -(Math.pow(now / then, 1.0 / distance) - 1.0) * 100.0;

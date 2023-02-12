@@ -119,6 +119,24 @@ public class AtGlanceData {
 
     public int dataQualityIssue;
 
+    // EM
+    @ScreenerElement(name = "5 year PE")
+    public float fYrPe;
+    @ScreenerElement(name = "5 year P/FCF")
+    public float fYrPFcf;
+    @ScreenerElement(name = "5 year FCF growth")
+    public float fYrFcfGr;
+    @ScreenerElement(name = "5 year net income growth")
+    public float fYrIncomeGr;
+    @ScreenerElement(name = "5 year revenue growth")
+    public float fYrRevGr;
+    @ScreenerElement(name = "5 year share growth")
+    public float fyrShGr;
+    @ScreenerElement(name = "5 year ROIC")
+    public float fiveYrRoic;
+    @ScreenerElement(name = "LTL / 5 yr FCF")
+    public float ltl5Fcf;
+
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield")
     public double getFreeCashFlowYield() {
         return fcfPerShare / latestStockPrice * 100.0;

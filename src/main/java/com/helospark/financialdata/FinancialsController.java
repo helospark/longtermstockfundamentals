@@ -28,6 +28,7 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
 import com.helospark.financialdata.service.EnterpriseValueCalculator;
+import com.helospark.financialdata.service.EverythingMoneyCalculator;
 import com.helospark.financialdata.service.FedRateProvider;
 import com.helospark.financialdata.service.GrahamNumberCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
@@ -824,6 +825,119 @@ public class FinancialsController {
             FinancialsTtm financialsTtm = company.financials.get(i);
             Double growth = CapeCalculator.calculateCapeRatioQ(company.financials, 6, i);
             result.add(new SimpleDataElement(financialsTtm.date.toString(), growth));
+        }
+
+        return result;
+    }
+
+    // EM
+    @GetMapping("/5_year_pe")
+    public List<SimpleDataElement> get5YearPe(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculateFiveYearPe(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/5_year_pfcf")
+    public List<SimpleDataElement> get5YearPfcf(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculateFiveYearPe(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/ltl_per_5yr_fcf")
+    public List<SimpleDataElement> getLtlPer5YrFcf(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculateLtlPer5YrFcf(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/5_year_roic")
+    public List<SimpleDataElement> get5YearRoic(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculateFiveYearRoic(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/5_year_rev_growth")
+    public List<SimpleDataElement> get5YearRevGrowth(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculateFiveYearRevenueGrowth(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/5_year_netincome_growth")
+    public List<SimpleDataElement> get5YearNetIncomeGrowth(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculate5YearNetIncomeGrowth(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/5_year_fcf_growth")
+    public List<SimpleDataElement> get5YearFcfGrowth(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculate5YearFcfGrowth(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/5_year_share_growth")
+    public List<SimpleDataElement> get5YearShareGrowth(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            Optional<Double> growth = EverythingMoneyCalculator.calculate5YearShareGrowth(company, yearsAgo);
+            result.add(new SimpleDataElement(element.getDate().toString(), growth.orElse(0.0)));
         }
 
         return result;

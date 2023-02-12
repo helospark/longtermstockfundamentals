@@ -354,6 +354,16 @@ createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type:
 
 createAd();
 
+createSeparator("EM")
+createChart("/financials/5_year_pe", "5 year PE", {type: 'bar', quarterlyEnabled: false});
+createChart("/financials/5_year_pfcf", "5 year price to FCF", {type: 'bar',quarterlyEnabled: false});
+createChart("/financials/5_year_rev_growth", "5 year revenue growth", {type: 'bar', unit: '%', quarterlyEnabled: false});
+createChart("/financials/5_year_netincome_growth", "5 year net income growth", {type: 'bar', unit: '%', quarterlyEnabled: false});
+createChart("/financials/5_year_fcf_growth", "5 year FCF growth", {type: 'bar', unit: '%', quarterlyEnabled: false});
+createChart("/financials/5_year_share_growth", "5 year share growth", {type: 'bar', unit: '%', quarterlyEnabled: false});
+createChart("/financials/5_year_roic", "5 year ROIC", {type: 'bar', quarterlyEnabled: false});
+createChart("/financials/ltl_per_5yr_fcf", "Long term liabilities / 5yr avg FCF", {type: 'bar', quarterlyEnabled: false});
+
 createSeparator("DCF")
 createChart("/financials/eps_dcf", "EPS DCF", {quarterlyEnabled: false});
 createChart("/financials/fcf_dcf", "FCF DCF", {quarterlyEnabled: false});

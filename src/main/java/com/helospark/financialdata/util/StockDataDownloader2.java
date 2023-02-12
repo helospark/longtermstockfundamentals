@@ -70,6 +70,7 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
 import com.helospark.financialdata.service.EnterpriseValueCalculator;
+import com.helospark.financialdata.service.EverythingMoneyCalculator;
 import com.helospark.financialdata.service.FlagsProviderService;
 import com.helospark.financialdata.service.GrahamNumberCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
@@ -112,55 +113,57 @@ public class StockDataDownloader2 {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
+        boolean downloadNewData = false;
 
-        List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
-        List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
-        List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
-        downloadFxRates();
-        downloadUsefulInfo();
+        if (downloadNewData) {
+            List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
+            List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
+            List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
+            List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
+            downloadFxRates();
+            downloadUsefulInfo();
 
-        int threads = 4;
-        var executor = Executors.newFixedThreadPool(threads);
+            int threads = 4;
+            var executor = Executors.newFixedThreadPool(threads);
 
-        List<String> newSymbols = new ArrayList<>(symbols);
-        Collections.shuffle(newSymbols);
-        Queue<String> symbolsQueue = new ConcurrentLinkedQueue<>(newSymbols);
+            List<String> newSymbols = new ArrayList<>(symbols);
+            Collections.shuffle(newSymbols);
+            Queue<String> symbolsQueue = new ConcurrentLinkedQueue<>(newSymbols);
 
-        File downloadDates = new File(DOWNLOAD_DATES);
+            File downloadDates = new File(DOWNLOAD_DATES);
 
-        Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+            Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
 
-        List<CompletableFuture<?>> futures = new ArrayList<>();
-        for (int i = 0; i < threads; ++i) {
-            int threadIndex = i;
-            futures.add(CompletableFuture.runAsync(() -> {
-                int k = 0;
-                while (true) {
-                    String symbol = symbolsQueue.poll();
-                    if (symbol == null) {
-                        break;
+            List<CompletableFuture<?>> futures = new ArrayList<>();
+            for (int i = 0; i < threads; ++i) {
+                int threadIndex = i;
+                futures.add(CompletableFuture.runAsync(() -> {
+                    int k = 0;
+                    while (true) {
+                        String symbol = symbolsQueue.poll();
+                        if (symbol == null) {
+                            break;
+                        }
+                        try {
+                            downloadStockData(symbol, symbolToDates);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        ++k;
+
+                        if (threadIndex == 0 && k % 1000 == 0) {
+                            writeLastAttemptedFile(downloadDates, symbolToDates);
+                        }
                     }
-                    try {
-                        downloadStockData(symbol, symbolToDates);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    ++k;
+                }, executor));
+            }
 
-                    if (threadIndex == 0 && k % 1000 == 0) {
-                        writeLastAttemptedFile(downloadDates, symbolToDates);
-                    }
-                }
-            }, executor));
+            for (int i = 0; i < futures.size(); ++i) {
+                futures.get(i).join();
+            }
+            executor.shutdownNow();
+            writeLastAttemptedFile(downloadDates, symbolToDates);
         }
-
-        for (int i = 0; i < futures.size(); ++i) {
-            futures.get(i).join();
-        }
-        executor.shutdownNow();
-        writeLastAttemptedFile(downloadDates, symbolToDates);
-
         createExchangeCache();
         createSymbolCache();
     }
@@ -447,6 +450,16 @@ public class StockDataDownloader2 {
         data.fvCalculatorMoS = (float) ((DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
         data.fvCompositeMoS = (float) ((DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
         data.grahamMoS = (float) ((GrahamNumberCalculator.calculateGrahamNumber(financial).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
+
+        // EM
+        data.fYrPe = EverythingMoneyCalculator.calculateFiveYearPe(company, offsetYear).orElse(Double.NaN).floatValue();
+        data.fYrPFcf = EverythingMoneyCalculator.calculateFiveYearFcf(company, offsetYear).orElse(Double.NaN).floatValue();
+        data.fYrFcfGr = EverythingMoneyCalculator.calculate5YearFcfGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
+        data.fYrIncomeGr = EverythingMoneyCalculator.calculate5YearNetIncomeGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
+        data.fYrRevGr = EverythingMoneyCalculator.calculateFiveYearRevenueGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
+        data.fyrShGr = EverythingMoneyCalculator.calculate5YearShareGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
+        data.fiveYrRoic = EverythingMoneyCalculator.calculateFiveYearRoic(company, offsetYear).orElse(Double.NaN).floatValue();
+        data.ltl5Fcf = EverythingMoneyCalculator.calculateLtlPer5YrFcf(company, offsetYear).orElse(Double.NaN).floatValue();
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 
