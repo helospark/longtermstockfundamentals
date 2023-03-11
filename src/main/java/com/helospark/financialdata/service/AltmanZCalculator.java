@@ -25,7 +25,12 @@ public class AltmanZCalculator {
 
         double sales = incomeStatement.revenue;
         double e = sales / totalAssets;
-        return 1.2 * a + 1.4 * b + 3.3 * c + 0.6 * d + 1.0 * e;
+        double result = 1.2 * a + 1.4 * b + 3.3 * c + 0.6 * d + 1.0 * e;
+        if (Double.isFinite(result)) {
+            return result;
+        } else {
+            return Double.NaN;
+        }
     }
 
 }

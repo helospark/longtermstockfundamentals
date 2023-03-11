@@ -113,17 +113,18 @@ public class StockDataDownloader2 {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        boolean downloadNewData = false;
+        boolean downloadNewData = true;
 
         if (downloadNewData) {
-            List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
+            //List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
+            List<String> symbols = Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class));
             List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
             List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
             List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
             downloadFxRates();
             downloadUsefulInfo();
 
-            int threads = 4;
+            int threads = 10;
             var executor = Executors.newFixedThreadPool(threads);
 
             List<String> newSymbols = new ArrayList<>(symbols);
@@ -454,12 +455,14 @@ public class StockDataDownloader2 {
         // EM
         data.fYrPe = EverythingMoneyCalculator.calculateFiveYearPe(company, offsetYear).orElse(Double.NaN).floatValue();
         data.fYrPFcf = EverythingMoneyCalculator.calculateFiveYearFcf(company, offsetYear).orElse(Double.NaN).floatValue();
-        data.fYrFcfGr = EverythingMoneyCalculator.calculate5YearFcfGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
         data.fYrIncomeGr = EverythingMoneyCalculator.calculate5YearNetIncomeGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
-        data.fYrRevGr = EverythingMoneyCalculator.calculateFiveYearRevenueGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
-        data.fyrShGr = EverythingMoneyCalculator.calculate5YearShareGrowth(company, offsetYear).orElse(Double.NaN).floatValue();
         data.fiveYrRoic = EverythingMoneyCalculator.calculateFiveYearRoic(company, offsetYear).orElse(Double.NaN).floatValue();
         data.ltl5Fcf = EverythingMoneyCalculator.calculateLtlPer5YrFcf(company, offsetYear).orElse(Double.NaN).floatValue();
+
+        // price
+        data.price10Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 10, offsetYear).orElse(Double.NaN).floatValue();
+        data.price15Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 15, offsetYear).orElse(Double.NaN).floatValue();
+        data.price20Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 20, offsetYear).orElse(Double.NaN).floatValue();
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 
@@ -973,6 +976,7 @@ public class StockDataDownloader2 {
         boolean downloadNeeded = true;
         List<? extends DateAware> elements = null;
         if (absoluteFile.exists()) {
+            //System.out.println(absoluteFile.getAbsolutePath());
             elements = DataLoader.readListOfClassFromFile(absoluteFile, elementType);
             if (elements.size() > 0) {
                 LocalDate lastDate = elements.get(0).getDate();

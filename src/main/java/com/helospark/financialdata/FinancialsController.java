@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +22,7 @@ import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.SimpleDataElement;
+import com.helospark.financialdata.domain.SimpleDateDataElement;
 import com.helospark.financialdata.flags.FlagProvider;
 import com.helospark.financialdata.service.AltmanZCalculator;
 import com.helospark.financialdata.service.CapeCalculator;
@@ -34,6 +36,7 @@ import com.helospark.financialdata.service.GrahamNumberCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
+import com.helospark.financialdata.service.ReturnWithDividendCalculator;
 import com.helospark.financialdata.service.RevenueProjector;
 import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.StockBasedCompensationCalculator;
@@ -105,7 +108,7 @@ public class FinancialsController {
     public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         var result = getIncomeData(company, quarterly, financialsTtm -> RatioCalculator.calculatePriceToEarningsRatio(financialsTtm));
-        if (company.financials.size() > 0) {
+        if (company.financials.size() > 0 && company.latestPriceDate.compareTo(company.financials.get(0).getDate()) > 0) {
             double pe = company.latestPrice / company.financials.get(0).incomeStatementTtm.eps;
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), pe));
         }
@@ -250,6 +253,28 @@ public class FinancialsController {
     @GetMapping("/share_count")
     public List<SimpleDataElement> getShareCount(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+    }
+
+    @GetMapping("/share_buyback_per_net_income")
+    public List<SimpleDataElement> getShareBuybackPerNetIncome(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> {
+                    if (financialsTtm.incomeStatementTtm.netIncome < 0) {
+                        return null;
+                    }
+                    return toPercent(((double) -financialsTtm.cashFlowTtm.commonStockRepurchased - financialsTtm.cashFlowTtm.commonStockIssued) / financialsTtm.incomeStatementTtm.netIncome);
+                });
+    }
+
+    @GetMapping("/share_buyback_per_net_fcf")
+    public List<SimpleDataElement> getShareBuybackPerFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> {
+                    if (financialsTtm.cashFlowTtm.freeCashFlow < 0) {
+                        return null;
+                    }
+                    return toPercent(((double) -financialsTtm.cashFlowTtm.commonStockRepurchased - financialsTtm.cashFlowTtm.commonStockIssued) / financialsTtm.cashFlowTtm.freeCashFlow);
+                });
     }
 
     @GetMapping("/interest_expense")
@@ -511,7 +536,7 @@ public class FinancialsController {
     public List<SimpleDataElement> getPrice(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = getIncomeData(company, quarterly, financialsTtm -> financialsTtm.price);
-        if (company.financials.size() > 0) {
+        if (company.financials.size() > 0 && company.latestPriceDate.compareTo(company.financials.get(0).getDate()) > 0) {
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), company.latestPrice));
         }
         return result;
@@ -521,24 +546,10 @@ public class FinancialsController {
     public List<SimpleDataElement> getPriceWithReinvestedDividends(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
 
-        double shareCount = 1.0;
-
-        List<SimpleDataElement> result = new ArrayList<>();
-        for (int i = company.financials.size() - 1; i >= 0; --i) {
-            FinancialsTtm financialsTtm = company.financials.get(i);
-            double dividendPaid = (double) -financialsTtm.cashFlow.dividendsPaid / financialsTtm.incomeStatement.weightedAverageShsOut;
-            double priceThen = financialsTtm.price;
-            shareCount += ((shareCount * dividendPaid) / priceThen);
-
-            double value = priceThen * shareCount;
-            result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value));
-        }
-        if (company.financials.size() > 0) {
-            double value = company.latestPrice * shareCount;
-            result.add(new SimpleDataElement(company.latestPriceDate.toString(), value));
-        }
-        Collections.reverse(result);
-        return result;
+        return ReturnWithDividendCalculator.getPriceWithDividendsReinvested(company)
+                .stream()
+                .map(a -> new SimpleDataElement(a.getDate().toString(), a.value))
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/stock_compensation")
@@ -629,7 +640,7 @@ public class FinancialsController {
     public List<SimpleDataElement> getAltmanZ(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         List<SimpleDataElement> result = getIncomeData(company, quarterly, financialsTtm -> AltmanZCalculator.calculateAltmanZScore(financialsTtm, financialsTtm.price));
-        if (company.financials.size() > 0) {
+        if (company.financials.size() > 0 && company.latestPriceDate.compareTo(company.financials.get(0).getDate()) > 0) {
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), AltmanZCalculator.calculateAltmanZScore(company.financials.get(0), company.latestPrice)));
         }
         return result;
@@ -773,17 +784,17 @@ public class FinancialsController {
 
     @GetMapping("/price_with_dividends_growth_rate")
     public List<SimpleDataElement> getPriceGrowthWithDividends(@PathVariable("stock") String stock) {
-        List<SimpleDataElement> company = getPriceWithReinvestedDividends(stock);
+        List<SimpleDateDataElement> company = ReturnWithDividendCalculator.getPriceWithDividendsReinvested(DataLoader.readFinancials(stock));
         if (company.size() <= 0) {
             return List.of();
         }
         double now = company.get(0).value;
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 4; i < company.size(); ++i) {
-            SimpleDataElement element = company.get(i);
+            SimpleDateDataElement element = company.get(i);
             double yearsAgo = calculateYearsAgo(element.getDate());
             double growth = GrowthCalculator.calculateGrowth(now, element.value, yearsAgo);
-            result.add(new SimpleDataElement(element.date, growth));
+            result.add(new SimpleDataElement(element.date.toString(), growth));
         }
 
         return result;

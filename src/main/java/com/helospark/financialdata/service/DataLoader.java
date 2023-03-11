@@ -202,6 +202,14 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.startsWith("CPRT")) {
+            for (var element : incomeStatement) {
+                if (element.weightedAverageShsOut < 400_000_000L) {
+                    element.weightedAverageShsOut *= 2;
+                    element.weightedAverageShsOutDil *= 2;
+                }
+            }
+        }
 
         CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, historicalPrice, profile);
 
@@ -392,7 +400,8 @@ public class DataLoader {
         try {
             return objectMapper.readValue(dataFile, type);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            LOGGER.warn("Unable to read data " + dataFile.getAbsolutePath(), e);
+            return List.of();
         }
     }
 

@@ -9,7 +9,10 @@ import java.util.List;
 import java.util.Optional;
 
 import com.helospark.financialdata.CommonConfig;
+import com.helospark.financialdata.domain.CompanyFinancials;
+import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.FinancialsTtm;
+import com.helospark.financialdata.domain.SimpleDateDataElement;
 
 public class GrowthCalculator {
 
@@ -198,7 +201,30 @@ public class GrowthCalculator {
         return Optional.of(resultPercent);
     }
 
-    private static double calculateYearsDifference(FinancialsTtm financialsNow, FinancialsTtm financialThen) {
+    public static Optional<Double> getPriceGrowthWithReinvestedDividendsGrowth(CompanyFinancials company, double years, double offset) {
+        List<SimpleDateDataElement> result = ReturnWithDividendCalculator.getPriceWithDividendsReinvested(company);
+
+        int oldIndex = findIndexWithOrBeforeDate(result, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(result, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
+
+        if (oldIndex >= result.size() || oldIndex == -1) {
+            return Optional.empty();
+        }
+
+        var oldValue = result.get(oldIndex);
+        var newValue = result.get(newIndex);
+
+        double distance = calculateYearsDifference(newValue, oldValue);
+        double resultPercent = calculatePercentChange(newValue.value, oldValue.value, distance);
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(resultPercent);
+    }
+
+    private static double calculateYearsDifference(DateAware financialsNow, DateAware financialThen) {
         return Math.abs(ChronoUnit.DAYS.between(financialsNow.getDate(), financialThen.getDate()) / 365.0);
     }
 

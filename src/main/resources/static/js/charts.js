@@ -284,7 +284,7 @@ createChart("/financials/eps_yield", "Earnings flow yield", {suggestedMin: -2, s
 
 createSeparator("Other")
 createChart("/financials/market_cap_usd", "Market cap $", {quarterlyEnabled: false, label: '$'});
-createChart("/financials/share_count", "Share count", {});
+createChart("/financials/share_count", "Share count", {quarterlyEnabled: false});
 createChart("/financials/stock_compensation", "Stock compensation", {quarterlyEnabled: true});
 createChart("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
 createChart("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
@@ -301,7 +301,14 @@ createChart("/financials/dividend_payout_ratio", "Dividend payout ratio", {unit:
 createChart("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150});
 createChart("/financials/dividend_paid", "Dividend paid", {quarterlyEnabled: false});
 createChart("/financials/dividend_yield_per_current_price", "Dividend yield for invest price", {unit: '%', suggestedMin: -2, suggestedMax: 200});
-
+createChart("/financials/share_buyback_per_net_income", "Net share buyback / net income", {
+  unit: '%',
+  tooltip: 'Positive means shares were bought back, negative means, shares were issued',
+});
+createChart("/financials/share_buyback_per_net_fcf", "Net share buyback / FCF", {
+  unit: '%',
+  tooltip: 'Positive means shares were bought back, negative means, shares were issued',
+});
 createAd();
 
 
@@ -354,6 +361,7 @@ createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type:
 
 createAd();
 
+/*
 createSeparator("EM")
 createChart("/financials/5_year_pe", "5 year PE", {type: 'bar', quarterlyEnabled: false});
 createChart("/financials/5_year_pfcf", "5 year price to FCF", {type: 'bar',quarterlyEnabled: false});
@@ -363,6 +371,7 @@ createChart("/financials/5_year_fcf_growth", "5 year FCF growth", {type: 'bar', 
 createChart("/financials/5_year_share_growth", "5 year share growth", {type: 'bar', unit: '%', quarterlyEnabled: false});
 createChart("/financials/5_year_roic", "5 year ROIC", {type: 'bar', quarterlyEnabled: false});
 createChart("/financials/ltl_per_5yr_fcf", "Long term liabilities / 5yr avg FCF", {type: 'bar', quarterlyEnabled: false});
+*/
 
 createSeparator("DCF")
 createChart("/financials/eps_dcf", "EPS DCF", {quarterlyEnabled: false});
