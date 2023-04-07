@@ -49,7 +49,7 @@ public class GrowthStandardDeviationCounter {
         }
     }
 
-    private static double getArraySD(List<Double> numArray) {
+    public static double getArraySD(List<Double> numArray) {
         double sum = 0.0, standardDeviation = 0.0;
         int length = numArray.size();
 

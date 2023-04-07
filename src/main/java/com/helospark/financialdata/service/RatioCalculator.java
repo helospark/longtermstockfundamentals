@@ -50,7 +50,43 @@ public class RatioCalculator {
     }
 
     public static double calculateGrossProfitMargin(FinancialsTtm data) {
-        return (double) data.incomeStatementTtm.grossProfit / data.incomeStatementTtm.revenue;
+        double result = (double) data.incomeStatementTtm.grossProfit / data.incomeStatementTtm.revenue;
+        if (!Double.isFinite(result)) {
+            return Double.NaN;
+        }
+        return result;
+    }
+
+    public static double calculateNetMargin(FinancialsTtm data) {
+        double result = (double) data.incomeStatementTtm.netIncome / data.incomeStatementTtm.revenue;
+        if (!Double.isFinite(result)) {
+            return Double.NaN;
+        }
+        return result;
+    }
+
+    public static double calculateFcfMargin(FinancialsTtm data) {
+        double result = (double) data.cashFlowTtm.freeCashFlow / data.incomeStatementTtm.revenue;
+        if (!Double.isFinite(result)) {
+            return Double.NaN;
+        }
+        return result;
+    }
+
+    public static double calculateOperatingCashflowMargin(FinancialsTtm data) {
+        double result = (double) data.cashFlowTtm.operatingCashFlow / data.incomeStatementTtm.revenue;
+        if (!Double.isFinite(result)) {
+            return Double.NaN;
+        }
+        return result;
+    }
+
+    public static double calculateOperatingMargin(FinancialsTtm data) {
+        double result = (double) data.incomeStatementTtm.operatingIncome / data.incomeStatementTtm.revenue;
+        if (!Double.isFinite(result)) {
+            return Double.NaN;
+        }
+        return result;
     }
 
     public static double calculateAssetTurnover(FinancialsTtm data) {

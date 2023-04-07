@@ -12,7 +12,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -21,7 +20,6 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -65,18 +63,19 @@ public class ScreenerController {
     public static double BACKTEST_INVEST_AMOUNT = 1000.0;
     Map<String, ScreenerDescription> idToDescription = new LinkedHashMap<>();
 
-    @Autowired
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
-    @Autowired
     private List<ScreenerStrategy> screenerStrategies;
-    @Autowired
     private LoginController loginController;
     static Cache<LocalDate, Double> spPriceCache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.DAYS)
             .maximumSize(2000)
             .build();
 
-    public ScreenerController() {
+    public ScreenerController(SymbolAtGlanceProvider symbolAtGlanceProvider, List<ScreenerStrategy> screenerStrategies,
+            LoginController loginController) {
+        this.symbolAtGlanceProvider = symbolAtGlanceProvider;
+        this.screenerStrategies = screenerStrategies;
+        this.loginController = loginController;
         for (var field : AtGlanceData.class.getDeclaredFields()) {
             ScreenerElement screenerElement = field.getAnnotation(ScreenerElement.class);
             if (screenerElement != null) {
@@ -237,18 +236,26 @@ public class ScreenerController {
             }
         }
 
-        Set<String> symbols = DataLoader.provideSymbolsIn(exchanges);
+        List<String> symbols = new ArrayList<>(DataLoader.provideSymbolsIn(exchanges));
 
-        List<Entry<String, AtGlanceData>> entrySet = new ArrayList<>(data.entrySet());
         if (randomize) {
-            Collections.shuffle(entrySet);
+            Collections.shuffle(symbols);
+        } else {
+            List<String> newSymbols = new ArrayList<>();
+            for (var symbol : symbols) {
+                if (data.get(symbol) != null) {
+                    newSymbols.add(symbol);
+                }
+            }
+            symbols = newSymbols;
+            Collections.sort(symbols, (a, b) -> Double.compare(data.get(b).marketCapUsd, data.get(a).marketCapUsd));
         }
 
-        for (var entry : entrySet) {
-            if (!symbols.contains(entry.getKey())) {
+        for (var entry : symbols) {
+            var atGlanceData = data.get(entry);
+            if (atGlanceData == null) {
                 continue;
             }
-            var atGlanceData = entry.getValue();
 
             boolean allMatch = true;
             for (var operation : request.operations) {
@@ -258,7 +265,7 @@ public class ScreenerController {
                     allMatch = false;
                     break;
                 }
-                ScreenerStrategy screenerStrategy = findScreenerStrategy(operation.operation);
+                ScreenerStrategy screenerStrategy = operation.screenerStrategy;
                 if (!screenerStrategy.matches(value, operation)) {
                     allMatch = false;
                     break;
@@ -287,6 +294,10 @@ public class ScreenerController {
         }
         validateRequest(request, httpRequest);
 
+        return performBacktestInternal(request);
+    }
+
+    public BacktestResult performBacktestInternal(BacktestRequest request) {
         if (request.endYear < request.startYear) {
             throw new ScreenerClientSideException("End date must be greater than start time");
         }
@@ -338,6 +349,10 @@ public class ScreenerController {
                     ++yearCount;
 
                     LocalDate actualDate = stockThen.actualDate;
+
+                    if (stockThen.actualDate == null) {
+                        continue;
+                    }
 
                     double sp500PriceThen = spPriceCache.get(actualDate, date2 -> StandardAndPoorPerformanceProvider.getPriceAt(actualDate));
                     double sp500PriceNow = StandardAndPoorPerformanceProvider.getLatestPrice();
@@ -552,6 +567,7 @@ public class ScreenerController {
                 throw new ScreenerClientSideException(element.operation + " requires number1 and number2 to be filled");
             }
 
+            element.screenerStrategy = findScreenerStrategy(element.operation); // cache
         }
     }
 

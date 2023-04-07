@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class TestParameterProvider {
-    private List<Parameter> parameters = new ArrayList<>();
+    public List<Parameter> parameters = new ArrayList<>();
     public List<TestParameterResult> results = new ArrayList<>();
 
     public void registerParameter(Parameter parameter) {
@@ -17,6 +17,15 @@ public class TestParameterProvider {
         for (var parameter : parameters) {
             if (parameter.name.equals(name)) {
                 return parameter.number;
+            }
+        }
+        return null;
+    }
+
+    public Parameter getParameter(String name) {
+        for (var parameter : parameters) {
+            if (parameter.name.equals(name)) {
+                return parameter;
             }
         }
         return null;

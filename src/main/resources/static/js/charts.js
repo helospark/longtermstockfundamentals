@@ -178,7 +178,7 @@ createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%
 
 
 createSeparator("Price ratios")
-createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50});
+createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false});
 createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {
   tooltip: 'Trailing PEG is the PE ratio divided by the median past [1..7] year annual EPS growth. Generally above 2 is expensive, below 1 is cheap.',
@@ -220,6 +220,7 @@ createChart("/financials/altmanz", "Altman Z score", {
   quarterlyEnabled: false
 
 });
+createChart("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
 createChart("/financials/sloan", "Sloan ratio", {
   quarterlyEnabled: false,
   tooltip: 'Sloan ratio shows if earnings closely match cashflows. Between -10% to 10% is considered safe, outside of -25% to 25% is in danger zone',
@@ -227,8 +228,10 @@ createChart("/financials/sloan", "Sloan ratio", {
 });
 createChart("/financials/interest_expense", "Interest expense", {});
 createChart("/financials/interest_rate", "Interest rate", {unit: '%', quarterlyEnabled: false});
-createChart("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
-
+createChart("/financials/debt_to_equity", "Debt to equity", {
+  quarterlyEnabled: false,
+  tooltip: 'Lower is better, generally below 1 is healthy, above 2 is risky'
+});
 
 
 createSeparator("Assets")
@@ -262,7 +265,18 @@ createChart("/financials/cash", "Cash and cash equivalents", {quarterlyEnabled: 
 createAd();
 
 createSeparator("Return ratios")
-createChart("/financials/roic", "Return on invested capital", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChart("/financials/roic", "Return on invested capital", {
+  unit: '%',
+  quarterlyEnabled: false,
+  suggestedMin: -10,
+  tooltip: 'Using formula: EBIT / (totalAssets - currentLiabilities)'
+});
+createChart("/financials/fcf_roic", "Return on invested capital using FCF", {
+  unit: '%',
+  quarterlyEnabled: false,
+  suggestedMin: -10,
+  tooltip: 'Using formula: (fcf * (1.0 - taxRate)) / (equity + totalDebt)'
+});
 createChart("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 
@@ -373,10 +387,12 @@ createChart("/financials/5_year_roic", "5 year ROIC", {type: 'bar', quarterlyEna
 createChart("/financials/ltl_per_5yr_fcf", "Long term liabilities / 5yr avg FCF", {type: 'bar', quarterlyEnabled: false});
 */
 
-createSeparator("DCF")
+createSeparator("Value")
+/*
 createChart("/financials/eps_dcf", "EPS DCF", {quarterlyEnabled: false});
 createChart("/financials/fcf_dcf", "FCF DCF", {quarterlyEnabled: false});
 createChart("/financials/dividend_dcf", "Dividend DCF", {quarterlyEnabled: false});
+*/
 createChart("/financials/cash_per_share", "Cash per share", {quarterlyEnabled: false});
 createChart("/financials/graham_number", "Graham number", {quarterlyEnabled: false});
 
@@ -402,8 +418,8 @@ createChart("/financials/return_with_reinvested_dividend", "Total returns", {
     "label": "price"
   }
 ]});
-createChart("/financials/price_growth_rate", "Price growth", {type: 'bar', quarterlyEnabled: false});
-createChart("/financials/price_with_dividends_growth_rate", "Returns (with dividends reinvested)", {type: 'bar', quarterlyEnabled: false});
+createChart("/financials/price_growth_rate", "Price growth", {type: 'bar', quarterlyEnabled: false, unit: '%'});
+createChart("/financials/price_with_dividends_growth_rate", "Returns (with dividends reinvested)", {type: 'bar', quarterlyEnabled: false, unit: '%'});
 
 createAd();
 

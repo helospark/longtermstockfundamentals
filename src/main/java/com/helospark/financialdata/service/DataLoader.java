@@ -62,6 +62,7 @@ public class DataLoader {
     static Cache<String, CompanyFinancials> cache;
 
     static Cache<String, FxRatesResponse> fxCache;
+    static Cache<Exchanges, Set<String>> exchangeSymbolCache;
     static List<TresuryRate> tresuryRateCache;
 
     static Set<String> realiableIpoData = Set.of("NTR");
@@ -85,6 +86,11 @@ public class DataLoader {
         fxCache = Caffeine.newBuilder()
                 .expireAfterWrite(1, TimeUnit.DAYS)
                 .maximumSize(fcCacheSize)
+                .build();
+
+        exchangeSymbolCache = Caffeine.newBuilder()
+                .expireAfterWrite(1, TimeUnit.DAYS)
+                .maximumSize(30)
                 .build();
 
         //        File cacheFile = new File(CACHE_SAVE_FILE);
@@ -601,15 +607,23 @@ public class DataLoader {
         Set<String> result = new HashSet<>();
 
         for (var exchange : exchanges) {
-            File file = new File(BASE_FOLDER + "/info/exchanges/" + exchange.name());
-            try (FileInputStream fis = new FileInputStream(file)) {
-                var lines = new String(fis.readAllBytes()).split("\n");
-                Arrays.stream(lines).forEach(a -> result.add(a));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            result.addAll(provideSymbolsIn(exchange));
         }
         return result;
+    }
+
+    public static Set<String> provideSymbolsIn(Exchanges exchange) {
+        return exchangeSymbolCache.get(exchange, exchange2 -> provideSymbolsInInternal(exchange));
+    }
+
+    public static Set<String> provideSymbolsInInternal(Exchanges exchange) {
+        File file = new File(BASE_FOLDER + "/info/exchanges/" + exchange.name());
+        try (FileInputStream fis = new FileInputStream(file)) {
+            var lines = new String(fis.readAllBytes()).split("\n");
+            return Set.of(lines);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static Optional<Map<String, AtGlanceData>> loadHistoricalAtGlanceData(int year) {

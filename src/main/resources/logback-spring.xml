@@ -25,7 +25,7 @@
     <rollingPolicy
       class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
       <fileNamePattern>${log.path}/archive/year_%d{yyyy, aux}/month_%d{MM,aux}/${log.filename.prefix}.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-      <maxFileSize>10MB</maxFileSize>
+      <maxFileSize>100MB</maxFileSize>
       <totalSizeCap>10GB</totalSizeCap>
       <maxHistory>3653</maxHistory>
     </rollingPolicy>
@@ -53,7 +53,7 @@
     <rollingPolicy
       class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
       <fileNamePattern>${log.path}/archive/year_%d{yyyy, aux}/month_%d{MM,aux}/${log.filename.prefix}-payment.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
-      <maxFileSize>10MB</maxFileSize>
+      <maxFileSize>100MB</maxFileSize>
       <totalSizeCap>10GB</totalSizeCap>
       <maxHistory>3653</maxHistory>
     </rollingPolicy>

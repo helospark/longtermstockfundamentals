@@ -491,13 +491,6 @@ function createChart(urlPath, title, chartOptions) {
                           });
                         }
 
-
-                        if (!isNaN(minValueToSet)) {
-                          slider.slider("option", "min", minValueToSet);
-                        }
-                        if (!isNaN(maxValueToSet)) {
-                          slider.slider("option", "max", maxValueToSet);
-                        }
                         if (!isNaN(minValueToSet)) {
                           slider.slider('values', 0, minValueToSet);
                           if (chart.options.scales.y.originalMin != undefined) {

@@ -107,6 +107,9 @@ public class StockDataDownloader2 {
     static RateLimiter rateLimiterForFx = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 30.0);
 
     static RestTemplate restTemplate;
+    static volatile boolean inProgress = false;
+    static volatile String statusMessage = "N/A";
+    static volatile double progress = Double.NaN;
 
     static {
         init();
@@ -114,6 +117,9 @@ public class StockDataDownloader2 {
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
         boolean downloadNewData = true;
+        statusMessage = "Downloading symbol list";
+        progress = 0.0;
+        inProgress = true;
 
         if (downloadNewData) {
             //List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
@@ -121,7 +127,9 @@ public class StockDataDownloader2 {
             List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
             List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
             List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
+            statusMessage = "Downloading FX";
             downloadFxRates();
+            statusMessage = "Downloading useful info";
             downloadUsefulInfo();
 
             int threads = 10;
@@ -135,12 +143,14 @@ public class StockDataDownloader2 {
 
             Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
 
+            statusMessage = "Downloading financial data";
+            progress = 0.0;
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (int i = 0; i < threads; ++i) {
                 int threadIndex = i;
                 futures.add(CompletableFuture.runAsync(() -> {
                     int k = 0;
-                    while (true) {
+                    while (inProgress) {
                         String symbol = symbolsQueue.poll();
                         if (symbol == null) {
                             break;
@@ -155,6 +165,9 @@ public class StockDataDownloader2 {
                         if (threadIndex == 0 && k % 1000 == 0) {
                             writeLastAttemptedFile(downloadDates, symbolToDates);
                         }
+                        if (threadIndex == 0 && k % 100 == 0) {
+                            progress = (((double) (symbols.size() - symbolsQueue.size()) / symbols.size()) * 100.0);
+                        }
                     }
                 }, executor));
             }
@@ -165,8 +178,18 @@ public class StockDataDownloader2 {
             executor.shutdownNow();
             writeLastAttemptedFile(downloadDates, symbolToDates);
         }
+        if (!inProgress) {
+            return;
+        }
+        progress = 0.0;
+        statusMessage = "Creating exchange cache";
         createExchangeCache();
+        statusMessage = "Creating symbol cache";
         createSymbolCache();
+
+        statusMessage = "Finished";
+        progress = Double.NaN;
+        inProgress = false;
     }
 
     public static Map<String, DownloadDateData> loadDateData(File downloadDates) throws IOException, StreamReadException, DatabindException {
@@ -219,6 +242,10 @@ public class StockDataDownloader2 {
             }
         }
 
+        if (!inProgress) {
+            return;
+        }
+
         for (var entry : exchangeToSymbol.entrySet()) {
             File file = new File(BASE_FOLDER + "/info/exchanges/" + entry.getKey());
             if (!file.exists()) {
@@ -237,13 +264,23 @@ public class StockDataDownloader2 {
     }
 
     private static void createSymbolCache() {
+        if (!inProgress) {
+            return;
+        }
         LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache = new LinkedHashMap<>();
         Set<Profile> usCompanies = new TreeSet<>((a, b) -> Double.compare(b.mktCap, a.mktCap));
+        long allSymbolSize = DataLoader.provideAllSymbols().size();
         // sort by most often searched regions
         for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByRegion(ExchangeRegion.US))) {
             List<Profile> profiles = DataLoader.readFinancialFile(symbol, "profile.json", Profile.class);
             if (profiles.size() > 0 && !symbol.endsWith("-PL")) {
                 usCompanies.add(profiles.get(0));
+            }
+            if (usCompanies.size() % 100 == 0) {
+                progress = ((double) usCompanies.size() / allSymbolSize) * 100.0;
+                if (!inProgress) {
+                    return;
+                }
             }
         }
         for (var usCompany : usCompanies) {
@@ -261,12 +298,24 @@ public class StockDataDownloader2 {
                     symbolCompanyNameCache.put(symbol, information.get());
                 }
             }
+            if (symbolCompanyNameCache.size() % 100 == 0) {
+                progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
+                if (!inProgress) {
+                    return;
+                }
+            }
         }
         for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByType(MarketType.DEVELOPED_MARKET))) {
             if (!symbolCompanyNameCache.containsKey(symbol)) {
                 Optional<AtGlanceData> information = symbolToSearchData(symbol, 0);
                 if (information.isPresent()) {
                     symbolCompanyNameCache.put(symbol, information.get());
+                }
+            }
+            if (symbolCompanyNameCache.size() % 100 == 0) {
+                progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
+                if (!inProgress) {
+                    return;
                 }
             }
         }
@@ -277,12 +326,24 @@ public class StockDataDownloader2 {
                     symbolCompanyNameCache.put(symbol, information.get());
                 }
             }
+            if (symbolCompanyNameCache.size() % 100 == 0) {
+                progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
+                if (!inProgress) {
+                    return;
+                }
+            }
         }
         for (var symbol : DataLoader.provideAllSymbols()) {
             if (!symbolCompanyNameCache.containsKey(symbol)) {
                 Optional<AtGlanceData> information = symbolToSearchData(symbol, 0);
                 if (information.isPresent()) {
                     symbolCompanyNameCache.put(symbol, information.get());
+                }
+            }
+            if (symbolCompanyNameCache.size() % 100 == 0) {
+                progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
+                if (!inProgress) {
+                    return;
                 }
             }
         }
@@ -301,11 +362,14 @@ public class StockDataDownloader2 {
         Queue<String> queue = new ConcurrentLinkedQueue<>();
         queue.addAll(DataLoader.provideAllSymbols());
 
+        statusMessage = "Generate historical data";
+        progress = 0.0;
+
         Map<Integer, Map<String, AtGlanceData>> yearData = new ConcurrentHashMap<>();
         List<CompletableFuture<?>> futures = new ArrayList<>();
         for (int thread = 0; thread < numberOfThreads; ++thread) {
             futures.add(CompletableFuture.runAsync(() -> {
-                while (true) {
+                while (inProgress) {
                     var entry = queue.poll();
                     if (entry == null) {
                         break;
@@ -314,6 +378,7 @@ public class StockDataDownloader2 {
                     if (queueSize % 1000 == 0) {
                         LOGGER.info("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
                         System.out.println("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
+                        progress = (((double) (allSymbolsSet.size() - queueSize) / allSymbolsSet.size())) * 100.0;
                     }
 
                     for (int i = 1; i < 35; ++i) {
@@ -340,6 +405,9 @@ public class StockDataDownloader2 {
         }
         for (int i = 0; i < futures.size(); ++i) {
             futures.get(i).join();
+        }
+        if (!inProgress) {
+            return;
         }
 
         try {
@@ -436,7 +504,7 @@ public class StockDataDownloader2 {
         data.dividendFcfPayoutRatio = (float) (RatioCalculator.calculateFcfPayoutRatio(financial) * 100.0);
 
         data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).shortValue();
-        data.fcfProfitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).shortValue();
+        data.fcfProfitableYears = ProfitabilityCalculator.calculateNumberOfFcfProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).shortValue();
         data.stockCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financial).floatValue();
         data.cpxToRev = (float) (((double) financial.cashFlowTtm.capitalExpenditure / financial.incomeStatementTtm.revenue * -1.0) * 100.0);
 
@@ -463,6 +531,12 @@ public class StockDataDownloader2 {
         data.price10Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 10, offsetYear).orElse(Double.NaN).floatValue();
         data.price15Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 15, offsetYear).orElse(Double.NaN).floatValue();
         data.price20Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 20, offsetYear).orElse(Double.NaN).floatValue();
+
+        // margin
+        data.grMargin = (float) (RatioCalculator.calculateGrossProfitMargin(financial) * 100.0);
+        data.opMargin = (float) (RatioCalculator.calculateOperatingMargin(financial) * 100.0);
+        data.fcfMargin = (float) (RatioCalculator.calculateFcfMargin(financial) * 100.0);
+        data.opCMargin = (float) (RatioCalculator.calculateOperatingCashflowMargin(financial) * 100.0);
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 
@@ -535,6 +609,7 @@ public class StockDataDownloader2 {
 
     private static void downloadFxRates() {
         try {
+            progress = 0.0;
             File symbolsFile = new File(FX_BASE_FOLDER + "/symbols.json");
             if (!symbolsFile.exists()) {
                 String symbolsUri2 = "https://api.exchangerate.host/symbols";
@@ -550,7 +625,11 @@ public class StockDataDownloader2 {
 
             Set<String> currencies = symbols.symbols.keySet();
 
+            int k = 0;
             for (var currency : currencies) {
+                if (!inProgress) {
+                    return;
+                }
                 LocalDate localDate = LocalDate.of(2000, 1, 1);
                 while (localDate.getYear() <= LocalDate.now().getYear()) {
                     File currencyFile = new File(FX_BASE_FOLDER + "/" + currency + "_" + localDate.getYear() + ".json");
@@ -566,6 +645,8 @@ public class StockDataDownloader2 {
                     }
                     localDate = localDate.plusYears(1);
                 }
+                ++k;
+                progress = (((double) k / currencies.size()) * 100.0);
             }
 
             boolean needsUpdate = false;
@@ -623,7 +704,7 @@ public class StockDataDownloader2 {
                     downloadFinancials = false;
                 }
             }
-            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastPriceDownload)) > 2 && Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 500) {
+            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastPriceDownload)) > 5 && Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) < 500) {
                 downloadPricesNeeded = true;
             }
         } else {
@@ -1094,5 +1175,22 @@ public class StockDataDownloader2 {
             this.previousReportPeriod = previousReportPeriod;
         }
 
+    }
+
+    public static boolean isRunning() {
+        return inProgress;
+    }
+
+    public static void stop() {
+        inProgress = false;
+    }
+
+    public static String getStatusMessage() {
+        return statusMessage;
+    }
+
+    public static double getProgress() {
+        // TODO Auto-generated method stub
+        return progress;
     }
 }

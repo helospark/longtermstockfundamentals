@@ -9,7 +9,7 @@ public class GreaterThanEqualStrategy implements ScreenerStrategy {
 
     @Override
     public String getSymbol() {
-        return ">";
+        return ">=";
     }
 
     @Override
@@ -19,6 +19,6 @@ public class GreaterThanEqualStrategy implements ScreenerStrategy {
 
     @Override
     public boolean matches(Double fieldValue, ScreenerOperation operation) {
-        return fieldValue > operation.number1;
+        return fieldValue >= operation.number1;
     }
 }

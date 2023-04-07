@@ -44,7 +44,7 @@ public class AtGlanceData {
     public float quickRatio;
     @ScreenerElement(name = "Debt to equity ratio")
     public float dtoe;
-    @ScreenerElement(name = "Return on equity")
+    @ScreenerElement(name = "Return on equity", format = AtGlanceFormat.PERCENT)
     public float roe;
     @ScreenerElement(name = "5 year annual EPS growth", format = AtGlanceFormat.PERCENT)
     public float epsGrowth;
@@ -52,6 +52,8 @@ public class AtGlanceData {
     public float fcfGrowth;
     @ScreenerElement(name = "5 year annual revenue growth", format = AtGlanceFormat.PERCENT)
     public float revenueGrowth;
+    @ScreenerElement(name = "5 year net income growth", format = AtGlanceFormat.PERCENT)
+    public float fYrIncomeGr;
     @ScreenerElement(name = "5 year annual dividend growth", format = AtGlanceFormat.PERCENT)
     public float dividendGrowthRate;
     @ScreenerElement(name = "5 year annual share count growth", format = AtGlanceFormat.PERCENT)
@@ -124,18 +126,24 @@ public class AtGlanceData {
     public float fYrPe;
     @ScreenerElement(name = "5 year P/FCF")
     public float fYrPFcf;
-    @ScreenerElement(name = "5 year net income growth")
-    public float fYrIncomeGr;
-    @ScreenerElement(name = "5 year ROIC")
+    @ScreenerElement(name = "5 year ROIC", format = AtGlanceFormat.PERCENT)
     public float fiveYrRoic;
     @ScreenerElement(name = "LTL / 5 yr FCF")
     public float ltl5Fcf;
-    @ScreenerElement(name = "10 years annual returns")
+    @ScreenerElement(name = "10 years annual returns", format = AtGlanceFormat.PERCENT)
     public float price10Gr;
-    @ScreenerElement(name = "15 years annual returns")
+    @ScreenerElement(name = "15 years annual returns", format = AtGlanceFormat.PERCENT)
     public float price15Gr;
-    @ScreenerElement(name = "20 years annual returns")
+    @ScreenerElement(name = "20 years annual returns", format = AtGlanceFormat.PERCENT)
     public float price20Gr;
+    @ScreenerElement(name = "Gross margin", format = AtGlanceFormat.PERCENT)
+    public float grMargin;
+    @ScreenerElement(name = "Operating margin", format = AtGlanceFormat.PERCENT)
+    public float opMargin;
+    @ScreenerElement(name = "Operating cashflow margin", format = AtGlanceFormat.PERCENT)
+    public float opCMargin;
+    @ScreenerElement(name = "FCF margin", format = AtGlanceFormat.PERCENT)
+    public float fcfMargin;
 
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield")
     public double getFreeCashFlowYield() {

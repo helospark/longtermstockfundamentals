@@ -279,4 +279,12 @@ public class LoginController {
         return AccountType.fromString(jwt.getClaim(JwtService.ACCOUNT_TYPE_CLAIM).asString());
     }
 
+    public Optional<AccountType> getAccountType(HttpServletRequest request) {
+        var jwt = getJwt(request);
+        if (!jwt.isPresent()) {
+            return Optional.empty();
+        }
+        return Optional.of(AccountType.fromString(jwt.get().getClaim(JwtService.ACCOUNT_TYPE_CLAIM).asString()));
+    }
+
 }
