@@ -420,6 +420,20 @@ createChart("/financials/return_with_reinvested_dividend", "Total returns", {
 ]});
 createChart("/financials/price_growth_rate", "Price growth", {type: 'bar', quarterlyEnabled: false, unit: '%'});
 createChart("/financials/price_with_dividends_growth_rate", "Returns (with dividends reinvested)", {type: 'bar', quarterlyEnabled: false, unit: '%'});
+createChart("/financials/price_growth_rate_xyr_moving_avg", "Returns x year interval", {
+  type: 'bar',
+  quarterlyEnabled: false,
+  unit: '%',
+  tooltip: 'Shows the total annualized returns every x year intervals, where x is selected with the slider.<br/>So for example when 7 year is selected then at 2020 it shows the annualized returns between 2013 and 2020.',
+  slider: {
+    id: "eps_growth_year_slider",
+    parameterName: "year",
+    min: 2,
+    max: 10,
+    default: 7
+  }
+});
+
 
 createAd();
 

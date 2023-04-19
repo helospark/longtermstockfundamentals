@@ -155,6 +155,9 @@ public class StockDataDownloader2 {
                         if (symbol == null) {
                             break;
                         }
+                        if (symbol.contains("\n")) {
+                            continue;
+                        }
                         try {
                             downloadStockData(symbol, symbolToDates);
                         } catch (Exception e) {

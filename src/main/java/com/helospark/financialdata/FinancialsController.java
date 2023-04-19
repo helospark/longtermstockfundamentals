@@ -1,5 +1,7 @@
 package com.helospark.financialdata;
 
+import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
+
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -738,6 +740,10 @@ public class FinancialsController {
         return Math.abs(ChronoUnit.DAYS.between(date, LocalDate.now()) / 365.0);
     }
 
+    private double calculateYearsDiff(LocalDate date, LocalDate laterDate) {
+        return Math.abs(ChronoUnit.DAYS.between(date, laterDate) / 365.0);
+    }
+
     @GetMapping("revenue_growth_rate")
     public List<SimpleDataElement> getRevenueGrowthRate(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
@@ -817,6 +823,37 @@ public class FinancialsController {
             double yearsAgo = calculateYearsAgo(element.getDate());
             double growth = GrowthCalculator.calculateGrowth(now, element.value, yearsAgo);
             result.add(new SimpleDataElement(element.date.toString(), growth));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/price_growth_rate_xyr_moving_avg")
+    public List<SimpleDataElement> getXyrPriceGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int yearInterval) {
+        List<SimpleDateDataElement> company = ReturnWithDividendCalculator.getPriceWithDividendsReinvested(DataLoader.readFinancials(stock));
+        if (company.size() <= 0) {
+            return List.of();
+        }
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.size(); ++i) {
+            SimpleDateDataElement element = company.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+            int newIndex = findIndexWithOrBeforeDate(company, CommonConfig.NOW.minusMonths((int) (yearsAgo * 12.0)));
+            int oldIndex = findIndexWithOrBeforeDate(company, CommonConfig.NOW.minusMonths((int) (yearsAgo * 12.0 + yearInterval * 12.0)));
+
+            if (oldIndex == -1 || newIndex == -1) {
+                break;
+            } else {
+                double oldPrice = company.get(oldIndex).value;
+                double newPrice = company.get(newIndex).value;
+
+                double yearsDiff = calculateYearsDiff(company.get(oldIndex).date, company.get(newIndex).date);
+
+                double growth = GrowthCalculator.calculateGrowth(newPrice, oldPrice, yearsDiff);
+
+                result.add(new SimpleDataElement(element.getDate().toString(), growth));
+            }
         }
 
         return result;
