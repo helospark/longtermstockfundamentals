@@ -30,7 +30,7 @@ public class GrowthStatisticsCreator {
         Map<String, AtGlanceData> growthStocks = new HashMap<>();
 
         int fifteenYearsAgo = LocalDate.now().minusYears(YEAR_CUTOFF).getYear();
-        Map<String, AtGlanceData> fifteenYearOldData = provider.loadAtGlanceDataAtYear(fifteenYearsAgo).get();
+        Map<String, AtGlanceData> fifteenYearOldData = provider.loadAtGlanceDataAtYear(fifteenYearsAgo, 1).get();
         for (var symbol : usSymbols) {
             Optional<AtGlanceData> data = provider.getAtGlanceData(symbol);
 
@@ -44,9 +44,9 @@ public class GrowthStatisticsCreator {
 
         for (int i = 2018; i < 2022; ++i) {
             System.out.println(i);
-            Map<String, AtGlanceData> yearData = provider.loadAtGlanceDataAtYear(i).get();
+            Map<String, AtGlanceData> yearData = provider.loadAtGlanceDataAtYear(i, 1).get();
             int oldYear = LocalDate.of(i, 1, 1).minusYears(YEAR_CUTOFF).getYear();
-            Map<String, AtGlanceData> oldData = provider.loadAtGlanceDataAtYear(oldYear).get();
+            Map<String, AtGlanceData> oldData = provider.loadAtGlanceDataAtYear(oldYear, 1).get();
             for (var symbol : usSymbols) {
                 AtGlanceData data = yearData.get(symbol);
 

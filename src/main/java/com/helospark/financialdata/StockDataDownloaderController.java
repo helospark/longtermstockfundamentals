@@ -106,4 +106,5 @@ public class StockDataDownloaderController {
     public String handleUnauthorized(UnauthorizedException e) {
         return "Unauthorized";
     }
+
 }

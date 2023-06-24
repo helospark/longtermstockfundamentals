@@ -23,7 +23,7 @@ public class NNDataCreator {
         List<String> columns = new ArrayList<>();
         List<List<String>> csv = new ArrayList<>();
         int atYear = 2012;
-        Map<String, AtGlanceData> oldData = provider.loadAtGlanceDataAtYear(atYear).get();
+        Map<String, AtGlanceData> oldData = provider.loadAtGlanceDataAtYear(atYear, 1).get();
         Map<String, AtGlanceData> latestData = provider.getSymbolCompanyNameCache();
         Set<String> usSymbols = DataLoader.provideSymbolsFromNasdaqNyse();
 

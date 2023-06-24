@@ -2,7 +2,9 @@ package com.helospark.financialdata.util.analyzer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
@@ -15,8 +17,10 @@ import java.util.stream.IntStream;
 
 import com.helospark.financialdata.management.screener.ScreenerController;
 import com.helospark.financialdata.management.screener.ScreenerOperation;
+import com.helospark.financialdata.management.screener.ScreenerRequest;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
 import com.helospark.financialdata.management.screener.domain.BacktestResult;
+import com.helospark.financialdata.management.screener.domain.ScreenerResult;
 import com.helospark.financialdata.management.screener.strategy.GreaterThanStrategy;
 import com.helospark.financialdata.management.screener.strategy.LessThanStrategy;
 import com.helospark.financialdata.management.screener.strategy.ScreenerStrategy;
@@ -24,9 +28,17 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
+    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
+    private static final int START_YEAR = 2000;
+    private static final int END_YEAR = 2019;
+    private static final double MINIMUM_BEAT_PERCENT = 90.0;
+    private static final double MINIMUM_TRANSACTION_COUNT = 100;
+    private static final double MAXIMUM_TRANSACTION_COUNT = 1000;
+    private static final int MINIMUM_INVEST_QUARTER = (int) (((END_YEAR - START_YEAR) * 4) * 0.8);
     private static final int MIN_PARAMS = 5;
-    private static final int MAX_PARAMS = 10;
-    private static final int MINIMUM_BEAT_YEAR = 17;
+    private static final int MAX_PARAMS = 12;
+    private static final List<String> EXCLUDED_STOCKS = List.of("TPL");
+    private static final List<RandomParam> PARAMS = getAllParams();
     ScreenerController screenerController;
     Set<TestResult> resultSet = Collections.synchronizedSet(new TreeSet<>());
 
@@ -42,14 +54,34 @@ public class ParameterFinderBacktest {
 
         List<ScreenerStrategy> screenerStrategies = List.of(new GreaterThanStrategy(), new LessThanStrategy());
         screenerController = new ScreenerController(symbolAtGlanceProvider, screenerStrategies, null);
+        screenerController.setBacktestMultiMonth(true);
 
+        int numThreads = Runtime.getRuntime().availableProcessors();
+        ExecutorService tpe = Executors.newFixedThreadPool(numThreads);
+
+        List<CompletableFuture<?>> futures = new ArrayList<>();
+        for (int i = 0; i < numThreads; ++i) {
+            var shuffled = new ArrayList<>(symbols);
+            Collections.shuffle(shuffled);
+            int threadIndex = i;
+            futures.add(CompletableFuture.runAsync(() -> process(shuffled, cloneParams(PARAMS), threadIndex, numThreads), tpe));
+        }
+        futures.stream().map(a -> a.join()).collect(Collectors.toList());
+
+        tpe.shutdownNow();
+    }
+
+    public static List<RandomParam> getAllParams() {
         List<ScreenerStrategy> gtList = List.of(new GreaterThanStrategy());
         List<ScreenerStrategy> ltList = List.of(new LessThanStrategy());
         List<RandomParam> params = new ArrayList<>();
         params.add(new RandomParam("altman", 1.0, 10.0, gtList));
+        params.add(new RandomParam("pietrosky", 1.0, 8.0, gtList));
         params.add(new RandomParam("roic", 8, 60, gtList));
         params.add(new RandomParam("fiveYrRoic", 0, 20, gtList));
         params.add(new RandomParam("roe", 1, 30, gtList));
+        params.add(new RandomParam("icr", 1, 30, gtList));
+        params.add(new RandomParam("currentRatio", 0.0, 2.0));
         params.add(new RandomParam("trailingPeg", 0.1, 2.5));
         params.add(new RandomParam("cape", 3.0, 80.0));
         params.add(new RandomParam("fYrPe", 0.0, 50.0));
@@ -60,6 +92,7 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("netMarginGrowth", -5, 5));
         params.add(new RandomParam("dividendGrowthRate", -10, 30));
         params.add(new RandomParam("ltl5Fcf", 0.2, 10));
+        params.add(new RandomParam("fYrPFcf", 0.0, 50));
         params.add(new RandomParam("dtoe", 0.0, 4.0));
         params.add(new RandomParam("opMargin", -10, 40));
         params.add(new RandomParam("opCMargin", -10, 40));
@@ -73,29 +106,36 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("ideal10yrRevCorrelation", 0.0, 1.0));
         params.add(new RandomParam("price10Gr", -20.0, 30.0));
         params.add(new RandomParam("fcf_yield", 0.0, 30.0));
+        params.add(new RandomParam("starFlags", 0.0, 10.0, gtList));
+        params.add(new RandomParam("greenFlags", 0.0, 10.0, gtList));
+        params.add(new RandomParam("yellowFlags", 0.0, 10.0));
+        params.add(new RandomParam("redFlags", 0.0, 10.0, ltList));
+        params.add(new RandomParam("revSD", 0.0, 1.0));
+        params.add(new RandomParam("epsSD", 0.0, 1.0));
+        params.add(new RandomParam("dividendYield", 0.0, 10.0));
 
-        /*
-        params.add(new RandomParam("roic", 8, 60));
-        params.add(new RandomParam("fiveYrRoic", 0, 20));
-        params.add(new RandomParam("trailingPeg", 0.1, 2.5));
-        params.add(new RandomParam("shareCountGrowth", -10, 10));
+        return params;
+    }
+
+    public static List<RandomParam> getBestParams() {
+        List<ScreenerStrategy> gtList = List.of(new GreaterThanStrategy());
+        List<ScreenerStrategy> ltList = List.of(new LessThanStrategy());
+        List<RandomParam> params = new ArrayList<>();
+        params.add(new RandomParam("altman", 1.0, 10.0, gtList));
+        params.add(new RandomParam("pietrosky", 1.0, 8.0, gtList));
+        params.add(new RandomParam("roic", 8, 60, gtList));
+        params.add(new RandomParam("fiveYrRoic", 0, 20, gtList));
+        params.add(new RandomParam("roe", 1, 30, gtList));
+        params.add(new RandomParam("trailingPeg", 0.1, 4.5));
+        params.add(new RandomParam("fYrPe", 0.0, 50.0, ltList));
+        params.add(new RandomParam("shareCountGrowth", -10, 10, ltList));
+        params.add(new RandomParam("ltl5Fcf", 0.2, 10, ltList));
+        params.add(new RandomParam("dtoe", 0.0, 4.0, ltList));
+        params.add(new RandomParam("opCMargin", -10, 40, gtList));
+        params.add(new RandomParam("dividendPayoutRatio", 0.0, 120.0));
         params.add(new RandomParam("profitableYears", 0.0, 12.0));
-        params.add(new RandomParam("opMargin", -10, 40));
-        params.add(new RandomParam("ltl5Fcf", 0.2, 10));*/
-
-        int numThreads = Runtime.getRuntime().availableProcessors();
-        ExecutorService tpe = Executors.newFixedThreadPool(numThreads);
-
-        List<CompletableFuture<?>> futures = new ArrayList<>();
-        for (int i = 0; i < numThreads; ++i) {
-            var shuffled = new ArrayList<>(symbols);
-            Collections.shuffle(shuffled);
-            int threadIndex = i;
-            futures.add(CompletableFuture.runAsync(() -> process(shuffled, cloneParams(params), threadIndex, numThreads), tpe));
-        }
-        futures.stream().map(a -> a.join()).collect(Collectors.toList());
-
-        tpe.shutdownNow();
+        params.add(new RandomParam("revenueGrowth", 0.0, 50.0, gtList));
+        return params;
     }
 
     private List<RandomParam> cloneParams(List<RandomParam> params) {
@@ -113,9 +153,9 @@ public class ParameterFinderBacktest {
         Set<TestResult> previousSet = Set.of();
         while (true) {
             BacktestRequest request = new BacktestRequest();
-            request.endYear = 2022;
-            request.startYear = 1996;
-            request.exchanges = List.of("NASDAQ", "NYSE");
+            request.endYear = END_YEAR;
+            request.startYear = START_YEAR;
+            request.exchanges = EXCHANGES;
             request.operations = new ArrayList<>();
             request.operations.add(createOperationsWithFixParam("marketCapUsd", greaterThan, 300.0));
             /*
@@ -140,11 +180,18 @@ public class ParameterFinderBacktest {
                 var strategyToUse = param.getOp();
                 request.operations.add(createOperations(param, param.name, strategyToUse));
             }
+            request.addResultTable = false;
+            request.excludedStocks = EXCLUDED_STOCKS;
 
             BacktestResult result = screenerController.performBacktestInternal(request);
 
-            if (result.investedAmount > 100_000 && result.screenerWithDividendsAvgPercent > 10.0 && result.beatCount > MINIMUM_BEAT_YEAR) {
-                resultSet.add(new TestResult(result.screenerWithDividendsAvgPercent, result.investedAmount, result.screenerWithDividendsMedianPercent, result.beatCount, request.operations));
+            if (result.investedAmount > (MINIMUM_TRANSACTION_COUNT * 1000)
+                    && result.investedAmount < (MAXIMUM_TRANSACTION_COUNT * 1000)
+                    && result.screenerWithDividendsAvgPercent > 10.0
+                    && result.beatCount > MINIMUM_INVEST_QUARTER
+                    && result.beatPercent >= MINIMUM_BEAT_PERCENT) {
+                resultSet.add(new TestResult(result.screenerWithDividendsAvgPercent, result.investedAmount, result.screenerWithDividendsMedianPercent, result.beatCount, result.investedCount,
+                        request.operations));
                 while (resultSet.size() > 40) {
                     TestResult elementToRemove = resultSet.iterator().next();
                     resultSet.remove(elementToRemove);
@@ -153,6 +200,8 @@ public class ParameterFinderBacktest {
 
             if (threadIndex == 0 && i % 500 == 0 && !resultSet.equals(previousSet)) {
                 previousSet = new TreeSet<>(resultSet);
+                printMostCommonStocks(previousSet);
+                printMostCommonOperands(previousSet);
                 for (var element : previousSet) {
                     System.out.println(element);
                 }
@@ -165,6 +214,72 @@ public class ParameterFinderBacktest {
             ++i;
             ++count;
         }
+    }
+
+    private void printMostCommonStocks(Set<TestResult> previousSet) {
+        Map<String, Integer> stockToCount = new HashMap<>();
+        for (var entry : previousSet) {
+            boolean hasMorePage = true;
+            String lastItem = null;
+            while (hasMorePage) {
+                ScreenerRequest request = new ScreenerRequest();
+                request.exchanges = EXCHANGES;
+                request.operations = entry.screenerOperations;
+                request.lastItem = lastItem;
+
+                ScreenerResult result = screenerController.screenStockInternal(request);
+
+                for (var stockList : result.portfolio) {
+                    String symbol = stockList.get("Symbol").replaceAll("<.*?>", "");
+                    Integer count = stockToCount.get(symbol);
+                    if (count == null) {
+                        count = 1;
+                    } else {
+                        count += 1;
+                    }
+                    stockToCount.put(symbol, count);
+                    lastItem = symbol;
+                }
+                hasMorePage = result.hasMoreResults;
+            }
+        }
+        List<Map.Entry<String, Integer>> stockToCountList = new ArrayList<>(stockToCount.entrySet());
+        Collections.sort(stockToCountList, (a, b) -> b.getValue().compareTo(a.getValue()));
+
+        System.out.print("[ ");
+        for (int i = 0; i < 350 && i < stockToCountList.size(); ++i) {
+            var entry = stockToCountList.get(i);
+            System.out.print(entry.getKey() + "(" + entry.getValue() + "), ");
+        }
+        System.out.println("]");
+        System.out.println();
+    }
+
+    private void printMostCommonOperands(Set<TestResult> previousSet) {
+        Map<String, Integer> opToCount = new HashMap<>();
+        for (var entry : previousSet) {
+            for (var op : entry.screenerOperations) {
+                String opName = op.id + op.operation;
+                Integer count = opToCount.get(opName);
+                if (count == null) {
+                    count = 1;
+                } else {
+                    count += 1;
+                }
+                opToCount.put(opName, count);
+            }
+        }
+
+        List<Map.Entry<String, Integer>> opToCountList = new ArrayList<>(opToCount.entrySet());
+        Collections.sort(opToCountList, (a, b) -> b.getValue().compareTo(a.getValue()));
+
+        System.out.print("[ ");
+        for (int i = 0; i < 30 && i < opToCountList.size(); ++i) {
+            var entry = opToCountList.get(i);
+            System.out.print(entry.getKey() + "(" + entry.getValue() + "), ");
+        }
+        System.out.println("]");
+        System.out.println();
     }
 
     public ScreenerOperation createOperations(RandomParam param, String name, ScreenerStrategy strategyToUse) {
@@ -190,14 +305,16 @@ public class ParameterFinderBacktest {
         double invested;
         double medianPercent;
         int beatCount;
+        int investedCount;
         List<ScreenerOperation> screenerOperations;
 
-        public TestResult(double avgPercent, double invested, double medianPercent, int beatCount, List<ScreenerOperation> screenerOperations) {
+        public TestResult(double avgPercent, double invested, double medianPercent, int beatCount, int investedCount, List<ScreenerOperation> screenerOperations) {
             this.avgPercent = avgPercent;
             this.invested = invested;
             this.medianPercent = medianPercent;
             this.screenerOperations = screenerOperations;
             this.beatCount = beatCount;
+            this.investedCount = investedCount;
         }
 
         @Override
@@ -227,7 +344,8 @@ public class ParameterFinderBacktest {
 
         @Override
         public String toString() {
-            return "avgPercent=" + avgPercent + ", medianPercent=" + medianPercent + ", invested=" + invested + ", beatCount=" + beatCount + ", \nscreenerOperations=" + screenerOperations + "\n\n";
+            return "avgPercent=" + avgPercent + ", medianPercent=" + medianPercent + ", invested=" + invested + ", beat=" + beatCount + " / " + investedCount + ", \nscreenerOperations="
+                    + screenerOperations + "\n\n";
         }
 
     }

@@ -19,6 +19,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.domain.SearchElement;
 import com.helospark.financialdata.util.StockDataDownloader2;
+import com.helospark.financialdata.util.StockDataDownloader2.YearMonthPair;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
 @Component
@@ -32,9 +33,9 @@ public class SymbolAtGlanceProvider {
 
     LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache;
 
-    Cache<Integer, Optional<Map<String, AtGlanceData>>> cache = Caffeine.newBuilder()
+    Cache<YearMonthPair, Optional<Map<String, AtGlanceData>>> cache = Caffeine.newBuilder()
             .expireAfterWrite(100, TimeUnit.DAYS)
-            .maximumSize(100)
+            .maximumSize(500)
             .build();
 
     public SymbolAtGlanceProvider() {
@@ -126,8 +127,8 @@ public class SymbolAtGlanceProvider {
         return symbolCompanyNameCache;
     }
 
-    public Optional<Map<String, AtGlanceData>> loadAtGlanceDataAtYear(int year) {
-        return cache.get(year, y -> DataLoader.loadHistoricalAtGlanceData(year));
+    public Optional<Map<String, AtGlanceData>> loadAtGlanceDataAtYear(int year, int month) {
+        return cache.get(YearMonthPair.of(year, month), y -> DataLoader.loadHistoricalAtGlanceData(year, month));
     }
 
     public boolean doesCompanyExists(String stock) {

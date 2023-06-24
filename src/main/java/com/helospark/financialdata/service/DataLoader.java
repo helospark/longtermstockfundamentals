@@ -216,6 +216,93 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("CHSCP")) {
+            for (var element : cashFlow) {
+                element.dividendsPaid = (long) (-incomeStatement.get(0).weightedAverageShsOut * 0.5);
+            }
+        }
+        if (symbol.equals("IBP")) {
+            for (var element : incomeStatement) {
+                if (element.weightedAverageShsOut > 2807567800L) {
+                    element.weightedAverageShsOut /= 1000;
+                    element.weightedAverageShsOutDil /= 1000;
+                }
+            }
+        }
+        if (symbol.equals("FUBO")) {
+            for (var element : incomeStatement) {
+                if (element.revenue > 32437400000L) {
+                    element.revenue /= 1000;
+                    element.grossProfit /= 1000;
+                    element.weightedAverageShsOut /= 1000_000;
+                    element.weightedAverageShsOutDil /= 1000_000;
+                    element.netIncome /= 1000;
+                    element.interestExpense /= 1000;
+                    element.incomeBeforeTax /= 1000;
+                    element.interestIncome /= 1000;
+                    element.ebitda /= 1000;
+                    element.depreciationAndAmortization /= 1000;
+                }
+            }
+            for (var element : cashFlow) {
+                if (element.stockBasedCompensation > 1368700000L) {
+                    element.freeCashFlow /= 1000;
+                    element.stockBasedCompensation /= 1000;
+                    element.netIncome /= 1000;
+                    element.acquisitionsNet /= 1000;
+                }
+            }
+            for (var element : balanceSheet) {
+                if (element.totalLiabilities > 860195000000L) {
+                    element.totalLiabilities /= 1000;
+                    element.totalAssets /= 1000;
+                    element.totalCurrentLiabilities /= 1000;
+                    element.cashAndCashEquivalents /= 1000;
+                    element.totalCurrentAssets /= 1000;
+                    element.intangibleAssets /= 1000;
+                    element.retainedEarnings /= 1000;
+                    element.intangibleAssets /= 1000;
+                }
+
+            }
+
+        }
+
+        for (int i = 0; i < incomeStatement.size(); ++i) {
+            var element = incomeStatement.get(i);
+            if (element.weightedAverageShsOut == 0) {
+                for (int j = i - 1; j >= 0; --j) {
+                    if (incomeStatement.get(j).weightedAverageShsOut != 0) {
+                        element.weightedAverageShsOut = incomeStatement.get(j).weightedAverageShsOut;
+                        break;
+                    }
+                }
+            }
+            if (element.weightedAverageShsOut == 0) {
+                for (int j = i + 1; j < incomeStatement.size(); ++j) {
+                    if (incomeStatement.get(j).weightedAverageShsOut != 0) {
+                        element.weightedAverageShsOut = incomeStatement.get(j).weightedAverageShsOut;
+                        break;
+                    }
+                }
+            }
+            if (element.weightedAverageShsOutDil == 0) {
+                for (int j = i - 1; j >= 0; --j) {
+                    if (incomeStatement.get(j).weightedAverageShsOutDil != 0) {
+                        element.weightedAverageShsOutDil = incomeStatement.get(j).weightedAverageShsOutDil;
+                        break;
+                    }
+                }
+            }
+            if (element.weightedAverageShsOutDil == 0) {
+                for (int j = i + 1; j < incomeStatement.size(); ++j) {
+                    if (incomeStatement.get(j).weightedAverageShsOutDil != 0) {
+                        element.weightedAverageShsOutDil = incomeStatement.get(j).weightedAverageShsOutDil;
+                        break;
+                    }
+                }
+            }
+        }
 
         CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, historicalPrice, profile);
 
@@ -627,7 +714,11 @@ public class DataLoader {
     }
 
     public static Optional<Map<String, AtGlanceData>> loadHistoricalAtGlanceData(int year) {
-        File file = StockDataDownloader2.getBacktestFileAtYear(year);
+        return loadHistoricalAtGlanceData(year);
+    }
+
+    public static Optional<Map<String, AtGlanceData>> loadHistoricalAtGlanceData(int year, int month) {
+        File file = StockDataDownloader2.getBacktestFileAtYear(year, month);
 
         if (!file.exists()) {
             return Optional.empty();
@@ -646,5 +737,9 @@ public class DataLoader {
     public static List<EconomicPriceElement> loadEconomicFile(String string) {
         File file = new File(BASE_FOLDER + "/info/" + string + ".json");
         return readListOfClassFromFile(file, EconomicPriceElement.class);
+    }
+
+    public static void clearCache(String symbol) {
+        cache.invalidate(symbol);
     }
 }

@@ -180,6 +180,9 @@ createChart("/financials/net_margin", "Net margin", {suggestedMin: -20, unit: '%
 createSeparator("Price ratios")
 createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false});
+createChart("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+
+
 createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {
   tooltip: 'Trailing PEG is the PE ratio divided by the median past [1..7] year annual EPS growth. Generally above 2 is expensive, below 1 is cheap.',
   suggestedMin: -2,
@@ -279,6 +282,7 @@ createChart("/financials/fcf_roic", "Return on invested capital using FCF", {
 });
 createChart("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 createChart("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChart("/financials/return_on_equity", "Return on equity", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 
 
 createSeparator("Yields")
@@ -336,7 +340,7 @@ createChart("/financials/eps_growth_rate_7yr_moving_avg", "EPS annual growth x y
   slider: {
     id: "eps_growth_year_slider",
     parameterName: "year",
-    min: 2,
+    min: 1,
     max: 10,
     default: 7
 }});
@@ -350,7 +354,7 @@ createChart("/financials/fcf_growth_rate_7yr_moving_avg", "FCF annual growth x y
   slider: {
     id: "fcf_growth_year_slider",
     parameterName: "year",
-    min: 2,
+    min: 1,
     max: 10,
     default: 7
 }});
@@ -366,7 +370,7 @@ createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual gr
       slider: {
         id: "revenue_growth_rate_xyr_moving_avg_slider",
         parameterName: "year",
-        min: 2,
+        min: 1,
         max: 10,
         default: 7
 }});
@@ -428,7 +432,7 @@ createChart("/financials/price_growth_rate_xyr_moving_avg", "Returns x year inte
   slider: {
     id: "eps_growth_year_slider",
     parameterName: "year",
-    min: 2,
+    min: 1,
     max: 10,
     default: 7
   }

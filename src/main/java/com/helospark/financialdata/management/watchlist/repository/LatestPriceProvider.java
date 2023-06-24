@@ -23,7 +23,7 @@ public class LatestPriceProvider {
             .expireAfterWrite(1, TimeUnit.DAYS)
             .maximumSize(40000)
             .build();
-    ThreadPoolExecutor threadPoolExec = new ThreadPoolExecutor(10, 30, 10000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(100));
+    ThreadPoolExecutor threadPoolExec = new ThreadPoolExecutor(10, 30, 10000, TimeUnit.MILLISECONDS, new ArrayBlockingQueue<>(10000));
 
     public double provideLatestPrice(String ticker) {
         return tickerToPriceCache.get(ticker, ticker2 -> provideApiBasedPrice(ticker2));

@@ -365,6 +365,14 @@ function createChart(urlPath, title, chartOptions) {
                       if (max > 0) {
                         max *= 1.04;
                       }
+                      if (Math.abs(max - min) < 0.001) {
+                         center = min;
+                         max = center + 1.0;
+                         min = center - 1.0;
+                      }
+                      if (min > max) {
+                         max = min + 1.0;
+                      }
                   
                       minValueToSet = chartOptions.suggestedMin !== undefined ? chartOptions.suggestedMin : min;
                       maxValueToSet = chartOptions.suggestedMax !== undefined ? chartOptions.suggestedMax : max;
@@ -372,9 +380,6 @@ function createChart(urlPath, title, chartOptions) {
                       minValueToSet = minValueToSet < min ? min : minValueToSet;
                       maxValueToSet = maxValueToSet > max ? max : maxValueToSet;
                       
-                      if (minValueToSet >= maxValueToSet) {
-                         minValueToSet = maxValueToSet + 1.0;
-                      }
 
                       console.log(url + " " + min + " " + max + " " + minValueToSet + " " + maxValueToSet);
                       if (!isNaN(min)) {

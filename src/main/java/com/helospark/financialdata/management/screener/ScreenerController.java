@@ -3,6 +3,7 @@ package com.helospark.financialdata.management.screener;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,7 +33,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.helospark.financialdata.CommonConfig;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
@@ -62,6 +63,9 @@ public class ScreenerController {
     public static final int MAX_RESULTS = 101;
     public static double BACKTEST_INVEST_AMOUNT = 1000.0;
     Map<String, ScreenerDescription> idToDescription = new LinkedHashMap<>();
+    private static final Set<String> blacklistedStocks = Set.of(
+            "CHSCP" // incorrect dividend information
+    );
 
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
     private List<ScreenerStrategy> screenerStrategies;
@@ -71,6 +75,9 @@ public class ScreenerController {
             .maximumSize(2000)
             .build();
 
+    @Value("${backtest.multimonth:false}")
+    public boolean backtestMultiMonth;
+
     public ScreenerController(SymbolAtGlanceProvider symbolAtGlanceProvider, List<ScreenerStrategy> screenerStrategies,
             LoginController loginController) {
         this.symbolAtGlanceProvider = symbolAtGlanceProvider;
@@ -79,6 +86,7 @@ public class ScreenerController {
         for (var field : AtGlanceData.class.getDeclaredFields()) {
             ScreenerElement screenerElement = field.getAnnotation(ScreenerElement.class);
             if (screenerElement != null) {
+                field.setAccessible(true); // optimization
                 String name = screenerElement.name();
                 ScreenerDescription description = new ScreenerDescription();
                 description.readableName = name;
@@ -94,6 +102,7 @@ public class ScreenerController {
         for (var method : AtGlanceData.class.getDeclaredMethods()) {
             ScreenerElement screenerElement = method.getAnnotation(ScreenerElement.class);
             if (screenerElement != null && method.getParameterCount() == 0) {
+                method.setAccessible(true); // optimization
                 String name = screenerElement.name();
                 ScreenerDescription description = new ScreenerDescription();
                 description.readableName = name;
@@ -126,7 +135,7 @@ public class ScreenerController {
 
     public List<Integer> getBacktestDates() {
         List<Integer> result = new ArrayList<>();
-        for (int i = 1994; i <= LocalDate.now().getYear() - 1; ++i) {
+        for (int i = 1994; i <= LocalDate.now().getYear(); ++i) {
             result.add(i);
         }
         return result;
@@ -137,6 +146,10 @@ public class ScreenerController {
     public ScreenerResult screenStocks(@RequestBody ScreenerRequest request, HttpServletRequest httpRequest) {
         LOGGER.info("Received screener request '{}'", request);
         validateRequest(request, httpRequest);
+        return screenStockInternal(request);
+    }
+
+    public ScreenerResult screenStockInternal(ScreenerRequest request) {
         boolean nextPageRequested = request.lastItem != null;
         boolean previousPageRequested = request.prevItem != null;
 
@@ -171,7 +184,7 @@ public class ScreenerController {
             }
             data = filteredData;
         }
-        List<AtGlanceData> matchedStocks = findMatchingStocks(data, request, false);
+        List<AtGlanceData> matchedStocks = findMatchingStocks(data, request, getSymbolsInExchanges(request.exchanges), false, List.of());
 
         if (previousPageRequested) {
             Collections.reverse(matchedStocks);
@@ -224,19 +237,9 @@ public class ScreenerController {
         return result;
     }
 
-    public List<AtGlanceData> findMatchingStocks(Map<String, AtGlanceData> data, ScreenerRequest request, boolean randomize) {
+    public List<AtGlanceData> findMatchingStocks(Map<String, AtGlanceData> data, ScreenerRequest request, List<String> symbolsInExchanges, boolean randomize, List<String> excludedStocks) {
         List<AtGlanceData> matchedStocks = new ArrayList<>();
-
-        Set<Exchanges> exchanges = new HashSet<>();
-        if (request.exchanges.isEmpty() || request.exchanges.contains("ALL")) {
-            exchanges = Arrays.stream(Exchanges.values()).collect(Collectors.toSet());
-        } else {
-            for (var entry : request.exchanges) {
-                exchanges.add(Exchanges.fromString(entry));
-            }
-        }
-
-        List<String> symbols = new ArrayList<>(DataLoader.provideSymbolsIn(exchanges));
+        List<String> symbols = symbolsInExchanges;
 
         if (randomize) {
             Collections.shuffle(symbols);
@@ -253,7 +256,7 @@ public class ScreenerController {
 
         for (var entry : symbols) {
             var atGlanceData = data.get(entry);
-            if (atGlanceData == null) {
+            if (atGlanceData == null || blacklistedStocks.contains(entry) || excludedStocks.contains(entry)) {
                 continue;
             }
 
@@ -304,14 +307,16 @@ public class ScreenerController {
         if (request.endYear - request.startYear < 2) {
             throw new ScreenerClientSideException("More than 2 year difference expected");
         }
-        if (request.endYear >= LocalDate.now().getYear()) {
+        if (request.endYear > LocalDate.now().getYear()) {
             throw new ScreenerClientSideException("Unfortunataly our datasource doesn't provide the future stock prices :(");
         }
         if (request.startYear < 1990) {
             throw new ScreenerClientSideException("We only have data from 1990");
         }
 
-        Map<Integer, BacktestYearInformation> yearResults = new LinkedHashMap<>();
+        boolean useLatestData = (request.endYear == LocalDate.now().getYear());
+
+        Map<String, BacktestYearInformation> yearResults = new LinkedHashMap<>();
 
         Set<String> columns = new LinkedHashSet<>();
         columns.add("Symbol");
@@ -328,102 +333,119 @@ public class ScreenerController {
         double totalScreenerReturnedWithDividends = 0.0;
         double totalSpReturned = 0;
         double totalSpReturnedWithDividends = 0;
-        for (int year = request.startYear; year < request.endYear; ++year) {
-            List<Map<String, String>> bought = new ArrayList<>();
-            double yearSp500Sum = 0.0;
-            double yearSp500SumWithDividends = 0.0;
-            double yearScreenerSum = 0.0;
-            double yearScreenerWithDividendSum = 0.0;
-            int yearCount = 0;
 
-            LocalDate date = LocalDate.of(year, 1, 1);
-            double yearAgo = (currentDate.getYear() - year) + (date.getMonthValue() - 1) / 12.0;
+        List<String> symbolsInExchanges = getSymbolsInExchanges(request.exchanges);
 
-            Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(year).orElse(null);
-            List<AtGlanceData> matchedStocks = List.of();
-            if (data != null) {
-                matchedStocks = findMatchingStocks(data, request, true);
+        for (int year = request.startYear; year < request.endYear - 1; ++year) {
+            for (int month = 1; month < (backtestMultiMonth ? 12 : 2); month += 3) {
+                List<Map<String, String>> bought = new ArrayList<>();
+                double yearSp500Sum = 0.0;
+                double yearSp500SumWithDividends = 0.0;
+                double yearScreenerSum = 0.0;
+                double yearScreenerWithDividendSum = 0.0;
+                int yearCount = 0;
 
-                for (var stockThen : matchedStocks) {
-                    var stockNow = getLatestStockData(stockThen);
-                    ++yearCount;
+                LocalDate date = LocalDate.of(year, month, 1);
+                LocalDate endDate2 = useLatestData ? currentDate : LocalDate.of(request.endYear, 1, 1);
+                double yearAgo = calculateYearsDiff(date, endDate2);
 
-                    LocalDate actualDate = stockThen.actualDate;
+                Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(year, month).orElse(null);
+                List<AtGlanceData> matchedStocks = List.of();
+                if (data != null) {
+                    matchedStocks = findMatchingStocks(data, request, symbolsInExchanges, true, request.excludedStocks);
 
-                    if (stockThen.actualDate == null) {
-                        continue;
+                    for (var stockThen : matchedStocks) {
+                        var stockNow = getLatestStockData(stockThen, request.endYear, useLatestData);
+                        ++yearCount;
+
+                        LocalDate actualDate = stockThen.actualDate;
+
+                        if (stockThen.actualDate == null || stockNow.isEmpty()) {
+                            continue;
+                        }
+                        LocalDate nowDate = stockNow.get().actualDate;
+                        double yearAgoExact = calculateYearsDiff(actualDate, nowDate);
+
+                        double sp500PriceThen = spPriceCache.get(actualDate, date2 -> StandardAndPoorPerformanceProvider.getPriceAt(actualDate));
+                        double sp500PriceNow;
+                        if (useLatestData) {
+                            sp500PriceNow = StandardAndPoorPerformanceProvider.getLatestPrice();
+                        } else {
+                            sp500PriceNow = spPriceCache.get(nowDate, date2 -> StandardAndPoorPerformanceProvider.getPriceAt(nowDate));
+                        }
+
+                        double stockPriceThen = stockThen.latestStockPriceUsd;
+                        double stockPriceNow = stockNow.get().latestStockPriceUsd;
+
+                        double screenerIncrease = (stockPriceNow / stockPriceThen) * BACKTEST_INVEST_AMOUNT;
+
+                        double initialShareCount = BACKTEST_INVEST_AMOUNT / stockPriceThen;
+                        double totalSharesWithDividendsReinvested = calculateTotalSharesWithDividendsReinvested(initialShareCount, year, request.endYear, stockThen.symbol);
+
+                        double finalScreenerCost = stockPriceNow * totalSharesWithDividendsReinvested;
+
+                        double initialSpShareCount = BACKTEST_INVEST_AMOUNT / sp500PriceThen;
+                        double totalSpSharesWithDividendsReinvested = calculateTotalSPSharesWithDividendsReinvested(initialSpShareCount, year, request.endYear);
+
+                        double finalSpCost = sp500PriceNow * totalSpSharesWithDividendsReinvested;
+
+                        if (!Double.isFinite(screenerIncrease)) {
+                            continue;
+                        }
+
+                        yearSp500Sum += (sp500PriceNow / sp500PriceThen) * BACKTEST_INVEST_AMOUNT;
+                        yearSp500SumWithDividends += (finalSpCost);
+                        yearScreenerSum += screenerIncrease;
+                        yearScreenerWithDividendSum += (finalScreenerCost);
+
+                        if (request.addResultTable) {
+                            String name = symbolAtGlanceProvider.getAtGlanceData(stockThen.symbol).map(a -> a.companyName).orElse("");
+                            Map<String, String> columnResult = new HashMap<>();
+                            columnResult.put("Symbol", createSymbolLink(stockNow.get().symbol));
+                            columnResult.put("Name", name);
+                            columnResult.put("Buy price", formatString(stockPriceThen));
+                            columnResult.put("Current price", formatString(stockPriceNow));
+                            columnResult.put(TOTAL_RETURN_COLUMN, formatString(((stockPriceNow / stockPriceThen) - 1.0) * 100.0));
+                            columnResult.put(ANNUAL_RETURN_COLUMN, formatString((Math.pow((stockPriceNow / stockPriceThen), (1.0 / yearAgoExact)) - 1.0) * 100.0));
+                            columnResult.put(ANNUAL_RETURNS_WITH_DIVIDENDS_REINVESTED, formatString((Math.pow((finalScreenerCost / BACKTEST_INVEST_AMOUNT), (1.0 / yearAgoExact)) - 1.0) * 100.0));
+                            bought.add(columnResult);
+                        }
                     }
-
-                    double sp500PriceThen = spPriceCache.get(actualDate, date2 -> StandardAndPoorPerformanceProvider.getPriceAt(actualDate));
-                    double sp500PriceNow = StandardAndPoorPerformanceProvider.getLatestPrice();
-
-                    double stockPriceThen = stockThen.latestStockPriceUsd;
-                    double stockPriceNow = stockNow.get().latestStockPriceUsd;
-
-                    double screenerIncrease = (stockPriceNow / stockPriceThen) * BACKTEST_INVEST_AMOUNT;
-
-                    double initialShareCount = BACKTEST_INVEST_AMOUNT / stockPriceThen;
-                    double totalSharesWithDividendsReinvested = calculateTotalSharesWithDividendsReinvested(initialShareCount, year, request.endYear, stockThen.symbol);
-
-                    double finalScreenerCost = stockPriceNow * totalSharesWithDividendsReinvested;
-
-                    double initialSpShareCount = BACKTEST_INVEST_AMOUNT / sp500PriceThen;
-                    double totalSpSharesWithDividendsReinvested = calculateTotalSPSharesWithDividendsReinvested(initialSpShareCount, year, request.endYear);
-
-                    double finalSpCost = sp500PriceNow * totalSpSharesWithDividendsReinvested;
-
-                    if (!Double.isFinite(screenerIncrease)) {
-                        continue;
-                    }
-
-                    yearSp500Sum += (sp500PriceNow / sp500PriceThen) * BACKTEST_INVEST_AMOUNT;
-                    yearSp500SumWithDividends += (finalSpCost);
-                    yearScreenerSum += screenerIncrease;
-                    yearScreenerWithDividendSum += (finalScreenerCost);
-
-                    Map<String, String> columnResult = new HashMap<>();
-                    columnResult.put("Symbol", createSymbolLink(stockNow.get().symbol));
-                    columnResult.put("Name", stockNow.get().companyName);
-                    columnResult.put("Buy price", formatString(stockPriceThen));
-                    columnResult.put("Current price", formatString(stockPriceNow));
-                    columnResult.put(TOTAL_RETURN_COLUMN, formatString(((stockPriceNow / stockPriceThen) - 1.0) * 100.0));
-                    columnResult.put(ANNUAL_RETURN_COLUMN, formatString((Math.pow((stockPriceNow / stockPriceThen), (1.0 / yearAgo)) - 1.0) * 100.0));
-                    columnResult.put(ANNUAL_RETURNS_WITH_DIVIDENDS_REINVESTED, formatString((Math.pow((finalScreenerCost / BACKTEST_INVEST_AMOUNT), (1.0 / yearAgo)) - 1.0) * 100.0));
-
-                    bought.add(columnResult);
                 }
+
+                BacktestYearInformation yearInfo = new BacktestYearInformation();
+                double yearTotalInvested = yearCount * BACKTEST_INVEST_AMOUNT;
+                yearInfo.investedAmount = yearTotalInvested;
+
+                yearInfo.spTotalReturnPercent = ((yearSp500Sum / yearTotalInvested) - 1.0) * 100.0;
+                yearInfo.spTotalReturnPercentWithDividends = ((yearSp500SumWithDividends / yearTotalInvested) - 1.0) * 100.0;
+                yearInfo.screenerTotalReturnPercent = ((yearScreenerSum / yearTotalInvested) - 1.0) * 100.0;
+                yearInfo.screenerTotalReturnPercentWithDividends = ((yearScreenerWithDividendSum / yearTotalInvested) - 1.0) * 100.0;
+
+                yearInfo.spAnnualReturnPercent = (Math.pow(yearSp500Sum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
+                yearInfo.spAnnualReturnPercentWithDividends = (Math.pow(yearSp500SumWithDividends / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
+                yearInfo.screenerAnnualReturnPercent = (Math.pow(yearScreenerSum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
+                yearInfo.screenerAnnualReturnPercentWithDividends = (Math.pow(yearScreenerWithDividendSum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
+
+                yearInfo.spReturnDollar = yearSp500Sum;
+                yearInfo.spReturnDollarWithDividends = yearSp500SumWithDividends;
+                yearInfo.screenerReturnDollar = yearScreenerSum;
+                yearInfo.screenerReturnDollarWithDividends = yearScreenerWithDividendSum;
+
+                yearInfo.investedInAllMatching = matchedStocks.size() < MAX_RESULTS;
+
+                totalInvested += yearTotalInvested;
+                totalScreenerReturned += yearScreenerSum;
+                totalScreenerReturnedWithDividends += yearScreenerWithDividendSum;
+                totalSpReturned += yearSp500Sum;
+                totalSpReturnedWithDividends += yearSp500SumWithDividends;
+
+                yearInfo.investedStocks = bought;
+
+                String label = backtestMultiMonth ? String.format("%04d-%02d", year, month) : String.valueOf(year);
+
+                yearResults.put(label, yearInfo);
             }
-
-            BacktestYearInformation yearInfo = new BacktestYearInformation();
-            double yearTotalInvested = yearCount * BACKTEST_INVEST_AMOUNT;
-            yearInfo.investedAmount = yearTotalInvested;
-
-            yearInfo.spTotalReturnPercent = ((yearSp500Sum / yearTotalInvested) - 1.0) * 100.0;
-            yearInfo.spTotalReturnPercentWithDividends = ((yearSp500SumWithDividends / yearTotalInvested) - 1.0) * 100.0;
-            yearInfo.screenerTotalReturnPercent = ((yearScreenerSum / yearTotalInvested) - 1.0) * 100.0;
-            yearInfo.screenerTotalReturnPercentWithDividends = ((yearScreenerWithDividendSum / yearTotalInvested) - 1.0) * 100.0;
-
-            yearInfo.spAnnualReturnPercent = (Math.pow(yearSp500Sum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
-            yearInfo.spAnnualReturnPercentWithDividends = (Math.pow(yearSp500SumWithDividends / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
-            yearInfo.screenerAnnualReturnPercent = (Math.pow(yearScreenerSum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
-            yearInfo.screenerAnnualReturnPercentWithDividends = (Math.pow(yearScreenerWithDividendSum / yearTotalInvested, (1.0 / yearAgo)) - 1.0) * 100.0;
-
-            yearInfo.spReturnDollar = yearSp500Sum;
-            yearInfo.spReturnDollarWithDividends = yearSp500SumWithDividends;
-            yearInfo.screenerReturnDollar = yearScreenerSum;
-            yearInfo.screenerReturnDollarWithDividends = yearScreenerWithDividendSum;
-
-            yearInfo.investedInAllMatching = matchedStocks.size() < MAX_RESULTS;
-
-            totalInvested += yearTotalInvested;
-            totalScreenerReturned += yearScreenerSum;
-            totalScreenerReturnedWithDividends += yearScreenerWithDividendSum;
-            totalSpReturned += yearSp500Sum;
-            totalSpReturnedWithDividends += yearSp500SumWithDividends;
-
-            yearInfo.investedStocks = bought;
-
-            yearResults.put(year, yearInfo);
         }
 
         int beatCount = 0;
@@ -471,26 +493,44 @@ public class ScreenerController {
         return result;
     }
 
-    public Optional<AtGlanceData> getLatestStockData(AtGlanceData stockThen) {
-        Optional<AtGlanceData> result = symbolAtGlanceProvider.getAtGlanceData(stockThen.symbol);
-        if (result.isPresent()) {
-            return result;
+    public List<String> getSymbolsInExchanges(List<String> exchangesInput) {
+        Set<Exchanges> exchanges = new HashSet<>();
+        if (exchangesInput.isEmpty() || exchangesInput.contains("ALL")) {
+            exchanges = Arrays.stream(Exchanges.values()).collect(Collectors.toSet());
         } else {
-            for (int i = CommonConfig.NOW.getYear() - 1; i >= 1991; --i) {
-                AtGlanceData data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(i).orElse(null).get(stockThen.symbol);
-                if (data != null) {
-                    return Optional.of(data);
-                }
+            for (var entry : exchangesInput) {
+                exchanges.add(Exchanges.fromString(entry));
+            }
+        }
+
+        return new ArrayList<>(DataLoader.provideSymbolsIn(exchanges));
+    }
+
+    private double calculateYearsDiff(LocalDate date, LocalDate laterDate) {
+        return Math.abs(ChronoUnit.DAYS.between(date, laterDate) / 365.0);
+    }
+
+    public Optional<AtGlanceData> getLatestStockData(AtGlanceData stockThen, int endYear, boolean useLatestData) {
+        if (useLatestData) {
+            Optional<AtGlanceData> result = symbolAtGlanceProvider.getAtGlanceData(stockThen.symbol);
+            if (result.isPresent()) {
+                return result;
+            }
+        }
+        for (int i = endYear; i >= 1991; --i) {
+            AtGlanceData data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(i, 1).map(a -> a.get(stockThen.symbol)).orElse(null);
+            if (data != null) {
+                return Optional.of(data);
             }
         }
         return Optional.empty();
     }
 
-    public double calculateAverage(Map<Integer, BacktestYearInformation> yearResults, Function<BacktestYearInformation, Double> valueSupplier) {
+    public double calculateAverage(Map<String, BacktestYearInformation> yearResults, Function<BacktestYearInformation, Double> valueSupplier) {
         return yearResults.values().stream().filter(a -> a.investedAmount > 0).mapToDouble(a -> valueSupplier.apply(a)).average().orElse(0.0);
     }
 
-    public Double calculateMedian(Map<Integer, BacktestYearInformation> yearResults, Function<BacktestYearInformation, Double> valueSupplier) {
+    public Double calculateMedian(Map<String, BacktestYearInformation> yearResults, Function<BacktestYearInformation, Double> valueSupplier) {
         List<Double> screenerReturns = yearResults.values().stream().filter(a -> a.investedAmount > 0).map(valueSupplier).collect(Collectors.toList());
         Collections.sort(screenerReturns);
         if (screenerReturns.size() > 0) {
@@ -515,7 +555,7 @@ public class ScreenerController {
     private double calculateTotalSharesWithDividendsReinvested(double initialShareCount, int year, int endYear, String symbol) {
         double shareCount = initialShareCount;
         for (int i = year + 1; i < endYear; ++i) {
-            Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(i).orElse(null);
+            Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(i, 1).orElse(null);
             if (data != null) {
                 AtGlanceData dataAtYear = data.get(symbol);
                 if (dataAtYear != null && dataAtYear.dividendYield < 100.0) { // data issues
@@ -626,6 +666,10 @@ public class ScreenerController {
     public GenericErrorResponse exceptionHandler(Exception exception) {
         LOGGER.error("Unexpected error while doing screeners", exception);
         return new GenericErrorResponse("Unexpected error while doing screeners");
+    }
+
+    public void setBacktestMultiMonth(boolean backtestMultiMonth) {
+        this.backtestMultiMonth = backtestMultiMonth;
     }
 
 }

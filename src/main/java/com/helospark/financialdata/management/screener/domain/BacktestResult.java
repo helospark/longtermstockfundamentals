@@ -30,7 +30,7 @@ public class BacktestResult {
     public double screenerReturned;
     public double screenerReturnedWithDividends;
 
-    public Map<Integer, BacktestYearInformation> yearData;
+    public Map<String, BacktestYearInformation> yearData;
     public Set<String> columns;
     public Set<String> yearDataColumns;
 

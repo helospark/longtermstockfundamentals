@@ -247,7 +247,7 @@
       slider: {
         id: "revenue_growth_rate_xyr_moving_avg_slider",
         parameterName: "year",
-        min: 2,
+        min: 1,
         max: 10,
         default: 7
     }});

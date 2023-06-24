@@ -129,6 +129,11 @@ public class FinancialsController {
         return result;
     }
 
+    @GetMapping("/pfcf_ratio")
+    public List<SimpleDataElement> getPFcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+    }
+
     @GetMapping("/expected_return")
     public List<SimpleDataElement> getExpectedReturn(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         CompanyFinancials company = DataLoader.readFinancials(stock);
@@ -250,6 +255,11 @@ public class FinancialsController {
     @GetMapping("/return_on_assets")
     public List<SimpleDataElement> getReturnOnAssets(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RoicCalculator.calculateROA(financialsTtm)));
+    }
+
+    @GetMapping("/return_on_equity")
+    public List<SimpleDataElement> getReturnOnEquity(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> toPercent(RoicCalculator.calculateROE(financialsTtm)));
     }
 
     @GetMapping("/return_on_tangible_assets")
@@ -629,7 +639,10 @@ public class FinancialsController {
         var result = getIncomeData(company,
                 quarterly, financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut / financialsTtm.price));
         if (company.financials.size() > 0) {
-            double yield = toPercent((double) -company.financials.get(0).cashFlowTtm.dividendsPaid / company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / company.latestPrice);
+            Double yield = toPercent((double) -company.financials.get(0).cashFlowTtm.dividendsPaid / company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / company.latestPrice);
+            if (yield == null) {
+                yield = 0.0;
+            }
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), yield));
         }
         return result;
@@ -831,9 +844,10 @@ public class FinancialsController {
     @GetMapping("/price_growth_rate_xyr_moving_avg")
     public List<SimpleDataElement> getXyrPriceGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int yearInterval) {
         List<SimpleDateDataElement> company = ReturnWithDividendCalculator.getPriceWithDividendsReinvested(DataLoader.readFinancials(stock));
-        if (company.size() <= 0) {
+        if (company.size() <= 2) {
             return List.of();
         }
+        company.remove(0);
 
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.size(); ++i) {
