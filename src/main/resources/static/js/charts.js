@@ -67,7 +67,18 @@ function populateProfile() {
                 innerHtml += "<li>Website: <a href=\"" + out.website + "\">" + out.website + "</a></li>";
               }
               innerHtml += "</ul>";
-              innerHtml += "<div class=\"description-text-div\">" + out.description.replaceAll(/\. ([A-Z])/gm, "\.<br\/>$1") + "</div>";
+              var lines = out.description.split(/\. /gm);
+              var description = "";
+              for (i = 0; i < lines.length; ++i) {
+                 description += lines[i];
+                 if (lines[i].length < 20 || lines[i].match(/.*?Inc$/gm) || (i < lines.length - 1 && (!lines[i + 1].match(/[A-Z].*/gm)))) {
+                   description += ". ";
+                 } else {
+                   description += ".<br />";
+                 }
+              }
+              
+              innerHtml += "<div class=\"description-text-div\">" + description + "</div>";
 
               document.getElementById("stock-description").innerHTML = innerHtml;
               $("#show-description-link").click(function() {
@@ -233,7 +244,9 @@ createChart("/financials/interest_expense", "Interest expense", {});
 createChart("/financials/interest_rate", "Interest rate", {unit: '%', quarterlyEnabled: false});
 createChart("/financials/debt_to_equity", "Debt to equity", {
   quarterlyEnabled: false,
-  tooltip: 'Lower is better, generally below 1 is healthy, above 2 is risky'
+  tooltip: 'Lower is better, generally below 1 is healthy, above 2 is risky',
+  suggestedMin: -10,
+  suggestedMax: 10
 });
 
 

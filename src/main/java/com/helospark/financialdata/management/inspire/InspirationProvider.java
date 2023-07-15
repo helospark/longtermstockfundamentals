@@ -5,6 +5,7 @@ import static com.helospark.financialdata.management.config.SymbolLinkBuilder.cr
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,6 +22,9 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.InspirationController;
 import com.helospark.financialdata.domain.PortfolioElement;
+import com.helospark.financialdata.management.config.SymbolLinkBuilder;
+import com.helospark.financialdata.management.screener.annotation.AtGlanceFormat;
+import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
@@ -46,7 +50,7 @@ public class InspirationProvider {
     public InspirationProvider() {
         availablePortfolios.put(InspirationController.PORTFOLIO_BASE_PATH + "warren_buffett", "Warren Buffett");
         availablePortfolios.put(InspirationController.PORTFOLIO_BASE_PATH + "li_lu", "Li Lu");
-        //availablePortfolios.put(InspirationController.ALGORITHM_BASE_PATH + "high_roic", "High ROIC");
+        availablePortfolios.put(InspirationController.ALGORITHM_BASE_PATH + "Backtest", "Backtest");
     }
 
     private Inspiration loadPortfolio(String filename, String description) {
@@ -58,7 +62,7 @@ public class InspirationProvider {
             return DataLoader.readListOfClassFromFile(file, PortfolioElement.class);
         });
 
-        result.columns = List.of("symbol", "name", VALUE_LABEL, "Trailing PEG", "ROIC", "AltmanZ", "Revenue Growth", "EPS Growth");
+        result.columns = List.of("symbol", "name", VALUE_LABEL, "Trailing PEG", "ROIC", "AltmanZ", "Revenue Growth", "EPS Growth", "10yr return (%/yr)", "20yr return (%/yr)");
 
         List<Map<String, String>> portfolioElements = new ArrayList<>();
         for (var element : listOfInvestments) {
@@ -76,6 +80,8 @@ public class InspirationProvider {
                 portfolioElement.put("AltmanZ", formatString(atGlance.altman));
                 portfolioElement.put("Revenue Growth", formatString(atGlance.revenueGrowth));
                 portfolioElement.put("EPS Growth", formatString(atGlance.epsGrowth));
+                portfolioElement.put("10yr return (%/yr)", formatString(atGlance.price10Gr));
+                portfolioElement.put("20yr return (%/yr)", formatString(atGlance.price20Gr));
                 portfolioElements.add(portfolioElement);
             }
         }
@@ -93,6 +99,14 @@ public class InspirationProvider {
             return "-";
         } else {
             return String.format("%.2f", value);
+        }
+    }
+
+    public String formatString(Double value, int precision) {
+        if (value == null || !Double.isFinite(value)) {
+            return "-";
+        } else {
+            return String.format("%." + precision + "f", value);
         }
     }
 
@@ -149,8 +163,113 @@ public class InspirationProvider {
                             + "buying and holding stocks returned by this algorithm has beaten the S&P500 91% of the time and "
                             + "on average had 45% higher annualized return than S&P (12.4% vs S&P 8.5%).",
                     type);
+        } else if (algorithmName.equals("Backtest")) {
+            return loadBacktestResultAlgorithm(
+                    "This list of stocks below are the result of many backtests combined.<br/>"
+                            + "The way backtest works is by running tests with various fundamental attributes in the past (eg. ROIC > 30 AND TPEG < 1.5 AND ...)"
+                            + " and finds which fundamentals done the best over the long term. Using that fundamental list it runs the screener and collect stocks matching the conditions now and put them into a list.<br/>"
+                            + " Backtest is ran for many different year-range and beat percents and the tables of each backtests are merged is collected in the table below.<br/>"
+                            + "The Backtest count shows the number of time the stock appeared in a S&P500 beating backtest, for example 300 means that 300 different fundamental condition lists (that done well in the past)"
+                            + " applies to that stock right now.",
+                    type);
         } else {
             throw new InspirationClientException("Portfolio doesn't exist");
+        }
+    }
+
+    private Inspiration loadBacktestResultAlgorithm(String description, AccountType type) {
+        String allStockString = StaticStockList.CUMULATIVE_BACKTEST_RESULT;
+        String[] stocks = allStockString.split(", ");
+
+        List<String> columns = List.of("pe", "trailingPeg:tpeg", "altman", "roic", "roe", "dtoe", "grMargin:Gross margin", "opCMargin:OP margin", "shareCountGrowth:Share count growth",
+                "price10Gr:10 year growth", "fvCalculatorMoS:Margin of safety");
+        LinkedHashMap<String, AtGlanceData> data = symbolIndexProvider.getSymbolCompanyNameCache();
+
+        Inspiration result = new Inspiration();
+        result.description = description;
+        result.columns = new ArrayList<>();
+        result.portfolio = new ArrayList<>();
+
+        result.columns.add("Stock");
+        result.columns.add("Backtest count");
+        for (var column : columns) {
+            if (column.contains(":")) {
+                result.columns.add(column.split(":")[1]);
+            } else {
+                result.columns.add(column);
+            }
+        }
+        result.columns.add("Market cap (bn$)");
+        result.columns.add("Full name");
+
+        if (!(type.equals(AccountType.ADVANCED) || type.equals(AccountType.ADMIN))) {
+            result.authorizationError = "This algorithm is only available for users with Advanced account";
+            return result;
+        }
+        for (var stock : stocks) {
+            LinkedHashMap<String, String> stockMap = new LinkedHashMap<>();
+            result.portfolio.add(stockMap);
+            String ticker = stock.substring(0, stock.indexOf("("));
+            String backtestCount = stock.substring(stock.indexOf("(")).replace("(", "").replace(")", "");
+            AtGlanceData atGlance = data.get(ticker);
+            if (atGlance != null) {
+                stockMap.put("Stock", SymbolLinkBuilder.createSymbolLink(ticker));
+                stockMap.put("Backtest count", backtestCount);
+
+                for (var column : columns) {
+                    String[] parts = column.split(":");
+                    String columnReadableName = "";
+                    String columnName = "";
+                    if (parts.length == 1) {
+                        columnReadableName = parts[0];
+                        columnName = parts[0];
+                    } else {
+                        columnReadableName = parts[1];
+                        columnName = parts[0];
+                    }
+                    String field = getFieldAsString(atGlance, columnName);
+                    if (columnName.equals("pe") && field.length() > 5) {
+                        field = "-";
+                    }
+                    if (columnName.startsWith("ro") && field.length() > 8) {
+                        field = "-";
+                    }
+                    stockMap.put(columnReadableName, field);
+                }
+                stockMap.put("Market cap (bn$)", formatString(atGlance.marketCapUsd / 1000.0, 3));
+                stockMap.put("Full name", atGlance.companyName);
+            }
+        }
+        return result;
+    }
+
+    public String getFieldAsString(AtGlanceData atGlance, String column) {
+        try {
+            Field field = AtGlanceData.class.getField(column);
+            ScreenerElement screenerElementAnnotation = field.getAnnotation(ScreenerElement.class);
+            AtGlanceFormat format = AtGlanceFormat.SIMPLE_NUMBER;
+            if (screenerElementAnnotation != null) {
+                format = screenerElementAnnotation.format();
+            }
+            Object value = field.get(atGlance);
+
+            Double result = Double.NaN;
+
+            if (value.getClass().equals(Double.class)) {
+                result = (Double) value;
+            } else if (value.getClass().equals(Float.class)) {
+                result = ((Float) value).doubleValue();
+            } else if (value.getClass().equals(Byte.class)) {
+                result = ((Byte) value).doubleValue();
+            } else if (value.getClass().equals(Integer.class)) {
+                result = ((Integer) value).doubleValue();
+            } else if (value.getClass().equals(Short.class)) {
+                result = ((Short) value).doubleValue();
+            }
+            return format.format(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "-";
         }
     }
 

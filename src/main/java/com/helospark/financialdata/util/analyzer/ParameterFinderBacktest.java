@@ -30,14 +30,14 @@ import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final int START_YEAR = 2000;
-    private static final int END_YEAR = 2019;
+    private static final int END_YEAR = 2016;
     private static final double MINIMUM_BEAT_PERCENT = 90.0;
-    private static final double MINIMUM_TRANSACTION_COUNT = 100;
-    private static final double MAXIMUM_TRANSACTION_COUNT = 1000;
+    private static final double MINIMUM_TRANSACTION_COUNT = 10;
+    private static final double MAXIMUM_TRANSACTION_COUNT = 500;
     private static final int MINIMUM_INVEST_QUARTER = (int) (((END_YEAR - START_YEAR) * 4) * 0.8);
     private static final int MIN_PARAMS = 5;
     private static final int MAX_PARAMS = 12;
-    private static final List<String> EXCLUDED_STOCKS = List.of("TPL");
+    private static final List<String> EXCLUDED_STOCKS = List.of();
     private static final List<RandomParam> PARAMS = getAllParams();
     ScreenerController screenerController;
     Set<TestResult> resultSet = Collections.synchronizedSet(new TreeSet<>());
@@ -113,6 +113,7 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("revSD", 0.0, 1.0));
         params.add(new RandomParam("epsSD", 0.0, 1.0));
         params.add(new RandomParam("dividendYield", 0.0, 10.0));
+        params.add(new RandomParam("marketCapUsd", 400.0, 4_000_000.0, ltList));
 
         return params;
     }
@@ -160,7 +161,7 @@ public class ParameterFinderBacktest {
             request.operations.add(createOperationsWithFixParam("marketCapUsd", greaterThan, 300.0));
             /*
             for (var param : params) {
-            
+
                 if (random.nextDouble() > 0.3) {
                     var strategyToUse = param.getOp();
                     request.operations.add(createOperations(param, param.name, strategyToUse));

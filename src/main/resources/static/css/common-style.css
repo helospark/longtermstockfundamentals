@@ -296,6 +296,12 @@ select, #start-date-dropdown, #end-date-dropdown {
   font-size: 17px;
 }
 
+@supports (-moz-appearance:none) {
+  .topnav a {
+    padding: 14px 16px;
+  }
+}
+
 .topnav > .autoComplete_wrapper {
   padding-top: 6px;
   padding-bottom: 6px;

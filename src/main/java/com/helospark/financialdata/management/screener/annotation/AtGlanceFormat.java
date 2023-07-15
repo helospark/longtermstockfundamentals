@@ -5,7 +5,8 @@ import java.util.function.Function;
 public enum AtGlanceFormat {
     SIMPLE_NUMBER(data -> String.format("%,.2f", data)),
     PERCENT(data -> String.format("%,.2f %%", data)),
-    PERCENT_0_TO_1(data -> String.format("%,.2f %%", data * 100.0));
+    PERCENT_0_TO_1(data -> String.format("%,.2f %%", data * 100.0)),
+    MILLION_DOLLAR(data -> String.format("%,.2f", data));
 
     Function<Double, String> formatter;
 

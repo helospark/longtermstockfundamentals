@@ -864,10 +864,20 @@ public class FinancialsController {
 
                 double yearsDiff = calculateYearsDiff(company.get(oldIndex).date, company.get(newIndex).date);
 
-                double growth = GrowthCalculator.calculateGrowth(newPrice, oldPrice, yearsDiff);
+                Double growth = GrowthCalculator.calculateGrowth(newPrice, oldPrice, yearsDiff);
+
+                if (!Double.isFinite(growth)) {
+                    growth = null;
+                }
 
                 result.add(new SimpleDataElement(element.getDate().toString(), growth));
             }
+        }
+
+        if (result.size() == 0) {
+            LocalDate now = LocalDate.now();
+            result.add(new SimpleDataElement(now.minusMonths(1).toString(), null));
+            result.add(new SimpleDataElement(now.toString(), null));
         }
 
         return result;

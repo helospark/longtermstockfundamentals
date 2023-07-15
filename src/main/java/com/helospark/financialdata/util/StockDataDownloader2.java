@@ -1081,29 +1081,7 @@ public class StockDataDownloader2 {
         File absoluteFile = new File(BASE_FOLDER + "/" + folderAndfile);
         JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, elementType);
 
-        boolean downloadNeeded = true;
-        List<? extends DateAware> elements = null;
-        if (absoluteFile.exists()) {
-            //System.out.println(absoluteFile.getAbsolutePath());
-            elements = DataLoader.readListOfClassFromFile(absoluteFile, elementType);
-            if (elements.size() > 0) {
-                LocalDate lastDate = elements.get(0).getDate();
-                long daysDiff = Math.abs(ChronoUnit.DAYS.between(LocalDate.now(), lastDate));
-                if (daysDiff > updateIntervalInDays) {
-                    downloadNeeded = true;
-                } else {
-                    downloadNeeded = false;
-                }
-            } else {
-                downloadNeeded = true;
-            }
-        }
-
-        if (downloadNeeded) {
-            return new DownloadResult(true, actuallyDownloadAndSaveFile(absoluteFile, uriPath, queryParams, type));
-        } else {
-            return new DownloadResult(false, elements);
-        }
+        return new DownloadResult(true, actuallyDownloadAndSaveFile(absoluteFile, uriPath, queryParams, type));
     }
 
     public static Object actuallyDownloadAndSaveFile(File absoluteFile, String uriPath, Map<String, String> queryParams, JavaType javaType) {

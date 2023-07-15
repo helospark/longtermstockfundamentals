@@ -14,7 +14,7 @@ public class AtGlanceData {
     public LocalDate actualDate;
     public float dividendPaid;
 
-    @ScreenerElement(name = "Market cap ($ million)")
+    @ScreenerElement(name = "Market cap ($ million)", format = AtGlanceFormat.MILLION_DOLLAR)
     public double marketCapUsd;
     @ScreenerElement(name = "Trailing PEG")
     public float trailingPeg;
@@ -104,11 +104,11 @@ public class AtGlanceData {
     @ScreenerElement(name = "Ideal 20yr FCF growth correlation")
     public float ideal20yrFcfCorrelation;
 
-    @ScreenerElement(name = "Default calculator fair value margin of safety")
+    @ScreenerElement(name = "Default calculator fair value margin of safety", format = AtGlanceFormat.PERCENT)
     public float fvCalculatorMoS;
-    @ScreenerElement(name = "Composite fair value margin of safety")
+    @ScreenerElement(name = "Composite fair value margin of safety", format = AtGlanceFormat.PERCENT)
     public float fvCompositeMoS;
-    @ScreenerElement(name = "Graham number margin of safety")
+    @ScreenerElement(name = "Graham number margin of safety", format = AtGlanceFormat.PERCENT)
     public float grahamMoS;
     @ScreenerElement(name = "Flag count (star)")
     public byte starFlags;

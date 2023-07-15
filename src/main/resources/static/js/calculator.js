@@ -98,37 +98,32 @@
       }
       chart.update();
   }
+  
+  function forwardDcf(request) {
+      var revenue = request.revenue;
+      var startGrowth = request.startGrowth;
+      var endGrowth = request.endGrowth;
+      var startMargin = request.startMargin;
+      var endMargin = request.endMargin;
+      var startShareChange = request.startShareChange;
+      var endShareChange = request.endShareChange;
+      var discount = request.discount;
+      var shareCount = request.shareCount;
+      var endMultiple = request.endMultiple;
+      var currentPrice = request.currentPrice;
+      
+      var years = request.years;
+  
+      var epses = [];
+      var revenues = [];
+      var margins = [];
+      var shareCounts = [];
 
-  function updateCalculation() {
-      revenue = Number($("#revenue").val()) * 1000000;
-      startGrowth = Number($("#startGrowth").val()) / 100.0 + 1.0;
-      endGrowth = Number($("#endGrowth").val()) / 100.0 + 1.0;
-      startMargin = Number($("#startMargin").val()) / 100.0;
-      endMargin = Number($("#endMargin").val()) / 100.0;
-      startShareChange = Number($("#shareChange").val()) / 100.0 + 1.0;
-      endShareChange = Number($("#endShareChange").val()) / 100.0 + 1.0;
-      discount = Number($("#discount").val()) / 100.0;
-      shareCount = Number($("#shareCount").val()) * 1000;
-      endMultiple = Number($("#endMultiple").val());
-      currentPrice = Number($("#current-price").text());
-      currentPriceInTradingCurrency = Number($("#current-price-in-trading-currency").text());
-      exchangeRate = Number($("#reporting-currency-to-trading-currency-exchange-rate").text());
-      currencySymbol = $("#trading-currency-symbol").text();
-      
-      years = 10;
-      
-      epses = [];
-      revenues = [];
-      margins = [];
-      shareCounts = [];
-      
-
-      
       if (!isNaN(revenue) && !isNaN(startGrowth) && !isNaN(endGrowth) && !isNaN(startMargin) && !isNaN(endMargin) && !isNaN(startShareChange) && !isNaN(discount) && !isNaN(endMultiple)) {
-         value = 0.0;
-         previousRevenue = revenue;
-         previousShareCount = shareCount;
-         epsSum = 0.0;
+         var value = 0.0;
+         var previousRevenue = revenue;
+         var previousShareCount = shareCount;
+         var epsSum = 0.0;
          for (i = 0; i < years; ++i) {
             currentGrowth = startGrowth - ((startGrowth - endGrowth) * i) / (years - 1);
             currentMargin = startMargin - ((startMargin - endMargin) * i) / (years - 1);
@@ -158,19 +153,78 @@
             $(epsInputs[i]).val(eps.toFixed(2));
             $(dEpsInputs[i]).val(discountedEps.toFixed(2));
          }
+         }
          
          value += ((eps * endMultiple) / Math.pow(1.0 + discount, years));
          epsSum += eps * endMultiple;
          
-         marginOfSafety = (value / currentPrice - 1.0) * 100.0;
-         endPrice = (eps * endMultiple);
-         expectedGrowth = Math.pow(epsSum / currentPrice, (1.0 / years)) - 1.0;
+         var marginOfSafety = (value / currentPrice - 1.0) * 100.0;
+         var endPrice = (eps * endMultiple);
+         var expectedGrowth = Math.pow(epsSum / currentPrice, (1.0 / years)) - 1.0;
          
+         return [value, marginOfSafety, endPrice, expectedGrowth, epses, revenues, margins, shareCounts];
+  }
+  
+  function reverseDcf(request, originalMarginOfSafety) {
+    lowerBound = -0.999;
+    upperBound = 1;
+    if (originalMarginOfSafety < 0) {
+      upperBound = request.discount;
+    } else if (originalMarginOfSafety > 0) {
+      lowerBound = request.discount;
+    }
+    
+
+    var i = 0;
+    while (lowerBound < upperBound && i < 10) {
+      currentBound = (upperBound + lowerBound) / 2.0;
+      newRequest = {...request, discount: currentBound};
+      const [value, marginOfSafety] = forwardDcf(newRequest);
+      
+      if (marginOfSafety < 0) {
+        upperBound = currentBound;
+      } else if (marginOfSafety > 0) {
+        lowerBound = currentBound;
+      }
+      if (Math.abs(marginOfSafety) < 0.5) {
+        break;
+      }
+      ++i;
+    }
+
+    return currentBound;
+  }
+
+  function updateCalculation() {
+      request = {};
+      request.revenue = Number($("#revenue").val()) * 1000000;
+      request.startGrowth = Number($("#startGrowth").val()) / 100.0 + 1.0;
+      request.endGrowth = Number($("#endGrowth").val()) / 100.0 + 1.0;
+      request.startMargin = Number($("#startMargin").val()) / 100.0;
+      request.endMargin = Number($("#endMargin").val()) / 100.0;
+      request.startShareChange = Number($("#shareChange").val()) / 100.0 + 1.0;
+      request.endShareChange = Number($("#endShareChange").val()) / 100.0 + 1.0;
+      request.discount = Number($("#discount").val()) / 100.0;
+      request.shareCount = Number($("#shareCount").val()) * 1000;
+      request.endMultiple = Number($("#endMultiple").val());
+      request.currentPrice = Number($("#current-price").text());
+      currentPriceInTradingCurrency = Number($("#current-price-in-trading-currency").text());
+      exchangeRate = Number($("#reporting-currency-to-trading-currency-exchange-rate").text());
+      currencySymbol = $("#trading-currency-symbol").text();
+      
+      years = 10;
+      request.years = years;
+      
+      
+      [value, marginOfSafety, endPrice, expectedGrowth, epses, revenues, margins, shareCounts] =  forwardDcf(request);
+      
+      
+      expectedGrowth = reverseDcf(request, marginOfSafety);
+      
          $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + convertFx(value, exchangeRate).toFixed(2) + "</span>");
          $("#current_price").html("Current price: " + currencySymbol + currentPriceInTradingCurrency.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
-               + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>)");
-      }
-      
+               + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>, expected return: <b>" + (expectedGrowth*100.0).toFixed(2) + "%</b>)");
+            
       if (chart !== undefined) {
         updateChart(chart, epses);
       }

@@ -267,6 +267,10 @@ public class DataLoader {
             }
 
         }
+        if (symbol.equals("NVO")) {
+            profile.reportedCurrency = "DKK";
+            profile.currencySymbol = Currency.getInstance("DKK").getSymbol();
+        }
 
         for (int i = 0; i < incomeStatement.size(); ++i) {
             var element = incomeStatement.get(i);
