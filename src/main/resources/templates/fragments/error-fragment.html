@@ -1,0 +1,25 @@
+<script>
+$( document ).ready(function() {
+console.log("asdasd");
+const urlParams = new URLSearchParams(window.location.search);
+const myParam = urlParams.get('error');
+
+console.log("Error: " + myParam);
+
+if (myParam !== undefined && myParam !== null) {
+   window.history.replaceState(null, '', window.location.pathname);
+  
+  $("#generic-large-modal .modal-content").html(`
+      <div class="modal-header">
+          <h5 class="modal-title">Error occurred</h5>
+      </div>
+      <div class="modal-body" id="modal-body">
+          ` + myParam + `
+      </div>
+      <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-bs-dismiss="modal" data-dismiss="modal">Close</button>
+      </div>`);
+   $("#generic-large-modal").modal("show");
+}
+});
+</script>

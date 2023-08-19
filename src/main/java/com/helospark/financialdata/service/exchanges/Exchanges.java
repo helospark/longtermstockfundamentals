@@ -16,7 +16,9 @@ public enum Exchanges {
     TWO("Taipei Exchange", ExchangeRegion.TAIWAN),
     JPX("Tokyo", ExchangeRegion.JAPAN),
     LSE("London Stock Exchange", ExchangeRegion.EUROPE),
+    ASX("Australian Securities Exchange", ExchangeRegion.OCEANIA),
     XETRA("XETRA", ExchangeRegion.EUROPE),
+    BUD("Budapest", ExchangeRegion.EUROPE),
     STO("Stockholm Stock Exchange", ExchangeRegion.EUROPE),
     SHH("Shanghai", ExchangeRegion.CHINA),
     KLS("Kuala Lumpur", ExchangeRegion.ASIA_SOUTH_EAST),
@@ -56,7 +58,8 @@ public enum Exchanges {
     PRA("Prague", ExchangeRegion.EUROPE),
     TAL("Tallinn", ExchangeRegion.EUROPE),
     OTC("Other OTC", ExchangeRegion.UNKNOWN),
-    JNB("Johannesburg", ExchangeRegion.AFRICA_SOUTH);
+    JNB("Johannesburg", ExchangeRegion.AFRICA_SOUTH),
+    UNKNOWN("Unknown exchange", ExchangeRegion.UNKNOWN);
 
     String name;
     ExchangeRegion region;

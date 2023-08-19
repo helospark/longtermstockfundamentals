@@ -2,6 +2,7 @@ package com.helospark.financialdata.service.exchanges;
 
 public enum ExchangeRegion {
     CANADA(MarketType.DEVELOPED_MARKET),
+    OCEANIA(MarketType.DEVELOPED_MARKET),
     LATIN_AMERICA(MarketType.EMERGING_MARKET),
     EUROPE(MarketType.DEVELOPED_MARKET),
     AFRICA_SOUTH(MarketType.DEVELOPING_MARKET),

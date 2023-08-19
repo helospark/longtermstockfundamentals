@@ -195,6 +195,11 @@ public class DataLoader {
         } else {
             profile = profiles.get(0);
         }
+
+        if (profile.symbol == null) {
+            profile.symbol = symbol;
+        }
+
         if (incomeStatement.size() > 0) {
             profile.reportedCurrency = incomeStatement.get(0).reportedCurrency;
             profile.currencySymbol = getCurrencySymbol(incomeStatement);
@@ -270,6 +275,10 @@ public class DataLoader {
         if (symbol.equals("NVO")) {
             profile.reportedCurrency = "DKK";
             profile.currencySymbol = Currency.getInstance("DKK").getSymbol();
+        }
+        if (profile.currency == null && symbol.endsWith(".BD")) {
+            profile.currency = "HUF";
+            profile.currencySymbol = Currency.getInstance("HUF").getSymbol();
         }
 
         for (int i = 0; i < incomeStatement.size(); ++i) {
@@ -711,7 +720,7 @@ public class DataLoader {
         File file = new File(BASE_FOLDER + "/info/exchanges/" + exchange.name());
         try (FileInputStream fis = new FileInputStream(file)) {
             var lines = new String(fis.readAllBytes()).split("\n");
-            return Set.of(lines);
+            return new HashSet<>(Arrays.asList(lines));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

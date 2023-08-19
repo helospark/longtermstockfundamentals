@@ -57,8 +57,7 @@ public class ViewController {
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         if (!symbolIndexProvider.doesCompanyExists(stock)) {
-            redirectAttributes.addAttribute("generalInfo", "stock_not_found");
-            return "redirect:/";
+            return "redirect:/?error=Stock not found";
         } else {
             fillModelWithCommonStockData(stock, model, request);
             return "stock";

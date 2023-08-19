@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -74,6 +77,7 @@ public class ScreenerController {
             .expireAfterWrite(1, TimeUnit.DAYS)
             .maximumSize(2000)
             .build();
+    private boolean isHistoricalFilesInitialized;
 
     @Value("${backtest.multimonth:false}")
     public boolean backtestMultiMonth;
@@ -336,6 +340,10 @@ public class ScreenerController {
 
         List<String> symbolsInExchanges = getSymbolsInExchanges(request.exchanges);
 
+        if (!isHistoricalFilesInitialized) {
+            initializeHistoricalFile();
+        }
+
         for (int year = request.startYear; year < request.endYear - 1; ++year) {
             for (int month = 1; month < (backtestMultiMonth ? 12 : 2); month += 3) {
                 List<Map<String, String>> bought = new ArrayList<>();
@@ -491,6 +499,36 @@ public class ScreenerController {
                 result.screenerWithDividendsMedianPercent, result.screenerWithDividendsAvgPercent, result.beatPercent);
 
         return result;
+    }
+
+    private void initializeHistoricalFile() {
+        synchronized (this) {
+            if (!isHistoricalFilesInitialized) {
+                try {
+                    int processors = Runtime.getRuntime().availableProcessors();
+                    if (processors < 1) {
+                        processors = 1;
+                    }
+                    ExecutorService threadPool = Executors.newFixedThreadPool(processors);
+                    List<CompletableFuture<Void>> futures = new ArrayList<>();
+                    for (int year = 1993; year < LocalDate.now().getYear() - 1; ++year) {
+                        for (int month = 1; month < (backtestMultiMonth ? 12 : 2); month += 3) {
+                            int yearConst = year;
+                            int monthConst = month;
+                            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> symbolAtGlanceProvider.loadAtGlanceDataAtYear(yearConst, monthConst).orElse(null), threadPool);
+                            futures.add(future);
+                        }
+                    }
+                    for (var future : futures) {
+                        future.join();
+                    }
+                    isHistoricalFilesInitialized = true;
+                    threadPool.shutdownNow();
+                } catch (Exception e) {
+                    LOGGER.error("Unable to init historical files", e);
+                }
+            }
+        }
     }
 
     public List<String> getSymbolsInExchanges(List<String> exchangesInput) {

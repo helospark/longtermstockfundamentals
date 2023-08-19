@@ -29,14 +29,15 @@ import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
-    private static final int START_YEAR = 2000;
-    private static final int END_YEAR = 2016;
+    private static final YearRange START_YEAR_RANGE = new YearRange(1998, 2007);
+    private static final YearRange END_YEAR_RANGE = new YearRange(2016, 2023);
     private static final double MINIMUM_BEAT_PERCENT = 90.0;
-    private static final double MINIMUM_TRANSACTION_COUNT = 10;
-    private static final double MAXIMUM_TRANSACTION_COUNT = 500;
-    private static final int MINIMUM_INVEST_QUARTER = (int) (((END_YEAR - START_YEAR) * 4) * 0.8);
+    private static final double MINIMUM_TRANSACTION_COUNT = 70;
+    private static final double MAXIMUM_TRANSACTION_COUNT = 1000;
+    private static final double MINIMUM_BEAT_COUNT_PERCENT = 0.8;
     private static final int MIN_PARAMS = 5;
     private static final int MAX_PARAMS = 12;
+    private static final int RESULT_QUEUE_SIZE = 60;
     private static final List<String> EXCLUDED_STOCKS = List.of();
     private static final List<RandomParam> PARAMS = getAllParams();
     ScreenerController screenerController;
@@ -134,6 +135,7 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("dtoe", 0.0, 4.0, ltList));
         params.add(new RandomParam("opCMargin", -10, 40, gtList));
         params.add(new RandomParam("dividendPayoutRatio", 0.0, 120.0));
+        params.add(new RandomParam("dividendYield", 0.0, 10.0));
         params.add(new RandomParam("profitableYears", 0.0, 12.0));
         params.add(new RandomParam("revenueGrowth", 0.0, 50.0, gtList));
         return params;
@@ -153,23 +155,15 @@ public class ParameterFinderBacktest {
         ScreenerStrategy greaterThan = new GreaterThanStrategy();
         Set<TestResult> previousSet = Set.of();
         while (true) {
+            int startYear = random.nextInt(START_YEAR_RANGE.start, START_YEAR_RANGE.end);
+            int endYear = random.nextInt(END_YEAR_RANGE.start, END_YEAR_RANGE.end);
+
             BacktestRequest request = new BacktestRequest();
-            request.endYear = END_YEAR;
-            request.startYear = START_YEAR;
+            request.endYear = endYear;
+            request.startYear = startYear;
             request.exchanges = EXCHANGES;
             request.operations = new ArrayList<>();
             request.operations.add(createOperationsWithFixParam("marketCapUsd", greaterThan, 300.0));
-            /*
-            for (var param : params) {
-
-                if (random.nextDouble() > 0.3) {
-                    var strategyToUse = param.getOp();
-                    request.operations.add(createOperations(param, param.name, strategyToUse));
-                }
-            }
-            if (request.operations.size() < 4) {
-                continue;
-            }*/
 
             List<Integer> randomIndices = IntStream.range(0, params.size()).mapToObj(a -> a).collect(Collectors.toList());
             Collections.shuffle(randomIndices);
@@ -185,15 +179,16 @@ public class ParameterFinderBacktest {
             request.excludedStocks = EXCLUDED_STOCKS;
 
             BacktestResult result = screenerController.performBacktestInternal(request);
+            int minimumBeatCount = (int) (((endYear - startYear) * 4) * MINIMUM_BEAT_COUNT_PERCENT);
 
             if (result.investedAmount > (MINIMUM_TRANSACTION_COUNT * 1000)
                     && result.investedAmount < (MAXIMUM_TRANSACTION_COUNT * 1000)
                     && result.screenerWithDividendsAvgPercent > 10.0
-                    && result.beatCount > MINIMUM_INVEST_QUARTER
+                    && result.beatCount > minimumBeatCount
                     && result.beatPercent >= MINIMUM_BEAT_PERCENT) {
                 resultSet.add(new TestResult(result.screenerWithDividendsAvgPercent, result.investedAmount, result.screenerWithDividendsMedianPercent, result.beatCount, result.investedCount,
-                        request.operations));
-                while (resultSet.size() > 40) {
+                        request.operations, startYear, endYear));
+                while (resultSet.size() > RESULT_QUEUE_SIZE) {
                     TestResult elementToRemove = resultSet.iterator().next();
                     resultSet.remove(elementToRemove);
                 }
@@ -308,14 +303,19 @@ public class ParameterFinderBacktest {
         int beatCount;
         int investedCount;
         List<ScreenerOperation> screenerOperations;
+        int startYear;
+        int endYear;
 
-        public TestResult(double avgPercent, double invested, double medianPercent, int beatCount, int investedCount, List<ScreenerOperation> screenerOperations) {
+        public TestResult(double avgPercent, double invested, double medianPercent, int beatCount, int investedCount, List<ScreenerOperation> screenerOperations, int startYear,
+                int endYear) {
             this.avgPercent = avgPercent;
             this.invested = invested;
             this.medianPercent = medianPercent;
             this.screenerOperations = screenerOperations;
             this.beatCount = beatCount;
             this.investedCount = investedCount;
+            this.startYear = startYear;
+            this.endYear = endYear;
         }
 
         @Override
@@ -345,7 +345,8 @@ public class ParameterFinderBacktest {
 
         @Override
         public String toString() {
-            return "avgPercent=" + avgPercent + ", medianPercent=" + medianPercent + ", invested=" + invested + ", beat=" + beatCount + " / " + investedCount + ", \nscreenerOperations="
+            return "avgPercent=" + avgPercent + ", medianPercent=" + medianPercent + ", invested=" + invested + ", beat=" + beatCount + " / " + investedCount + ", " + startYear + "->" + endYear
+                    + "\nscreenerOperations="
                     + screenerOperations + "\n\n";
         }
 
@@ -384,4 +385,14 @@ public class ParameterFinderBacktest {
         }
     }
 
+    static class YearRange {
+        int start;
+        int end;
+
+        public YearRange(int start, int end) {
+            this.start = start;
+            this.end = end;
+        }
+
+    }
 }
