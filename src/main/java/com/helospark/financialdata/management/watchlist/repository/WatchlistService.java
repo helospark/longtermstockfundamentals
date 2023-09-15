@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -39,6 +40,7 @@ public class WatchlistService {
     private static final String CURRENT_PRICE_COL = "Current price";
     private static final String NAME_COL = "Name";
     private static final String SYMBOL_COL = "Symbol";
+    private static final String OWNED_SHARES = "Owned ($)";
     private static final String TAGS_COL = "Tags";
 
     private static final List<String> COLOR_CODES = List.of(
@@ -59,20 +61,13 @@ public class WatchlistService {
             .maximumSize(1000)
             .build();
 
-    public WatchListResponse getWatchlist(String email) {
-        Optional<Watchlist> optionalWatchlist = loadWatchlist(email);
+    public WatchListResponse getWatchlist(String email, boolean onlyOwned) {
 
         WatchListResponse result = new WatchListResponse();
-        result.columns = List.of(SYMBOL_COL, NAME_COL, CURRENT_PRICE_COL, PRICE_TARGET_COL, DIFFERENCE_COL, TAGS_COL, NOTES_COL);
+        result.columns = List.of(SYMBOL_COL, NAME_COL, CURRENT_PRICE_COL, PRICE_TARGET_COL, DIFFERENCE_COL, OWNED_SHARES, TAGS_COL, NOTES_COL);
         result.portfolio = new ArrayList<>();
 
-        if (!optionalWatchlist.isPresent()) {
-            return result;
-        }
-
-        Watchlist watchlist = optionalWatchlist.get();
-
-        List<WatchlistElement> watchlistElements = decodeWatchlist(watchlist);
+        List<WatchlistElement> watchlistElements = readWatchlistFromDb(email);
 
         Map<String, CompletableFuture<Double>> prices = new HashMap<>();
         for (int i = 0; i < watchlistElements.size(); ++i) {
@@ -84,7 +79,7 @@ public class WatchlistService {
             WatchlistElement currentElement = watchlistElements.get(i);
             String ticker = currentElement.symbol;
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
-            if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
+            if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent() && (onlyOwned == false || currentElement.ownedShares > 0)) {
                 var atGlance = optionalAtGlance.get();
                 double latestPriceInTradingCurrency = getPrice(prices, ticker);
                 Map<String, String> portfolioElement = new HashMap<>();
@@ -93,6 +88,7 @@ public class WatchlistService {
                 portfolioElement.put(CURRENT_PRICE_COL, formatString(latestPriceInTradingCurrency));
                 portfolioElement.put(PRICE_TARGET_COL, formatString(currentElement.targetPrice));
                 portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
+                portfolioElement.put(OWNED_SHARES, formatString(atGlance.latestStockPriceUsd * currentElement.ownedShares));
                 portfolioElement.put(TAGS_COL, formatTags(currentElement.tags));
                 portfolioElement.put(NOTES_COL, currentElement.notes);
 
@@ -107,6 +103,18 @@ public class WatchlistService {
         return result;
     }
 
+    public List<WatchlistElement> readWatchlistFromDb(String email) {
+        Optional<Watchlist> optionalWatchlist = loadWatchlist(email);
+        if (!optionalWatchlist.isPresent()) {
+            return List.of();
+        }
+
+        Watchlist watchlist = optionalWatchlist.get();
+
+        List<WatchlistElement> watchlistElements = decodeWatchlist(watchlist);
+        return watchlistElements;
+    }
+
     public Double getPrice(Map<String, CompletableFuture<Double>> prices, String ticker) {
         try {
             return prices.get(ticker).get();
@@ -119,7 +127,7 @@ public class WatchlistService {
         return watchlistCache.get(email, email2 -> watchlistRepository.readWatchlistByEmail(email2));
     }
 
-    private String buildCalculatorUri(CalculatorParameters calculatorParameters, String symbol) {
+    public String buildCalculatorUri(CalculatorParameters calculatorParameters, String symbol) {
         String uri = "/calculator/" + symbol;
         uri += "?startMargin=" + calculatorParameters.startMargin + "&endMargin=" + calculatorParameters.endMargin;
         uri += "&startGrowth=" + calculatorParameters.startGrowth + "&endGrowth=" + calculatorParameters.endGrowth;
@@ -162,7 +170,7 @@ public class WatchlistService {
         if (value == null) {
             return "-";
         } else {
-            return String.format("%.2f", value);
+            return String.format(Locale.US, "%,.2f", value);
         }
     }
 
@@ -209,6 +217,7 @@ public class WatchlistService {
         elementToUpdate.symbol = request.symbol;
         elementToUpdate.tags = escapeSymbols(stripTags(request.tags));
         elementToUpdate.targetPrice = request.priceTarget;
+        elementToUpdate.ownedShares = request.ownedShares;
         if (request.calculatorParameters != null) {
             elementToUpdate.calculatorParameters = request.calculatorParameters;
         }

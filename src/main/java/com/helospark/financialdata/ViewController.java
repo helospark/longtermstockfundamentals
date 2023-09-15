@@ -75,6 +75,22 @@ public class ViewController {
         return "index";
     }
 
+    @GetMapping("/portfolio")
+    public String portfolio(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request,
+            @RequestParam(defaultValue = "true", name = "onlyOwned", required = false) boolean onlyOwned) {
+        Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+
+        if (!jwtOptional.isPresent()) {
+            model.addAttribute("accountType", "NOT_LOGGED_IN");
+            model.addAttribute("allowed", false);
+        }
+        model.addAttribute("stock", stock);
+
+        model.addAttribute("onlyOwned", onlyOwned);
+
+        return "portfolio";
+    }
+
     @GetMapping("/faq")
     public String faq(Model model) {
         return "faq";

@@ -16,6 +16,7 @@ public class FinancialsTtm implements DateAware, Serializable {
 
     public IncomeStatement incomeStatement;
     public IncomeStatement incomeStatementTtm;
+    public AuxilaryInformation auxilaryInfo;
 
     public FinancialsTtm() {
     }

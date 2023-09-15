@@ -4,6 +4,8 @@
   <div class="menu"><a th:attr="class=${active == 'calculator' ? 'active' : ''}" th:href="'/calculator/' + ${stock}"><i class="topnav-icon fa-solid fa-calculator"></i><span class="topnav-text">Calculator</span></a></div>
   <div class="menu"><a th:attr="class=${active == 'inspire' ? 'active' : ''}" th:href="'/inspire?stock=' + ${stock}"><i class="topnav-icon fa-solid fa-lightbulb"></i><span class="topnav-text">Inspire</span></a></div>
   <div class="menu"><a th:attr="class=${active == 'screener' ? 'active' : ''}" th:href="'/screener?stock=' + ${stock}"><i class="topnav-icon fa-solid fa-filter"></i><span class="topnav-text">Screener</span></a></div>
+  <div class="menu"><a th:attr="class=${active == 'portfolio' ? 'active' : ''}" th:href="'/portfolio?stock=' + ${stock}"><i class="topnav-icon fa-solid fa-money-bill-trend-up"></i><span class="topnav-text">Portfolio</span></a></div>
+  
   <input id="autoComplete">
   <div th:if="${haveLimitedStocksCount}" style="float:right"><span th:text="${currentlyViewText} + '/' + ${viewLimitText}"></span></div>
 </div>

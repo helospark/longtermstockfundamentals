@@ -24,7 +24,7 @@ public class Profile {
     public String ceo; //Mr. Yong Zhang,
     public String sector; //Consumer Cyclical,
     public String country; //CN,
-    public long fullTimeEmployees; //243903,
+    public Long fullTimeEmployees; //243903,
     public String phone; //8657185022088,
     public String address; //No.699 Wang Shang Road, Binjiang District,
     public String city; //Hangzhou,

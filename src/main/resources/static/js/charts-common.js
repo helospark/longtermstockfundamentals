@@ -70,7 +70,7 @@ function createChart(urlPath, title, chartOptions) {
   var colorPalette = constColorPalette;
   
   if (type == "bar") {
-    colorPalette = ["rgba(0,0,255,0.6)"];
+    colorPalette = ["rgba(0,0,255,0.6)","rgba(255,0,0,0.6)",];
   }
   
   var additionalLabelsAtEnd = chartOptions.additionalLabelsAtEnd === undefined ? [] : chartOptions.additionalLabelsAtEnd;

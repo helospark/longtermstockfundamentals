@@ -17,4 +17,9 @@ public class SimpleDataElement implements DateAware {
         return LocalDate.parse(date);
     }
 
+    @Override
+    public String toString() {
+        return "SimpleDataElement [date=" + date + ", value=" + value + "]";
+    }
+
 }

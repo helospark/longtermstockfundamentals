@@ -29,12 +29,12 @@ import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
-    private static final YearRange START_YEAR_RANGE = new YearRange(1998, 2007);
-    private static final YearRange END_YEAR_RANGE = new YearRange(2016, 2023);
-    private static final double MINIMUM_BEAT_PERCENT = 90.0;
-    private static final double MINIMUM_TRANSACTION_COUNT = 70;
-    private static final double MAXIMUM_TRANSACTION_COUNT = 1000;
-    private static final double MINIMUM_BEAT_COUNT_PERCENT = 0.8;
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(1998, 2004), new YearRange(2017, 2023));
+    //            new YearDifferenceBasedRandomYearGeneratorStrategy(new YearRange(2008, 2020), 4);
+    private static final double MINIMUM_BEAT_PERCENT = 95.0;
+    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
+    private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
+    private static final double MINIMUM_BEAT_COUNT_RATIO = 0.9;
     private static final int MIN_PARAMS = 5;
     private static final int MAX_PARAMS = 12;
     private static final int RESULT_QUEUE_SIZE = 60;
@@ -155,8 +155,9 @@ public class ParameterFinderBacktest {
         ScreenerStrategy greaterThan = new GreaterThanStrategy();
         Set<TestResult> previousSet = Set.of();
         while (true) {
-            int startYear = random.nextInt(START_YEAR_RANGE.start, START_YEAR_RANGE.end);
-            int endYear = random.nextInt(END_YEAR_RANGE.start, END_YEAR_RANGE.end);
+            YearRange yearRange = INTERVAL_GENERATOR_STRATEGY.getYearRange();
+            int startYear = yearRange.start;
+            int endYear = yearRange.end;
 
             BacktestRequest request = new BacktestRequest();
             request.endYear = endYear;
@@ -179,10 +180,13 @@ public class ParameterFinderBacktest {
             request.excludedStocks = EXCLUDED_STOCKS;
 
             BacktestResult result = screenerController.performBacktestInternal(request);
-            int minimumBeatCount = (int) (((endYear - startYear) * 4) * MINIMUM_BEAT_COUNT_PERCENT);
+            int numberOfQuarters = (endYear - startYear - 1) * 4;
+            int minimumBeatCount = (int) (numberOfQuarters * MINIMUM_BEAT_COUNT_RATIO);
+            int minTransactionCount = (int) (MINIMUM_TRANSACTION_COUNT_AVG_QUARTER * numberOfQuarters);
+            int maxTransactionCount = (int) (MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER * numberOfQuarters);
 
-            if (result.investedAmount > (MINIMUM_TRANSACTION_COUNT * 1000)
-                    && result.investedAmount < (MAXIMUM_TRANSACTION_COUNT * 1000)
+            if (result.investedAmount > (minTransactionCount * 1000)
+                    && result.investedAmount < (maxTransactionCount * 1000)
                     && result.screenerWithDividendsAvgPercent > 10.0
                     && result.beatCount > minimumBeatCount
                     && result.beatPercent >= MINIMUM_BEAT_PERCENT) {
@@ -394,5 +398,47 @@ public class ParameterFinderBacktest {
             this.end = end;
         }
 
+    }
+
+    static interface YearIntervalGeneratorStrategy {
+        public YearRange getYearRange();
+    }
+
+    static class IntervalBasedRandomYearGeneratorStrategy implements YearIntervalGeneratorStrategy {
+        YearRange startRange;
+        YearRange endRange;
+
+        public IntervalBasedRandomYearGeneratorStrategy(YearRange startRange, YearRange endRange) {
+            this.startRange = startRange;
+            this.endRange = endRange;
+        }
+
+        @Override
+        public YearRange getYearRange() {
+            Random random = new Random();
+            int startYear = random.nextInt(startRange.start, startRange.end);
+            int endYear = random.nextInt(endRange.start, endRange.end);
+
+            return new YearRange(startYear, endYear);
+        }
+    }
+
+    static class YearDifferenceBasedRandomYearGeneratorStrategy implements YearIntervalGeneratorStrategy {
+        YearRange yearRange;
+        int numYear;
+
+        public YearDifferenceBasedRandomYearGeneratorStrategy(YearRange yearRange, int numYear) {
+            this.yearRange = yearRange;
+            this.numYear = numYear;
+        }
+
+        @Override
+        public YearRange getYearRange() {
+            Random random = new Random();
+            int startYear = random.nextInt(yearRange.start, yearRange.end);
+            int endYear = startYear + numYear;
+
+            return new YearRange(startYear, endYear);
+        }
     }
 }

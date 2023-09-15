@@ -1,7 +1,5 @@
 package com.helospark.financialdata.management.screener;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -67,7 +65,8 @@ public class ScreenerController {
     public static double BACKTEST_INVEST_AMOUNT = 1000.0;
     Map<String, ScreenerDescription> idToDescription = new LinkedHashMap<>();
     private static final Set<String> blacklistedStocks = Set.of(
-            "CHSCP" // incorrect dividend information
+            "CHSCP", // incorrect dividend information
+            "WFC-PL" // incorrect data
     );
 
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
@@ -267,11 +266,7 @@ public class ScreenerController {
             boolean allMatch = true;
             for (var operation : request.operations) {
                 ScreenerDescription source = idToDescription.get(operation.id);
-                Double value = getValue(atGlanceData, operation, source);
-                if (value == null) {
-                    allMatch = false;
-                    break;
-                }
+                double value = getValue(atGlanceData, operation, source);
                 ScreenerStrategy screenerStrategy = operation.screenerStrategy;
                 if (!screenerStrategy.matches(value, operation)) {
                     allMatch = false;
@@ -649,14 +644,16 @@ public class ScreenerController {
         }
     }
 
-    public Double getValue(AtGlanceData glance, ScreenerOperation operation, ScreenerDescription screenerDescriptor) {
+    public double getValue(AtGlanceData glance, ScreenerOperation operation, ScreenerDescription screenerDescriptor) {
         try {
             if (screenerDescriptor.source.equals(Source.FIELD)) {
-                Object value = ((Field) screenerDescriptor.data).get(glance);
-                return convertNumberToType(value);
+                //                Object value = ((Field) screenerDescriptor.data).get(glance);
+                //                return convertNumberToType(value);
+                return unreflectiveGetField(operation.id, glance);
             } else if (screenerDescriptor.source.equals(Source.METHOD)) {
-                Object value = ((Method) screenerDescriptor.data).invoke(glance);
-                return convertNumberToType(value);
+                //                Object value = ((Method) screenerDescriptor.data).invoke(glance);
+                //                return convertNumberToType(value);
+                return unreflectiveGetMethod(operation.id, glance);
             } else {
                 throw new RuntimeException("Unknown source");
             }
@@ -665,7 +662,144 @@ public class ScreenerController {
         }
     }
 
-    public Double convertNumberToType(Object value) {
+    private double unreflectiveGetMethod(String id, AtGlanceData glance) {
+        switch (id) {
+            case "fcf_yield":
+                return glance.getFreeCashFlowYield();
+            case "earnings_yield":
+                return glance.getEarningsYield();
+            default:
+                throw new RuntimeException("Unexpected type " + id);
+        }
+    }
+
+    private double unreflectiveGetField(String id, AtGlanceData glance) {
+        switch (id) {
+            case "marketCapUsd":
+                return glance.marketCapUsd;
+            case "trailingPeg":
+                return glance.trailingPeg;
+            case "roic":
+                return glance.roic;
+            case "altman":
+                return glance.altman;
+            case "pietrosky":
+                return glance.pietrosky;
+            case "pe":
+                return glance.pe;
+            case "evToEbitda":
+                return glance.evToEbitda;
+            case "ptb":
+                return glance.ptb;
+            case "pts":
+                return glance.pts;
+            case "icr":
+                return glance.icr;
+            case "currentRatio":
+                return glance.currentRatio;
+            case "quickRatio":
+                return glance.quickRatio;
+            case "dtoe":
+                return glance.dtoe;
+            case "roe":
+                return glance.roe;
+            case "epsGrowth":
+                return glance.epsGrowth;
+            case "fcfGrowth":
+                return glance.fcfGrowth;
+            case "revenueGrowth":
+                return glance.revenueGrowth;
+            case "fYrIncomeGr":
+                return glance.fYrIncomeGr;
+            case "dividendGrowthRate":
+                return glance.dividendGrowthRate;
+            case "shareCountGrowth":
+                return glance.shareCountGrowth;
+            case "netMarginGrowth":
+                return glance.netMarginGrowth;
+            case "cape":
+                return glance.cape;
+            case "epsSD":
+                return glance.epsSD;
+            case "revSD":
+                return glance.revSD;
+            case "fcfSD":
+                return glance.fcfSD;
+            case "epsFcfCorrelation":
+                return glance.epsFcfCorrelation;
+            case "dividendYield":
+                return glance.dividendYield;
+            case "dividendPayoutRatio":
+                return glance.dividendPayoutRatio;
+            case "dividendFcfPayoutRatio":
+                return glance.dividendFcfPayoutRatio;
+            case "profitableYears":
+                return glance.profitableYears;
+            case "fcfProfitableYears":
+                return glance.fcfProfitableYears;
+            case "stockCompensationPerMkt":
+                return glance.stockCompensationPerMkt;
+            case "cpxToRev":
+                return glance.cpxToRev;
+            case "sloan":
+                return glance.sloan;
+            case "ideal10yrRevCorrelation":
+                return glance.ideal10yrRevCorrelation;
+            case "ideal10yrEpsCorrelation":
+                return glance.ideal10yrEpsCorrelation;
+            case "ideal10yrFcfCorrelation":
+                return glance.ideal10yrFcfCorrelation;
+            case "ideal20yrRevCorrelation":
+                return glance.ideal20yrRevCorrelation;
+            case "ideal20yrEpsCorrelation":
+                return glance.ideal20yrEpsCorrelation;
+            case "ideal20yrFcfCorrelation":
+                return glance.ideal20yrFcfCorrelation;
+            case "fvCalculatorMoS":
+                return glance.fvCalculatorMoS;
+            case "fvCompositeMoS":
+                return glance.fvCompositeMoS;
+            case "grahamMoS":
+                return glance.grahamMoS;
+            case "starFlags":
+                return glance.starFlags;
+            case "redFlags":
+                return glance.redFlags;
+            case "yellowFlags":
+                return glance.yellowFlags;
+            case "greenFlags":
+                return glance.greenFlags;
+            case "fYrPe":
+                return glance.fYrPe;
+            case "fYrPFcf":
+                return glance.fYrPFcf;
+            case "fiveYrRoic":
+                return glance.fiveYrRoic;
+            case "ltl5Fcf":
+                return glance.ltl5Fcf;
+            case "price10Gr":
+                return glance.price10Gr;
+            case "price15Gr":
+                return glance.price15Gr;
+            case "price20Gr":
+                return glance.price20Gr;
+            case "grMargin":
+                return glance.grMargin;
+            case "opMargin":
+                return glance.opMargin;
+            case "opCMargin":
+                return glance.opCMargin;
+            case "fcfMargin":
+                return glance.fcfMargin;
+            default:
+                throw new RuntimeException("Unexpected type " + id);
+        }
+    }
+
+    public double convertNumberToType(Object value) {
+        if (value == null) {
+            return Double.NaN;
+        }
         if (value.getClass().equals(Double.class)) {
             return (Double) value;
         } else if (value.getClass().equals(Float.class)) {

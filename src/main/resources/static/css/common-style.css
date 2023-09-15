@@ -369,3 +369,9 @@ select, #start-date-dropdown, #end-date-dropdown {
     display:none;
   }
 }
+
+
+.general-portfolio-pie-chart {
+  width: 20%;
+  float:left;
+}

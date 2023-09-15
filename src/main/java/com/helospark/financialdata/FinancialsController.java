@@ -120,18 +120,22 @@ public class FinancialsController {
 
     @GetMapping("/pe_ratio")
     public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        CompanyFinancials company = DataLoader.readFinancials(stock);
-        var result = getIncomeData(company, quarterly, financialsTtm -> RatioCalculator.calculatePriceToEarningsRatio(financialsTtm));
-        if (company.financials.size() > 0 && company.latestPriceDate.compareTo(company.financials.get(0).getDate()) > 0) {
-            double pe = company.latestPrice / company.financials.get(0).incomeStatementTtm.eps;
-            result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), pe));
-        }
-        return result;
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> RatioCalculator.calculatePriceToEarningsRatio(price, financialsTtm));
     }
 
     @GetMapping("/pfcf_ratio")
     public List<SimpleDataElement> getPFcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+    }
+
+    @GetMapping("/price_to_gross_profit")
+    public List<SimpleDataElement> getPriceToGrossProfit(@PathVariable("stock") String stock) {
+        return getPriceIncomeData(stock, false, (price, financialsTtm) -> (price * financialsTtm.incomeStatementTtm.weightedAverageShsOut) / financialsTtm.incomeStatementTtm.grossProfit);
+    }
+
+    @GetMapping("/price_to_sales")
+    public List<SimpleDataElement> getPriceToSales(@PathVariable("stock") String stock) {
+        return getPriceIncomeData(stock, false, (price, financialsTtm) -> (price * financialsTtm.incomeStatementTtm.weightedAverageShsOut) / (financialsTtm.incomeStatementTtm.revenue));
     }
 
     @GetMapping("/expected_return")
@@ -206,7 +210,7 @@ public class FinancialsController {
 
     @GetMapping("/eps_yield")
     public List<SimpleDataElement> getEpsYield(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(financialsTtm.incomeStatementTtm.eps / financialsTtm.price));
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> toPercent(financialsTtm.incomeStatementTtm.eps / price));
     }
 
     @GetMapping("/p2b_ratio")
@@ -423,6 +427,31 @@ public class FinancialsController {
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), dcf.orElse(null)));
         }
         return result;
+    }
+
+    @GetMapping("/insider_trading_bought")
+    public List<SimpleDataElement> getInsiderTradingBoughtResult(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> (double) financialsTtm.auxilaryInfo.insiderBoughtShares);
+    }
+
+    @GetMapping("/insider_trading_sold")
+    public List<SimpleDataElement> getInsiderTradingSoldResult(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> (double) financialsTtm.auxilaryInfo.insiderSoldShares);
+    }
+
+    @GetMapping("/senate_trading_bought")
+    public List<SimpleDataElement> getSenateTradingBoughtResult(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> (double) financialsTtm.auxilaryInfo.senateBoughtDollar);
+    }
+
+    @GetMapping("/senate_trading_sold")
+    public List<SimpleDataElement> getSenateTradingSoldResult(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> (double) financialsTtm.auxilaryInfo.senateSoldDollar);
+    }
+
+    @GetMapping("/earnings_surprise")
+    public List<SimpleDataElement> getEarningsSurprise(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> (double) financialsTtm.auxilaryInfo.earnSurprisePercent);
     }
 
     private double getAnyRevenueGrowth(CompanyFinancials company, int year) {
@@ -1043,6 +1072,12 @@ public class FinancialsController {
         return getIncomeData(company, quarterly, dataSupplier);
     }
 
+    private List<SimpleDataElement> getPriceIncomeData(String stock, boolean quarterly, BiFunction<Double, FinancialsTtm, ? extends Number> dataSupplier) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+
+        return getPriceIncomeData(company, quarterly, dataSupplier);
+    }
+
     private List<SimpleDataElement> getIncomeData(CompanyFinancials company, boolean quarterly, Function<FinancialsTtm, ? extends Number> dataSupplier) {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 0; i < company.financials.size(); ++i) {
@@ -1052,6 +1087,23 @@ public class FinancialsController {
             }
             Double value = Optional.ofNullable(dataSupplier.apply(financialsTtm)).map(a -> a.doubleValue()).orElse(null);
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value));
+        }
+        return result;
+    }
+
+    private List<SimpleDataElement> getPriceIncomeData(CompanyFinancials company, boolean quarterly, BiFunction<Double, FinancialsTtm, ? extends Number> dataSupplier) {
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm financialsTtm = company.financials.get(i);
+            if (quarterly) {
+                financialsTtm = new FinancialsTtm(financialsTtm, false);
+            }
+            Double value = Optional.ofNullable(dataSupplier.apply(financialsTtm.price, financialsTtm)).map(a -> a.doubleValue()).orElse(null);
+            result.add(new SimpleDataElement(financialsTtm.getDate().toString(), value));
+        }
+        if (company.financials.size() > 0 && company.latestPriceDate.compareTo(company.financials.get(0).getDate()) > 0) {
+            Double value = Optional.ofNullable(dataSupplier.apply(company.latestPrice, company.financials.get(0))).map(a -> a.doubleValue()).orElse(null);
+            result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), value));
         }
         return result;
     }

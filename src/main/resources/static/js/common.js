@@ -146,6 +146,7 @@
           targetPrice = "";
           notes = "";
           tags = "";
+          ownedShares = 0;
           if (data.targetPrice != null) {
             targetPrice = data.targetPrice;
           }
@@ -159,6 +160,9 @@
                 tags += ", ";
               }
             }
+          }
+          if (data.ownedShares != null) {
+            ownedShares = data.ownedShares;
           }
           
           if (fairValueSpan.length > 0) {
@@ -179,6 +183,8 @@
                   <input type="text" class="form-control" id="watchlist-notes" value="` + notes + `">
                   <label for="watchlist-tags" class="col-form-label" maxlength="150">Tags (comma separated):</label>
                   <input type="text" class="form-control" id="watchlist-tags" value="` + tags + `">
+                  <label for="watchlist-shares" class="col-form-label" maxlength="7">Owned shares</label>
+                  <input type="text" class="form-control" id="watchlist-shares" value="` + ownedShares + `">
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
@@ -196,6 +202,7 @@
     priceTarget = $("#watchlist-target-price").val();
     notes = $("#watchlist-notes").val();
     tags = $("#watchlist-tags").val().split(",");
+    ownedShares = $("#watchlist-shares").val();
 
     fairValueSpan = $("#fair-value");
     var onCalculator = false;
@@ -233,7 +240,7 @@
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({symbol: stock, priceTarget: priceTarget, notes: notes, tags: tags, calculatorParameters: calculatorParameters})
+      body: JSON.stringify({symbol: stock, priceTarget: priceTarget, notes: notes, tags: tags, ownedShares: ownedShares, calculatorParameters: calculatorParameters})
     }).then(async data => {
         if (data.status != 200) {
           data = await data.json();

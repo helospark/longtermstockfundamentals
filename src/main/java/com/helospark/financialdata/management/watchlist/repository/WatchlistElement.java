@@ -9,5 +9,6 @@ public class WatchlistElement {
     public List<String> tags = List.of();
     public Double targetPrice;
     public String notes;
+    public int ownedShares = 0;
     public CalculatorParameters calculatorParameters;
 }

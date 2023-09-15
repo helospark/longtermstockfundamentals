@@ -49,6 +49,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeBindings;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.google.common.util.concurrent.RateLimiter;
+import com.helospark.financialdata.domain.AuxilaryInformation;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
@@ -62,8 +63,6 @@ import com.helospark.financialdata.domain.FxSupportedSymbolsResponse;
 import com.helospark.financialdata.domain.HistoricalPrice;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.IncomeStatement;
-import com.helospark.financialdata.domain.InsiderTradingElement;
-import com.helospark.financialdata.domain.InsiderTradingLiveElement;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.service.AltmanZCalculator;
 import com.helospark.financialdata.service.CapeCalculator;
@@ -796,12 +795,9 @@ public class StockDataDownloader2 {
                         BalanceSheet.class, 100);
                 downloadJsonListUrlIfNeededWithoutRetry("fundamentals/" + symbol + "/cash-flow.json", "/v3/cash-flow-statement/" + symbol, queryMap, CashFlow.class,
                         100);
+                //downloadAuxilaryInformation(symbol, incomeStatements);
             }
 
-            //  downloadInsiderTrading("fundamentals/" + symbol, symbol, incomeStatements);
-
-            //            var balanceStatements = ((List<BalanceSheet>) balanceResult.data);
-            //            var cashflowStatements = ((List<CashFlow>) cashFlowResult.data);
             long numberOfDaysDiff = 30;
             if (incomeStatements.size() > 1) {
                 numberOfDaysDiff = Math.abs(ChronoUnit.DAYS.between(incomeStatements.get(1).getDate(), incomeStatements.get(0).getDate()));
@@ -832,87 +828,103 @@ public class StockDataDownloader2 {
         symbolToDates.put(originalSymbol, downloadDateData);
     }
 
+    private static void downloadAuxilaryInformation(String symbol, List<IncomeStatement> incomeStatements) {
+        JavaType insiderType = objectMapper.getTypeFactory().constructParametricType(List.class, InsiderRoaster.class);
+        List<InsiderRoaster> insiders = (List<InsiderRoaster>) actuallyDownloadFileWithotSaving("/v4/insider-roaster-statistic", Map.of("symbol", symbol), insiderType);
+
+        JavaType senateType = objectMapper.getTypeFactory().constructParametricType(List.class, SenateTrading.class);
+        List<SenateTrading> senateBuy = (List<SenateTrading>) actuallyDownloadFileWithotSaving("/v4/senate-trading", Map.of("symbol", symbol), senateType);
+        List<SenateTrading> houseBuy = (List<SenateTrading>) actuallyDownloadFileWithotSaving("/v4/senate-trading", Map.of("symbol", symbol), senateType);
+
+        // /v4/historical/employee_count
+        JavaType employeeCountType = objectMapper.getTypeFactory().constructParametricType(List.class, EmployeeCount.class);
+        List<EmployeeCount> employeeCount = (List<EmployeeCount>) actuallyDownloadFileWithotSaving("/v4/historical/employee_count", Map.of("symbol", symbol), employeeCountType);
+
+        // /v3/earnings-surprises/AAPL
+        JavaType earningsSurpriseType = objectMapper.getTypeFactory().constructParametricType(List.class, EarningsSurprise.class);
+        List<EarningsSurprise> earningsSurprises = (List<EarningsSurprise>) actuallyDownloadFileWithotSaving("/v3/earnings-surprises/" + symbol, Map.of(), earningsSurpriseType);
+
+        List<AuxilaryInformation> auxilaryInfos = incomeStatements.stream().map(a -> {
+            var info = new AuxilaryInformation();
+            info.date = a.getDate();
+            return info;
+        }).collect(Collectors.toList());
+
+        for (var insider : insiders) {
+            LocalDate date = LocalDate.of(insider.year, (insider.quarter - 1) * 3 + 1, 1);
+            int index = Helpers.findIndexWithOrBeforeDate(auxilaryInfos, date);
+            if (index != -1) {
+                auxilaryInfos.get(index).insiderBoughtShares += insider.totalBought;
+                auxilaryInfos.get(index).insiderSoldShares += insider.totalSold;
+            }
+        }
+        boolean firstEmployeeData = true;
+        for (var employee : employeeCount) {
+            int index = Helpers.findIndexWithOrBeforeDate(auxilaryInfos, employee.periodOfReport);
+            if (index != -1) {
+                auxilaryInfos.get(index).employeeCount = employee.employeeCount;
+                if (firstEmployeeData) {
+                    for (int i = index; i >= 0; --i) {
+                        auxilaryInfos.get(i).employeeCount = employee.employeeCount;
+                    }
+                }
+            }
+            firstEmployeeData = false;
+        }
+        for (var earningSurprise : earningsSurprises) {
+            int index = Helpers.findIndexWithOrBeforeDate(auxilaryInfos, earningSurprise.date);
+            if (index != -1 && earningSurprise.actualEarningResult != null && earningSurprise.estimatedEarning != null) {
+                auxilaryInfos.get(index).earnSurprisePercent = (int) ((((earningSurprise.actualEarningResult / earningSurprise.estimatedEarning) - 1.0) * 100));
+            }
+        }
+        for (var senateTrade : senateBuy) {
+            if (senateTrade.transactionDate != null && senateTrade.amount != null) {
+                int index = Helpers.findIndexWithOrBeforeDate(auxilaryInfos, senateTrade.transactionDate);
+                if (index != -1 && senateTrade.type != null) {
+                    if (senateTrade.type.toLowerCase().contains("purchase")) {
+                        auxilaryInfos.get(index).senateBoughtDollar += convertSenateTradeAmount(senateTrade.amount);
+                    } else if (senateTrade.type.toLowerCase().contains("sale")) {
+                        auxilaryInfos.get(index).senateSoldDollar += convertSenateTradeAmount(senateTrade.amount);
+                    }
+                }
+            }
+        }
+        for (var houseTrade : houseBuy) {
+            if (houseTrade.transactionDate != null && houseTrade.amount != null) {
+                int index = Helpers.findIndexWithOrBeforeDate(auxilaryInfos, houseTrade.transactionDate);
+                if (index != -1 && houseTrade.type != null) {
+                    if (houseTrade.type.toLowerCase().contains("purchase")) {
+                        auxilaryInfos.get(index).senateBoughtDollar += convertSenateTradeAmount(houseTrade.amount);
+                    } else if (houseTrade.type.toLowerCase().contains("sale")) {
+                        auxilaryInfos.get(index).senateSoldDollar += convertSenateTradeAmount(houseTrade.amount);
+                    }
+                }
+            }
+        }
+
+        actuallySaveFile(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/auxilary.json"), auxilaryInfos);
+    }
+
+    private static int convertSenateTradeAmount(String amount) {
+        try {
+            String[] dollarRange = amount.replace("$", "").replace(",", "").split(" - ");
+            int lowerRange = Integer.parseInt(dollarRange[0]);
+            int upperRange = Integer.parseInt(dollarRange[1]);
+            return (lowerRange + upperRange) / 2;
+
+        } catch (Exception e) {
+            System.out.println("Cannot convert " + amount);
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
     private static void writeLastAttemptedFile(File lastAttemptedFile, Map<String, DownloadDateData> data) {
         try (FileOutputStream fos = new FileOutputStream(lastAttemptedFile)) {
             fos.write(objectMapper.writeValueAsBytes(data));
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private static void downloadInsiderTrading(String baseFolder, String symbol, List<IncomeStatement> incomeStatements) {
-        // https://financialmodelingprep.com/api/v4/insider-trading?symbol=AAPL&page=0&apikey=API_KEY
-        int page = 0;
-        String sellFileName = "insider-sells.json";
-        String buyFileName = "insider-buys.json";
-        File sellFile = new File(baseFolder, sellFileName);
-        File buyFile = new File(baseFolder, buyFileName);
-
-        List<InsiderTradingElement> alreadySavedSales = new ArrayList<>();
-        List<InsiderTradingElement> alreadySavedBuys = new ArrayList<>();
-
-        if (sellFile.exists()) {
-            alreadySavedSales = new ArrayList<>(DataLoader.readListOfClassFromFile(sellFile, InsiderTradingElement.class));
-        }
-        if (buyFile.exists()) {
-            alreadySavedBuys = new ArrayList<>(DataLoader.readListOfClassFromFile(buyFile, InsiderTradingElement.class));
-        }
-
-        List<InsiderTradingElement> sales = new ArrayList<>();
-        List<InsiderTradingElement> buys = new ArrayList<>();
-
-        boolean finished = false;
-        while (true) {
-            InsiderTradingLiveElement[] elements = downloadSimpleUrlCachedWithoutSaving("/v4/insider-trading", Map.of("symbol", symbol, "page", String.valueOf(page)),
-                    InsiderTradingLiveElement[].class);
-
-            for (var element : elements) {
-                InsiderTradingElement insiderTradingElement = new InsiderTradingElement();
-                insiderTradingElement.amount = element.price * element.securitiesTransacted;
-                insiderTradingElement.date = element.transactionDate;
-                insiderTradingElement.only10PercentOwner = "10 percent owner".equals(element.typeOfOwner);
-
-                if (element.transactionType.equals("S-Sale")) {
-                    if (!alreadySavedSales.isEmpty() &&
-                            alreadySavedSales.get(0).getDate().equals(insiderTradingElement.date) &&
-                            Math.abs(alreadySavedSales.get(0).amount - insiderTradingElement.amount) < 1.0) {
-                        finished = true;
-                        break;
-                    }
-                    sales.add(insiderTradingElement);
-                } else if (element.transactionType.equals("P-Purchase")) {
-                    if (!alreadySavedBuys.isEmpty() &&
-                            alreadySavedBuys.get(0).getDate().equals(insiderTradingElement.date) &&
-                            Math.abs(alreadySavedBuys.get(0).amount - insiderTradingElement.amount) < 1.0) {
-                        finished = true;
-                        break;
-                    }
-                    buys.add(insiderTradingElement);
-                }
-            }
-
-            ++page;
-            if (elements.length < 100 || page > 200 || finished) {
-                break;
-            }
-        }
-        var salesPerMonth = convertToSameFormatAsIncomeStatements(sales, incomeStatements);
-        var buysPerMonth = convertToSameFormatAsIncomeStatements(sales, incomeStatements);
-        actuallySaveFile(sellFile, merge(sales, alreadySavedSales));
-        actuallySaveFile(buyFile, merge(buys, alreadySavedBuys));
-    }
-
-    private static List<InsiderTradingElement> convertToSameFormatAsIncomeStatements(List<InsiderTradingElement> sales, List<IncomeStatement> incomeStatements) {
-        List<InsiderTradingElement> result = new ArrayList<>();
-
-        return null;
-    }
-
-    private static List<InsiderTradingElement> merge(List<InsiderTradingElement> sales, List<InsiderTradingElement> alreadySavedBuys) {
-        List<InsiderTradingElement> result = new ArrayList<>();
-        result.addAll(sales);
-        result.addAll(alreadySavedBuys);
-        return result;
     }
 
     private static void init() {
@@ -1157,6 +1169,27 @@ public class StockDataDownloader2 {
         }
     }
 
+    public static Object actuallyDownloadFileWithotSaving(String uriPath, Map<String, String> queryParams, JavaType javaType) {
+        try {
+            String fullUri = BASE_URL + uriPath + "?apikey=" + API_KEY;
+            for (var entry : queryParams.entrySet()) {
+                fullUri += ("&" + entry.getKey() + "=" + entry.getValue());
+            }
+
+            rateLimiter.acquire();
+
+            String data = downloadUri(fullUri);
+
+            if (data.contains("Error Message")) {
+                throw new RuntimeException("Couldn't read data " + data);
+            }
+
+            return objectMapper.readValue(data, javaType); // need to unprettify downloaded data
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static String downloadUri(String fullUri) {
         HttpHeaders requestHeaders = new HttpHeaders();
         requestHeaders.add("Accept-Encoding", "gzip");
@@ -1271,5 +1304,29 @@ public class StockDataDownloader2 {
             return "YearMonthPair [year=" + year + ", month=" + month + "]";
         }
 
+    }
+
+    static class InsiderRoaster {
+        public int year; //: 2023,
+        public int quarter; //"quarter": 3,
+        public int totalBought; //": 31896,
+        public int totalSold; //": 63792,
+    }
+
+    static class SenateTrading {
+        public LocalDate transactionDate; //": "2023-08-07",
+        public String type; //": "purchase",
+        public String amount; //": "$1,001 - $15,000",
+    }
+
+    static class EmployeeCount {
+        public LocalDate periodOfReport;
+        public int employeeCount;
+    }
+
+    static class EarningsSurprise {
+        public LocalDate date; //": "2023-08-03",
+        public Double actualEarningResult;//": 1.26,
+        public Double estimatedEarning; //": 1.19
     }
 }

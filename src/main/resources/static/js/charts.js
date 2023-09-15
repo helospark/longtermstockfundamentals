@@ -192,6 +192,8 @@ createSeparator("Price ratios")
 createChart("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 createChart("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false});
 createChart("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+createChart("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+createChart("/financials/price_to_sales", "Price to sales ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 
 
 createChart("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {
@@ -323,6 +325,7 @@ createChart("/financials/stock_compensation_per_market_cap", "Stock compensation
 createChart("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%'});
 createChart("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
 createChart("/financials/pietrosky_score", "Piotrosky score", {quarterlyEnabled: false});
+//createChart("/financials/earnings_surprise", "Earnings surprise", {type: 'bar', unit: '%', quarterlyEnabled: false});
 
 
 
@@ -391,6 +394,31 @@ createChart("/financials/share_count_growth_rate", "Share count growth annual", 
 createChart("/financials/dividend_growth_rate", "Dividend growth annual", {type: 'bar', unit: '%', quarterlyEnabled: false});
 
 createAd();
+
+/*
+createSeparator("Trading")
+createChart("/financials/insider_trading_bought", "Insider bought shares", {
+     quarterlyEnabled: false,
+     type: 'bar',
+     label: 'Insider bought shares',
+     additionalCharts: [
+     {
+      "url": "/financials/insider_trading_sold",
+      "label": "Insider sold stocks"
+     }]
+});
+createChart("/financials/senate_trading_bought", "Senate bought stocks", {
+     quarterlyEnabled: false,
+     type: 'bar',
+     label: 'Senate bought stocks',
+     unit: '$',
+     additionalCharts: [
+     {
+      "url": "/financials/senate_trading_sold",
+      "label": "Senate sold stocks"
+     }]
+});
+*/
 
 /*
 createSeparator("EM")

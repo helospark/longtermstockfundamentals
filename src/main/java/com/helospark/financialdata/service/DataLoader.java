@@ -35,6 +35,7 @@ import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.util.concurrent.Striped;
+import com.helospark.financialdata.domain.AuxilaryInformation;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
@@ -186,6 +187,7 @@ public class DataLoader {
         List<BalanceSheet> balanceSheet = readFinancialFile(symbol, "balance-sheet.json", BalanceSheet.class);
         List<IncomeStatement> incomeStatement = readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
         List<CashFlow> cashFlow = readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
+        List<AuxilaryInformation> auxilaryInformation = readFinancialFile(symbol, "auxilary.json", AuxilaryInformation.class);
         List<HistoricalPriceElement> historicalPrice = readHistoricalFile(symbol, "historical-price.json");
         List<Profile> profiles = readFinancialFile(symbol, "profile.json", Profile.class);
 
@@ -224,6 +226,14 @@ public class DataLoader {
         if (symbol.equals("CHSCP")) {
             for (var element : cashFlow) {
                 element.dividendsPaid = (long) (-incomeStatement.get(0).weightedAverageShsOut * 0.5);
+            }
+        }
+        if (symbol.equals("IBP")) {
+            for (var element : incomeStatement) {
+                if (element.weightedAverageShsOut > 2807567800L) {
+                    element.weightedAverageShsOut /= 1000;
+                    element.weightedAverageShsOutDil /= 1000;
+                }
             }
         }
         if (symbol.equals("IBP")) {
@@ -317,9 +327,40 @@ public class DataLoader {
             }
         }
 
-        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, historicalPrice, profile);
+        CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, historicalPrice, profile, auxilaryInformation);
+
+        for (var elemen : result.financials) {
+            double mktCap = elemen.priceUsd * elemen.incomeStatementTtm.weightedAverageShsOut;
+            if (isLikelyMillionxShareCountReported(profile, elemen, mktCap)) {
+                elemen.incomeStatement.weightedAverageShsOut /= 1_000_000.0;
+                elemen.incomeStatement.weightedAverageShsOutDil /= 1_000_000.0;
+                elemen.incomeStatementTtm.weightedAverageShsOut /= 1_000_000.0;
+                elemen.incomeStatementTtm.weightedAverageShsOutDil /= 1_000_000.0;
+            } else if (isLikely1000xShareCountReported(profile, elemen, mktCap)) {
+                elemen.incomeStatement.weightedAverageShsOut /= 1000.0;
+                elemen.incomeStatement.weightedAverageShsOutDil /= 1000.0;
+                elemen.incomeStatementTtm.weightedAverageShsOut /= 1000.0;
+                elemen.incomeStatementTtm.weightedAverageShsOutDil /= 1000.0;
+            }
+        }
+        if (result.financials.size() > 1 && result.financials.get(0).incomeStatementTtm.weightedAverageShsOut >= result.financials.get(1).incomeStatementTtm.weightedAverageShsOut * 30) {
+            result.financials.get(0).incomeStatement.weightedAverageShsOut = result.financials.get(1).incomeStatement.weightedAverageShsOut;
+            result.financials.get(0).incomeStatement.weightedAverageShsOutDil = result.financials.get(1).incomeStatement.weightedAverageShsOut;
+            result.financials.get(0).incomeStatementTtm.weightedAverageShsOut = result.financials.get(1).incomeStatementTtm.weightedAverageShsOut;
+            result.financials.get(0).incomeStatementTtm.weightedAverageShsOutDil = result.financials.get(1).incomeStatementTtm.weightedAverageShsOut;
+        }
 
         return result;
+    }
+
+    public static boolean isLikelyMillionxShareCountReported(Profile profile, FinancialsTtm elemen, double mktCap) {
+        return mktCap > 500_000_000_000_000.0;
+    }
+
+    public static boolean isLikely1000xShareCountReported(Profile profile, FinancialsTtm elemen, double mktCap) {
+        return mktCap > 500_000_000_000.0 &&
+                ((profile.fullTimeEmployees != null && profile.fullTimeEmployees < 1000) || (profile.volAvg != null && (profile.volAvg * elemen.priceUsd) < 10_000_000))
+                || mktCap > 8_000_000_000_000.0;
     }
 
     public static String getCurrencySymbol(List<IncomeStatement> incomeStatement) {
@@ -331,7 +372,7 @@ public class DataLoader {
     }
 
     private static CompanyFinancials createToTtm(String symbol, List<BalanceSheet> balanceSheets, List<IncomeStatement> incomeStatements, List<CashFlow> cashFlows,
-            List<HistoricalPriceElement> prices, Profile profile) {
+            List<HistoricalPriceElement> prices, Profile profile, List<AuxilaryInformation> auxilaryInformation) {
         List<FinancialsTtm> result = new ArrayList<>();
 
         if (incomeStatements.isEmpty()) {
@@ -354,6 +395,7 @@ public class DataLoader {
             int cashFlowIndex = findIndexWithOrBeforeDate(cashFlows, incomeStatementDate);
             int balanceSheetIndex = findIndexWithOrBeforeDate(balanceSheets, incomeStatementDate);
             int historicalPriceIndex2 = findIndexWithOrBeforeDate(prices, incomeStatementDate);
+            int auxilaryInfoIndex = findIndexWithOrBeforeDate(auxilaryInformation, incomeStatementDate);
 
             if (cashFlowIndex == -1 || balanceSheetIndex == -1 || historicalPriceIndex2 == -1 ||
                     cashFlowIndex + 3 >= cashFlows.size() ||
@@ -397,6 +439,11 @@ public class DataLoader {
 
             currentTtm.cashFlowTtm = calculateTtm(cashFlows, cashFlowIndex, new CashFlow(), endCashflowTtmIndex);
             currentTtm.incomeStatementTtm = calculateTtm(incomeStatements, i, new IncomeStatement(), endIncomeStatementTtmIndex);
+            if ((auxilaryInfoIndex == -1 || auxilaryInformation.size() == 0)) {
+                currentTtm.auxilaryInfo = new AuxilaryInformation();
+            } else {
+                currentTtm.auxilaryInfo = auxilaryInformation.get(auxilaryInfoIndex);
+            }
 
             currentTtm.priceTradingCurrency = price;
             currentTtm.price = convertCurrencyIfNeeded(price, currentTtm, profile);

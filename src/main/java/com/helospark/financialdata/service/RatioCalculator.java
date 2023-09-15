@@ -49,6 +49,14 @@ public class RatioCalculator {
         return result;
     }
 
+    public static Double calculatePriceToEarningsRatio(double price, FinancialsTtm financialsTtm) {
+        double result = price / financialsTtm.incomeStatementTtm.eps;
+        if (!Double.isFinite(result)) {
+            return null;
+        }
+        return result;
+    }
+
     public static double calculateGrossProfitMargin(FinancialsTtm data) {
         double result = (double) data.incomeStatementTtm.grossProfit / data.incomeStatementTtm.revenue;
         if (!Double.isFinite(result)) {

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -39,12 +40,12 @@ public class WatchlistController {
 
     @GetMapping("/watchlist")
     @RateLimit(requestPerMinute = 30)
-    public WatchListResponse getCurrentWatchList(HttpServletRequest httpRequest) {
+    public WatchListResponse getCurrentWatchList(HttpServletRequest httpRequest, @RequestParam(name = "onlyOwned", defaultValue = "false") boolean onlyOwned) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {
             throw new WatchlistPermissionDeniedException("Not logged in");
         }
-        return watchlistService.getWatchlist(jwt.get().getSubject());
+        return watchlistService.getWatchlist(jwt.get().getSubject(), onlyOwned);
     }
 
     @GetMapping("/watchlist/{stock}")
@@ -88,6 +89,9 @@ public class WatchlistController {
                     throw new WatchlistBadRequestException("Each tag can be maximum of 15 characters");
                 }
             }
+        }
+        if (request.ownedShares < 0) {
+            throw new WatchlistBadRequestException("Cannot own less than 0 shares");
         }
 
         watchlistService.saveToWatchlist(jwt.get().getSubject(), request, loginController.getAccountType(jwt.get()));
