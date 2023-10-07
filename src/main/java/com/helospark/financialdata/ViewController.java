@@ -30,6 +30,7 @@ import com.helospark.financialdata.management.watchlist.repository.LatestPricePr
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.MarginCalculator;
+import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 
@@ -89,6 +90,19 @@ public class ViewController {
         model.addAttribute("onlyOwned", onlyOwned);
 
         return "portfolio";
+    }
+
+    @GetMapping("/summary")
+    public String summary(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request) {
+        Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+
+        if (!jwtOptional.isPresent()) {
+            model.addAttribute("accountType", "NOT_LOGGED_IN");
+            model.addAttribute("allowed", false);
+        }
+        model.addAttribute("stock", stock);
+
+        return "summary";
     }
 
     @GetMapping("/faq")
@@ -187,7 +201,9 @@ public class ViewController {
             @RequestParam(required = false, name = "startShareChange") Double startShareChangeParam,
             @RequestParam(required = false, name = "endShareChange") Double endShareChangeParam,
             @RequestParam(required = false, name = "discount") Double discountParam,
-            @RequestParam(required = false, name = "endMultiple") Double endMultipleParam) {
+            @RequestParam(required = false, name = "endMultiple") Double endMultipleParam,
+            @RequestParam(required = false, name = "startPayout") Double startPayoutRatio,
+            @RequestParam(required = false, name = "endPayout") Double endPayoutRatio) {
         if (!symbolIndexProvider.doesCompanyExists(stock)) {
             redirectAttributes.addAttribute("generalInfo", "stock_not_found");
             return "redirect:/";
@@ -230,6 +246,18 @@ public class ViewController {
                     Double endMargin = nonNullOf(endMarginParam, startMargin);
                     Double discount = nonNullOf(discountParam, 10.0);
 
+                    Double startPayoutRatioResult = startPayoutRatio;
+                    if (startPayoutRatioResult == null) {
+                        startPayoutRatioResult = RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) * 100.0;
+                        if (startPayoutRatioResult <= 30.0) {
+                            startPayoutRatioResult = 100.0;
+                        }
+                        if (startPayoutRatioResult >= 100.0) {
+                            startPayoutRatioResult = 100.0;
+                        }
+                    }
+                    double endPayoutRatioResult = nonNullOf(endPayoutRatio, startShareCountGrowth);
+
                     model.addAttribute("revenue", (double) company.financials.get(0).incomeStatementTtm.revenue / 1_000_000);
                     model.addAttribute("shareCount", company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / 1000);
 
@@ -241,6 +269,8 @@ public class ViewController {
                     model.addAttribute("endShareChange", String.format("%.2f", endShareCountGrowth));
                     model.addAttribute("endMultiple", String.format("%.0f", endMultiple));
                     model.addAttribute("discount", String.format("%.0f", discount));
+                    model.addAttribute("startPayout", String.format("%.0f", startPayoutRatioResult));
+                    model.addAttribute("endPayout", String.format("%.0f", endPayoutRatioResult));
                     var tradingCurrency = Optional.ofNullable(company.profile.currency).orElse("");
                     var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
                     if (tradingCurrency.equals(reportedCurrency)) {
@@ -262,9 +292,114 @@ public class ViewController {
                 model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
             }
 
-            return "calculator";
+            return "complex_calculator";
         }
     }
+
+    /*
+    @GetMapping("/complex_calculator/{stock}")
+    public String complexCalculator(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes,
+            @RequestParam(required = false, name = "startMargin") Double startMarginParam,
+            @RequestParam(required = false, name = "endMargin") Double endMarginParam,
+            @RequestParam(required = false, name = "startGrowth") Double startGrowthParam,
+            @RequestParam(required = false, name = "endGrowth") Double endGrowthParam,
+            @RequestParam(required = false, name = "startShareChange") Double startShareChangeParam,
+            @RequestParam(required = false, name = "endShareChange") Double endShareChangeParam,
+            @RequestParam(required = false, name = "discount") Double discountParam,
+            @RequestParam(required = false, name = "endMultiple") Double endMultipleParam,
+            @RequestParam(required = false, name = "startPayout") Double startPayoutRatio,
+            @RequestParam(required = false, name = "endPayout") Double endPayoutRatio) {
+        if (!symbolIndexProvider.doesCompanyExists(stock)) {
+            redirectAttributes.addAttribute("generalInfo", "stock_not_found");
+            return "redirect:/";
+        } else {
+            fillModelWithCommonStockData(stock, model, request);
+    
+            if (Boolean.TRUE.equals(model.getAttribute("allowed"))) {
+                CompanyFinancials company = DataLoader.readFinancials(stock);
+                if (company.financials.size() > 0) {
+                    Double startGrowth = startGrowthParam;
+                    if (startGrowth == null) {
+                        startGrowth = GrowthCalculator.getMedianRevenueGrowth(company.financials, 8, 0.0).orElse(10.0);
+                    }
+                    Double startMargin = startMarginParam;
+                    if (startMargin == null) {
+                        startMargin = MarginCalculator.getAvgNetMargin(company.financials, 0) * 100.0;
+                    }
+    
+                    Double startShareCountGrowth = startShareChangeParam;
+                    if (startShareCountGrowth == null) {
+                        startShareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5, 0).orElse(0.0);
+                    }
+                    double endGrowth = nonNullOf(endGrowthParam, startGrowth * 0.5);
+    
+                    Double startPayoutRatioResult = startPayoutRatio;
+                    if (startPayoutRatioResult == null) {
+                        startPayoutRatioResult = RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) * 100.0;
+                        if (startPayoutRatioResult <= 10.0) {
+                            startPayoutRatioResult = 10.0;
+                        }
+                        if (startPayoutRatioResult >= 100.0) {
+                            startPayoutRatioResult = 100.0;
+                        }
+                    }
+                    double endPayoutRatioResult = nonNullOf(endPayoutRatio, startShareCountGrowth);
+    
+                    Double endShareCountGrowth = endShareChangeParam;
+                    if (endShareCountGrowth == null) {
+                        endShareCountGrowth = startShareCountGrowth;
+                    }
+    
+                    Double endMultiple = endMultipleParam;
+                    if (endMultiple == null) {
+                        endMultiple = 12.0;
+                        if (endGrowth > 12) {
+                            endMultiple = endGrowth;
+                        }
+                        if (endMultiple > 24) {
+                            endMultiple = 24.0;
+                        }
+                    }
+                    Double endMargin = nonNullOf(endMarginParam, startMargin);
+                    Double discount = nonNullOf(discountParam, 10.0);
+    
+                    model.addAttribute("revenue", (double) company.financials.get(0).incomeStatementTtm.revenue / 1_000_000);
+                    model.addAttribute("shareCount", company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / 1000);
+    
+                    model.addAttribute("startGrowth", String.format("%.2f", startGrowth));
+                    model.addAttribute("endGrowth", String.format("%.2f", endGrowth));
+                    model.addAttribute("startMargin", String.format("%.2f", startMargin));
+                    model.addAttribute("endMargin", String.format("%.2f", endMargin));
+                    model.addAttribute("shareChange", String.format("%.2f", startShareCountGrowth));
+                    model.addAttribute("endShareChange", String.format("%.2f", endShareCountGrowth));
+                    model.addAttribute("endMultiple", String.format("%.0f", endMultiple));
+                    model.addAttribute("discount", String.format("%.0f", discount));
+                    model.addAttribute("startPayout", String.format("%.0f", startPayoutRatioResult));
+                    model.addAttribute("endPayout", String.format("%.0f", endPayoutRatioResult));
+                    var tradingCurrency = Optional.ofNullable(company.profile.currency).orElse("");
+                    var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
+                    if (tradingCurrency.equals(reportedCurrency)) {
+                        model.addAttribute("reportingCurrencyToTradingCurrencyRate", 1.0);
+                    } else {
+                        LocalDate now = LocalDate.now();
+                        Optional<Double> exchangeRate = DataLoader.convertFx(1.0, reportedCurrency, tradingCurrency, now, true);
+                        if (!exchangeRate.isPresent()) {
+                            LOGGER.error("Cannot convert exchange rates {}->{} at date {}", reportedCurrency, tradingCurrency, now);
+                        }
+                        model.addAttribute("reportingCurrencyToTradingCurrencyRate", exchangeRate.orElse(1.0));
+                    }
+                }
+    
+                double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
+                Optional<Double> priceInReportCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, company.profile.currency, company.profile.reportedCurrency, LocalDate.now(), false);
+                model.addAttribute("latestPrice", priceInReportCurrency.orElse(company.latestPrice));
+                model.addAttribute("latestPriceTradingCurrency", latestPriceInTradingCurrency);
+                model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
+            }
+    
+            return "complex_calculator";
+        }
+    }*/
 
     public static String getCurrencySymbol(String currencyName) {
         try {

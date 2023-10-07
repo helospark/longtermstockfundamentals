@@ -134,6 +134,10 @@ public class WatchlistService {
         uri += "&startShareChange=" + calculatorParameters.startShChange + "&endShareChange=" + calculatorParameters.endShChange;
         uri += "&discount=" + calculatorParameters.discount + "&endMultiple=" + calculatorParameters.endMultiple;
 
+        if (calculatorParameters.startPayout != null) {
+            uri += "&startPayout=" + calculatorParameters.startPayout + "&endPayout=" + calculatorParameters.endPayout;
+        }
+
         return uri;
     }
 

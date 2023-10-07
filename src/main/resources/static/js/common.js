@@ -216,6 +216,8 @@
       discount = Number($("#discount").val());
       endMultiple = Number($("#endMultiple").val());
       currentPrice = Number($("#current-price").text());
+      startPayout = Number($("#startPayout").val());
+      endPayout = Number($("#endPayout").text());
       
       calculatorParameters = {
         startMargin: startMargin,
@@ -229,6 +231,9 @@
         
         discount: discount,
         endMultiple: endMultiple,
+        
+        startPayout: startPayout,
+        endPayout: endPayout
       };
     } else {
       calculatorParameters = null;

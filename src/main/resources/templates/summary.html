@@ -21,7 +21,7 @@
   <script src="/js/common.js" ></script>
   <script src="/js/portfolio.js" ></script>
 
-  <title>Portfolio</title>
+  <title>Summary</title>
 </head>
 <body>
 
@@ -32,7 +32,12 @@
 
 <div id="content">
 
-  <h1>Portfolio</h1>
+  <h1>Summary</h1>
+  
+  <label for="stocks">Stocks, comma separated, optional count in parantheses, like: 'MA(38), ADBE(33), IDXX(29)'</label><br/>
+  <textarea id="stocks" style="width: 50%; height: 300px;"></textarea><br/>
+  
+  <button id="getSummary" onclick="getSummary()">Get summary</button>
 
   <div id="watchlist-table"></div>
   
@@ -46,7 +51,7 @@
   <div class="general-portfolio-pie-chart"><canvas id="profitability-chart"></canvas></div>
   <div class="general-portfolio-pie-chart"><canvas id="pe-chart"></canvas></div>
 
-<div style="clear:both"></div>
+  <div style="clear:both"></div>
   <h3  style="margin-top:40px">Fundamentals pie chart</h3>
   <div class="general-portfolio-pie-chart"><canvas id="roic-chart" ></canvas></div>
   <div class="general-portfolio-pie-chart"><canvas id="sharechange-chart" ></canvas></div>
@@ -61,19 +66,22 @@
   <div id="returns-table"></div>
 
   <script th:if="${isLoggedIn}">
-     onlyOwned = $("#onlyOwned").text();
     
-     fetch('/portfoliodata?onlyOwned=' + onlyOwned, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-      }).then(res => {
-         return res.json();
-      }).then(data => {
-        addPortfolio(data, {reorder: true});
-      });
-  
+     function getSummary() {
+       stocks=$("#stocks").val();
+       fetch('/stocks_summary', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({data: stocks})
+        }).then(res => {
+           return res.json();
+        }).then(data => {
+          addPortfolio(data, {reorder: true});
+        });
+     }
   
   </script>
 <script src="/js/autocomplete.js"></script>

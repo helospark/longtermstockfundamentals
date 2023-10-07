@@ -125,7 +125,7 @@ public class StockDataDownloader2 {
             List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
             List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
             statusMessage = "Downloading FX";
-            downloadFxRates();
+            //downloadFxRates();
             statusMessage = "Downloading useful info";
             downloadUsefulInfo();
 
@@ -385,13 +385,18 @@ public class StockDataDownloader2 {
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (var symbol : symbols) {
                 CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-                    Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
-                    if (information.isPresent()) {
-                        companies.put(symbol, information.get());
-                    }
-                    progress = (companies.size() / (double) symbols.size()) * 100.0;
-                    if (companies.size() % 1000 == 0) {
-                        System.out.println("Symbolcache progress: " + progress + "%");
+                    try {
+                        Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
+                        if (information.isPresent()) {
+                            companies.put(symbol, information.get());
+                        }
+                        progress = (companies.size() / (double) symbols.size()) * 100.0;
+                        if (companies.size() % 1000 == 0) {
+                            System.out.println("Symbolcache progress: " + progress + "%");
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Unable to load " + symbol);
+                        e.printStackTrace();
                     }
                 }, executorService);
                 futures.add(future);
@@ -673,7 +678,7 @@ public class StockDataDownloader2 {
             progress = 0.0;
             File symbolsFile = new File(FX_BASE_FOLDER + "/symbols.json");
             if (!symbolsFile.exists()) {
-                String symbolsUri2 = "https://api.exchangerate.host/symbols";
+                String symbolsUri2 = "https://api.exchangerate.host/symbols?access_key=f1e91f55b4ba949ced9797f2979deab8";
                 System.out.println(symbolsUri2);
                 symbolsFile.getParentFile().mkdirs();
                 String data = downloadUri(symbolsUri2);
@@ -1165,7 +1170,7 @@ public class StockDataDownloader2 {
 
             return objectMapper.readValue(data, javaType); // need to unprettify downloaded data
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Error loading file, " + absoluteFile, e);
         }
     }
 

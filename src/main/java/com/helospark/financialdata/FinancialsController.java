@@ -682,6 +682,11 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculatePayoutRatio(financialsTtm)));
     }
 
+    @GetMapping("/total_payout_ratio")
+    public List<SimpleDataElement> getTotalPayoutRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateTotalPayoutRatio(financialsTtm)));
+    }
+
     @GetMapping("/dividend_payout_ratio_with_fcf")
     public List<SimpleDataElement> getPayoutRatioFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateFcfPayoutRatio(financialsTtm)));

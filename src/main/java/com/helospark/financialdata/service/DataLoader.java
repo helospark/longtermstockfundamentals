@@ -656,6 +656,12 @@ public class DataLoader {
                 return Optional.of(fxCache.getIfPresent(fileName));
             } else {
                 FxRatesResponse result = objectMapper.readValue(new File(FX_BASE_FOLDER + "/" + fileName), FxRatesResponse.class);
+
+                if (result.rates == null) {
+                    System.out.println("[Error] " + new File(FX_BASE_FOLDER + "/" + fileName).getAbsolutePath() + " rates is null");
+                    return Optional.empty();
+                }
+
                 fxCache.put(fileName, result);
                 return Optional.of(result);
             }

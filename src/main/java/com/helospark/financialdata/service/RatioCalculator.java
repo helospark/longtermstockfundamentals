@@ -1,5 +1,7 @@
 package com.helospark.financialdata.service;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import com.helospark.financialdata.domain.FinancialsTtm;
@@ -129,6 +131,32 @@ public class RatioCalculator {
         double debt = financial.balanceSheet.totalDebt;
         double equity = financial.balanceSheet.totalStockholdersEquity;
         return debt / equity;
+    }
+
+    public static Double calculateTotalPayoutRatio(FinancialsTtm data) {
+        double netStockRepurchased = ((double) -data.cashFlowTtm.commonStockRepurchased - data.cashFlowTtm.commonStockIssued);
+        double dividendPayed = -data.cashFlowTtm.dividendsPaid;
+
+        double totalPayed = dividendPayed + netStockRepurchased;
+        return totalPayed / data.incomeStatementTtm.netIncome;
+    }
+
+    public static Double calculateTotalPayoutRatioAvg(List<FinancialsTtm> financials, int years) {
+        double sum = 0.0;
+
+        int startIndex = 0;
+        int endIndex = Helpers.findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
+        if (endIndex < 0) {
+            endIndex = financials.size();
+        }
+
+        int count = 0;
+        for (int i = startIndex; i <= endIndex; ++i) {
+            sum += calculateTotalPayoutRatio(financials.get(i));
+            ++count;
+        }
+
+        return sum / count;
     }
 
 }

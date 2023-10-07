@@ -244,6 +244,10 @@ public class GrowthCalculator {
         double distance = calculateYearsDifference(financialsNow, financialThen);
         double resultPercent = calculatePercentChange(now, then, distance);
 
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.of(0.0);
+        }
+
         return Optional.of(resultPercent);
     }
 

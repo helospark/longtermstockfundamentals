@@ -15,4 +15,14 @@ public class Portfolio {
     public PieChart cap;
     public PieChart country;
     public PieChart profitability;
+    public PieChart investments;
+    public PieChart peChart;
+
+    public PieChart roicChart;
+    public PieChart altmanChart;
+    public PieChart growthChart;
+    public PieChart icrChart;
+    public PieChart grossMarginChart;
+    public PieChart shareChangeChart;
+    public PieChart piotroskyChart;
 }

@@ -29,15 +29,16 @@ import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(1998, 2004), new YearRange(2017, 2023));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2010, 2013), new YearRange(2017, 2023));
     //            new YearDifferenceBasedRandomYearGeneratorStrategy(new YearRange(2008, 2020), 4);
-    private static final double MINIMUM_BEAT_PERCENT = 95.0;
-    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
+    private static final double MINIMUM_BEAT_PERCENT = 97.0;
+    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 6;
     private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
-    private static final double MINIMUM_BEAT_COUNT_RATIO = 0.9;
+    private static final double MINIMUM_INVEST_COUNT_PERCENT = 97.0;
     private static final int MIN_PARAMS = 5;
     private static final int MAX_PARAMS = 12;
     private static final int RESULT_QUEUE_SIZE = 60;
+    private static final double MINIMUM_MARKET_CAP = 300.0;
     private static final List<String> EXCLUDED_STOCKS = List.of();
     private static final List<RandomParam> PARAMS = getAllParams();
     ScreenerController screenerController;
@@ -164,7 +165,7 @@ public class ParameterFinderBacktest {
             request.startYear = startYear;
             request.exchanges = EXCHANGES;
             request.operations = new ArrayList<>();
-            request.operations.add(createOperationsWithFixParam("marketCapUsd", greaterThan, 300.0));
+            request.operations.add(createOperationsWithFixParam("marketCapUsd", greaterThan, MINIMUM_MARKET_CAP));
 
             List<Integer> randomIndices = IntStream.range(0, params.size()).mapToObj(a -> a).collect(Collectors.toList());
             Collections.shuffle(randomIndices);
@@ -181,14 +182,14 @@ public class ParameterFinderBacktest {
 
             BacktestResult result = screenerController.performBacktestInternal(request);
             int numberOfQuarters = (endYear - startYear - 1) * 4;
-            int minimumBeatCount = (int) (numberOfQuarters * MINIMUM_BEAT_COUNT_RATIO);
+            int minimumInvestCount = (int) (numberOfQuarters * (MINIMUM_INVEST_COUNT_PERCENT / 100.0));
             int minTransactionCount = (int) (MINIMUM_TRANSACTION_COUNT_AVG_QUARTER * numberOfQuarters);
             int maxTransactionCount = (int) (MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER * numberOfQuarters);
 
             if (result.investedAmount > (minTransactionCount * 1000)
                     && result.investedAmount < (maxTransactionCount * 1000)
                     && result.screenerWithDividendsAvgPercent > 10.0
-                    && result.beatCount > minimumBeatCount
+                    && result.investedCount > minimumInvestCount
                     && result.beatPercent >= MINIMUM_BEAT_PERCENT) {
                 resultSet.add(new TestResult(result.screenerWithDividendsAvgPercent, result.investedAmount, result.screenerWithDividendsMedianPercent, result.beatCount, result.investedCount,
                         request.operations, startYear, endYear));

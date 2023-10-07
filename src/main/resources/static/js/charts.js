@@ -343,6 +343,10 @@ createChart("/financials/share_buyback_per_net_fcf", "Net share buyback / FCF", 
   unit: '%',
   tooltip: 'Positive means shares were bought back, negative means, shares were issued',
 });
+createChart("/financials/total_payout_ratio", "Total payout / net income", {
+  unit: '%',
+  tooltip: 'Total payout (dividend + buyback)',
+});
 createAd();
 
 
