@@ -1,10 +1,14 @@
 package com.helospark.financialdata;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,9 +16,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.helospark.financialdata.domain.EconomicPriceElement;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.SimpleDataElement;
+import com.helospark.financialdata.domain.SimpleDateDataElement;
+import com.helospark.financialdata.domain.ThreeDDataElement;
 import com.helospark.financialdata.service.CpiAdjustor;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
@@ -330,6 +340,125 @@ public class Sp500Controller {
             var cpiElement = unemployment.get(i);
             result.add(new SimpleDataElement(cpiElement.date.toString(), cpiElement.value));
         }
+        return result;
+    }
+
+    @GetMapping("/xyr_shiller_return")
+    public List<ThreeDDataElement> getXYearShillerReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return createBubbleChart(years, loadLttFile("/info/sp500_shiller_pe.json"), 50.0);
+    }
+
+    @GetMapping("/xyr_pe_return")
+    public List<ThreeDDataElement> getXYearPeReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return createBubbleChart(years, loadLttFile("/info/sp500_pe.json"), 50.0);
+    }
+
+    @GetMapping("/spgdpratio_return")
+    public List<ThreeDDataElement> getSpGdpRatioReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return createBubbleChart(years, loadLttFile("/info/sp_to_gdp_ratio.json"), 50.0);
+    }
+
+    @GetMapping("/buffet_indicator_return")
+    public List<ThreeDDataElement> getBuffetIndicator(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return createBubbleChart(years, loadLttFile("/info/buffet_indicator.json"), 150.0);
+    }
+
+    @GetMapping("/interestrate_return")
+    public List<ThreeDDataElement> getInterestRateReturns(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return createBubbleChart(years, loadFpFile("/info/federalFunds.json"), 30.0);
+    }
+
+    @GetMapping("/inflatation_return")
+    public List<ThreeDDataElement> getInflationReturns(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return createBubbleChart(years, cpiToInflation(loadFpFile("/info/CPI.json")), 30.0);
+    }
+
+    public List<ThreeDDataElement> createBubbleChart(int years, List<SimpleDateDataElement> dataElements, double maxValue) throws IOException, StreamReadException, DatabindException {
+        List<SimpleDataElement> spPrices = getPriceWithReinvestedDividends();
+
+        LocalDate lastDate = dataElements.get(0).date;
+
+        List<ThreeDDataElement> result = new ArrayList<>();
+
+        while (lastDate.compareTo(LocalDate.of(1900, 1, 1)) > 0) {
+            LocalDate offsetDate = lastDate.minusYears(years);
+
+            int oldShillerIndex = Helpers.findIndexWithOrBeforeDate(dataElements, offsetDate);
+            int newShillerIndex = Helpers.findIndexWithOrBeforeDate(dataElements, lastDate);
+            if (oldShillerIndex == -1 || oldShillerIndex > dataElements.size() || newShillerIndex == -1 || newShillerIndex > dataElements.size()) {
+                break;
+            }
+            int oldSpIndex = Helpers.findIndexWithOrBeforeDate(spPrices, dataElements.get(oldShillerIndex).date);
+            int newSpIndex = Helpers.findIndexWithOrBeforeDate(spPrices, dataElements.get(newShillerIndex).date);
+
+            if (oldSpIndex == -1 || newSpIndex == -1) {
+                break;
+            }
+
+            double oldShillerValue = dataElements.get(oldShillerIndex).value;
+            double oldSpValue = spPrices.get(oldSpIndex).value;
+            double newSpValue = spPrices.get(newSpIndex).value;
+
+            if (oldShillerValue <= maxValue) {
+
+                Optional<Double> growth = GrowthCalculator.calculateAnnualGrowth(oldSpValue, offsetDate, newSpValue, lastDate);
+
+                if (growth.isPresent()) {
+                    result.add(new ThreeDDataElement(oldShillerValue, growth.get(), 10, dataElements.get(oldShillerIndex).date + ": " + String.format("%.2f", growth.get()) + "%"));
+                }
+            }
+            LocalDate newDate = lastDate.minusMonths(1);
+
+            if (lastDate.equals(newDate)) {
+                if (newShillerIndex + 1 >= dataElements.size()) {
+                    break;
+                }
+                newDate = dataElements.get(newShillerIndex + 1).date;
+            }
+
+            lastDate = newDate;
+        }
+
+        return result;
+    }
+
+    public List<SimpleDateDataElement> loadLttFile(String file) throws IOException, StreamReadException, DatabindException {
+        ObjectMapper om = new ObjectMapper();
+        String[][] shillerRawData = om.readValue(new File(CommonConfig.BASE_FOLDER + file), String[][].class);
+        List<SimpleDateDataElement> dataElements = new ArrayList<>();
+        for (int i = shillerRawData.length - 1; i >= 0; --i) {
+            LocalDate date = LocalDate.parse(shillerRawData[i][0].replaceAll("T.*", ""));
+            double value = Double.parseDouble(shillerRawData[i][1]);
+            SimpleDateDataElement element = new SimpleDateDataElement(date, value);
+
+            dataElements.add(element);
+        }
+        return dataElements;
+    }
+
+    public List<SimpleDateDataElement> loadFpFile(String file) throws IOException, StreamReadException, DatabindException {
+        ObjectMapper om = new ObjectMapper();
+        om.registerModule(new JSR310Module());
+        SimpleDateDataElement[] shillerRawData = om.readValue(new File(CommonConfig.BASE_FOLDER + file), SimpleDateDataElement[].class);
+
+        return Arrays.asList(shillerRawData);
+    }
+
+    private List<SimpleDateDataElement> cpiToInflation(List<SimpleDateDataElement> loadFpFile) {
+        List<SimpleDateDataElement> result = new ArrayList<>();
+
+        int i = 0;
+        while (i < loadFpFile.size() - 13) {
+            double currentCpi = loadFpFile.get(i).value;
+            double previousCpi = loadFpFile.get(i + 12).value;
+
+            double inflation = ((currentCpi - previousCpi) / previousCpi) * 100.0;
+
+            result.add(new SimpleDateDataElement(loadFpFile.get(i).date, inflation));
+
+            ++i;
+        }
+
         return result;
     }
 

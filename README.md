@@ -8,8 +8,9 @@ Used to visualize financial fundamental data, as well as it contains many other 
 
 First you need to download the fundamental data. You only need to do this once (and every once in a while to update the data):
 
- - You need a license to https://site.financialmodelingprep.com/developer/docs/ to download the financial fundamental data
- - Run com.helospark.financialdata.util.StockDataDownloader as Java application, and give `-DAPI_KEY=YOUR_API_KEY` as VM argument
+ - You need a license to https://site.financialmodelingprep.com/developer/docs/ to download the financial fundamental data (currently cheapest is $19/month).
+ - You also need a free API key to https://apilayer.com/marketplace/currency_data-api
+ - Run com.helospark.financialdata.util.StockDataDownloader as Java application, and give `-DAPI_KEY=FINANCIALMODLINGPREP_API_KEY -DAPI_LAYER_API_KEY=APILAYER_API_KEY`` as VM arguments
     - You may want to filter what to download by commenting out unnecessary symbols. By default it downloads all known stocks (about 40 000 stocks, ~20GB).
 
 Once you have the data, run `com.helospark.financialdata.FinancialDataApplication` as Java application. You will then be able to reach the UI on http://localhost:8080/stock/INTC

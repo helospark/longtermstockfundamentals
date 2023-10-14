@@ -22,4 +22,21 @@ public class CalculatorParameters {
                 + ", endShChange=" + endShChange + ", discount=" + discount + ", endMultiple=" + endMultiple + ", startPayout=" + startPayout + ", endPayout=" + endPayout + "]";
     }
 
+    public static CalculatorParameters deepClone(CalculatorParameters old) {
+        CalculatorParameters result = new CalculatorParameters();
+
+        result.startMargin = old.startMargin;
+        result.endMargin = old.endMargin;
+        result.startGrowth = old.startGrowth;
+        result.endGrowth = old.endGrowth;
+        result.startShChange = old.startShChange;
+        result.endShChange = old.endShChange;
+        result.discount = old.discount;
+        result.endMultiple = old.endMultiple;
+        result.startPayout = old.startPayout;
+        result.endPayout = old.endPayout;
+
+        return result;
+    }
+
 }

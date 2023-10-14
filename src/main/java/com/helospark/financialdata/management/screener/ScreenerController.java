@@ -86,6 +86,7 @@ public class ScreenerController {
         this.symbolAtGlanceProvider = symbolAtGlanceProvider;
         this.screenerStrategies = screenerStrategies;
         this.loginController = loginController;
+
         for (var field : AtGlanceData.class.getDeclaredFields()) {
             ScreenerElement screenerElement = field.getAnnotation(ScreenerElement.class);
             if (screenerElement != null) {
@@ -117,6 +118,16 @@ public class ScreenerController {
 
                 idToDescription.put(id, description);
             }
+        }
+        assertUnreflectWorks();
+    }
+
+    private void assertUnreflectWorks() {
+        AtGlanceData sampleData = symbolAtGlanceProvider.getAtGlanceData("AAPL").get();
+        for (var entry : idToDescription.entrySet()) {
+            ScreenerOperation sampleOp = new ScreenerOperation();
+            sampleOp.id = entry.getKey();
+            unreflectGetValue(sampleData, sampleOp, entry.getValue());
         }
     }
 
@@ -231,7 +242,7 @@ public class ScreenerController {
             for (var element : dedupedOperations) {
                 ScreenerDescription screenerDescription = idToDescription.get(element.id);
                 String columnName = screenerDescription.readableName;
-                Double value = getValue(stock, element, screenerDescription);
+                Double value = unreflectGetValue(stock, element, screenerDescription);
                 columnResult.put(columnName, screenerDescription.format.format(value));
             }
             result.portfolio.add(columnResult);
@@ -266,7 +277,7 @@ public class ScreenerController {
             boolean allMatch = true;
             for (var operation : request.operations) {
                 ScreenerDescription source = idToDescription.get(operation.id);
-                double value = getValue(atGlanceData, operation, source);
+                double value = unreflectGetValue(atGlanceData, operation, source);
                 ScreenerStrategy screenerStrategy = operation.screenerStrategy;
                 if (!screenerStrategy.matches(value, operation)) {
                     allMatch = false;
@@ -644,7 +655,7 @@ public class ScreenerController {
         }
     }
 
-    public double getValue(AtGlanceData glance, ScreenerOperation operation, ScreenerDescription screenerDescriptor) {
+    public double unreflectGetValue(AtGlanceData glance, ScreenerOperation operation, ScreenerDescription screenerDescriptor) {
         try {
             if (screenerDescriptor.source.equals(Source.FIELD)) {
                 //                Object value = ((Field) screenerDescriptor.data).get(glance);
@@ -791,6 +802,8 @@ public class ScreenerController {
                 return glance.opCMargin;
             case "fcfMargin":
                 return glance.fcfMargin;
+            case "tpr":
+                return glance.tpr;
             default:
                 throw new RuntimeException("Unexpected type " + id);
         }

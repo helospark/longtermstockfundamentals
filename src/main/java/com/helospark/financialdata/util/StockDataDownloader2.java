@@ -49,6 +49,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeBindings;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.google.common.util.concurrent.RateLimiter;
+import com.helospark.financialdata.domain.ApiLayerCurrencies;
+import com.helospark.financialdata.domain.ApiLayerRates;
 import com.helospark.financialdata.domain.AuxilaryInformation;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
@@ -59,7 +61,9 @@ import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.EconomicPriceElement;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
+import com.helospark.financialdata.domain.FxRatesResponse;
 import com.helospark.financialdata.domain.FxSupportedSymbolsResponse;
+import com.helospark.financialdata.domain.FxSymbol;
 import com.helospark.financialdata.domain.HistoricalPrice;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.IncomeStatement;
@@ -99,6 +103,7 @@ public class StockDataDownloader2 {
     static final String FX_BASE_FOLDER = BASE_FOLDER + "/fxratefiles";
     static final String BASE_URL = "https://financialmodelingprep.com/api";
     static final int RATE_LIMIT_PER_MINUTE = 700;
+    private static final String API_LAYER_API_KEY = System.getProperty("API_LAYER_API_KEY");
 
     static RateLimiter rateLimiter = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 60.0);
     static RateLimiter rateLimiterForFx = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 30.0);
@@ -125,7 +130,7 @@ public class StockDataDownloader2 {
             List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
             List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
             statusMessage = "Downloading FX";
-            //downloadFxRates();
+            downloadFxRates();
             statusMessage = "Downloading useful info";
             downloadUsefulInfo();
 
@@ -569,6 +574,8 @@ public class StockDataDownloader2 {
         data.dividendPayoutRatio = (float) (RatioCalculator.calculatePayoutRatio(financial) * 100.0);
         data.dividendFcfPayoutRatio = (float) (RatioCalculator.calculateFcfPayoutRatio(financial) * 100.0);
 
+        data.tpr = (float) RatioCalculator.calculateTotalPayoutRatio(financial);
+
         data.profitableYears = ProfitabilityCalculator.calculateNumberOfYearsProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).shortValue();
         data.fcfProfitableYears = ProfitabilityCalculator.calculateNumberOfFcfProfitable(company, offsetYear).map(a -> a.doubleValue()).orElse(Double.NaN).shortValue();
         data.stockCompensationPerMkt = StockBasedCompensationCalculator.stockBasedCompensationPerMarketCap(financial).floatValue();
@@ -678,14 +685,15 @@ public class StockDataDownloader2 {
             progress = 0.0;
             File symbolsFile = new File(FX_BASE_FOLDER + "/symbols.json");
             if (!symbolsFile.exists()) {
-                String symbolsUri2 = "https://api.exchangerate.host/symbols?access_key=f1e91f55b4ba949ced9797f2979deab8";
+                String symbolsUri2 = "https://api.apilayer.com/currency_data/list";
                 System.out.println(symbolsUri2);
                 symbolsFile.getParentFile().mkdirs();
-                String data = downloadUri(symbolsUri2);
+                String data = downloadUriWithHeaders(symbolsUri2, Map.of("apikey", API_LAYER_API_KEY));
+                ApiLayerCurrencies apiLayerCurrencies = objectMapper.readValue(data, ApiLayerCurrencies.class);
 
-                try (FileOutputStream fos = new FileOutputStream(symbolsFile)) {
-                    fos.write(data.getBytes());
-                }
+                FxSupportedSymbolsResponse symbolsFileData = convertApiLayerCurrencyToFxSupportedCurrencies(apiLayerCurrencies);
+
+                objectMapper.writeValue(symbolsFile, symbolsFileData);
             }
             FxSupportedSymbolsResponse symbols = objectMapper.readValue(symbolsFile, FxSupportedSymbolsResponse.class);
 
@@ -697,16 +705,19 @@ public class StockDataDownloader2 {
                     return;
                 }
                 LocalDate localDate = LocalDate.of(2000, 1, 1);
-                while (localDate.getYear() <= LocalDate.now().getYear()) {
+                while (localDate.getYear() < LocalDate.now().getYear()) {
                     File currencyFile = new File(FX_BASE_FOLDER + "/" + currency + "_" + localDate.getYear() + ".json");
                     if (!currencyFile.exists()) {
                         rateLimiterForFx.acquire();
-                        String uri = "https://api.exchangerate.host/timeseries?start_date=" + localDate.toString() + "&end_date=" + localDate.plusYears(1).toString() + "&base=" + currency;
+                        String uri = "https://api.apilayer.com/currency_data/timeframe?start_date=" + localDate.toString() + "&end_date=" + localDate.plusYears(1).toString() + "&source=" + currency;
                         System.out.println(uri);
-                        String data = downloadUri(uri);
+                        String data = downloadUriWithHeaders(uri, Map.of("apikey", API_LAYER_API_KEY));
 
-                        try (FileOutputStream fos = new FileOutputStream(currencyFile)) {
-                            fos.write(data.getBytes());
+                        ApiLayerRates apiLayerRates = objectMapper.readValue(data, ApiLayerRates.class);
+                        if (apiLayerRates.success == true) {
+                            FxRatesResponse fxRatesResponse = convertApiLayerRatesToFxRates(apiLayerRates);
+
+                            objectMapper.writeValue(currencyFile, fxRatesResponse);
                         }
                     }
                     localDate = localDate.plusYears(1);
@@ -722,7 +733,7 @@ public class StockDataDownloader2 {
                 try (FileInputStream fis = new FileInputStream(lastUpdatedFile)) {
                     LocalDate lastUpdate = LocalDate.parse(new String(fis.readAllBytes()));
 
-                    if (Math.abs(ChronoUnit.DAYS.between(lastUpdate, LocalDate.now())) > 10) {
+                    if (Math.abs(ChronoUnit.DAYS.between(lastUpdate, LocalDate.now())) > 30) {
                         needsUpdate = true;
                     }
                 }
@@ -735,13 +746,18 @@ public class StockDataDownloader2 {
                     LocalDate localDate = LocalDate.of(LocalDate.now().getYear(), 1, 1);
                     File currencyFile = new File(FX_BASE_FOLDER + "/" + currency + "_" + localDate.getYear() + ".json");
                     rateLimiterForFx.acquire();
-                    String uri = "https://api.exchangerate.host/timeseries?start_date=" + localDate.toString() + "&end_date=" + now + "&base=" + currency;
-                    System.out.println(uri);
-                    String data = downloadUri(uri);
+                    String uri = "https://api.apilayer.com/currency_data/timeframe?start_date=" + localDate.toString() + "&end_date=" + now + "&source=" + currency;
 
-                    try (FileOutputStream fos = new FileOutputStream(currencyFile)) {
-                        fos.write(data.getBytes());
+                    System.out.println(uri);
+                    String data = downloadUriWithHeaders(uri, Map.of("apikey", API_LAYER_API_KEY));
+
+                    ApiLayerRates apiLayerRates = objectMapper.readValue(data, ApiLayerRates.class);
+                    if (apiLayerRates.success == true) {
+                        FxRatesResponse fxRatesResponse = convertApiLayerRatesToFxRates(apiLayerRates);
+
+                        objectMapper.writeValue(currencyFile, fxRatesResponse);
                     }
+
                 }
                 try (FileOutputStream fos = new FileOutputStream(lastUpdatedFile)) {
                     fos.write(now.toString().getBytes());
@@ -750,6 +766,33 @@ public class StockDataDownloader2 {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static FxRatesResponse convertApiLayerRatesToFxRates(ApiLayerRates apiLayerRates) {
+        FxRatesResponse response = new FxRatesResponse();
+        response.success = apiLayerRates.success;
+        response.rates = new HashMap<>();
+        for (var entry : apiLayerRates.quotes.entrySet()) {
+            Map<String, Double> currencyToValuePairsOrig = entry.getValue();
+            Map<String, Double> currencyToValuePairsNew = new HashMap<>();
+            for (var entry2 : currencyToValuePairsOrig.entrySet()) {
+                currencyToValuePairsNew.put(entry2.getKey().substring(3), entry2.getValue());
+            }
+
+            response.rates.put(entry.getKey(), currencyToValuePairsNew);
+        }
+
+        return response;
+    }
+
+    public static FxSupportedSymbolsResponse convertApiLayerCurrencyToFxSupportedCurrencies(ApiLayerCurrencies apiLayerCurrencies) {
+        FxSupportedSymbolsResponse symbolsFileData = new FxSupportedSymbolsResponse();
+        symbolsFileData.success = apiLayerCurrencies.success;
+        symbolsFileData.symbols = new HashMap<>();
+        for (var entry : apiLayerCurrencies.currencies.entrySet()) {
+            symbolsFileData.symbols.put(entry.getKey(), new FxSymbol(entry.getKey(), entry.getValue()));
+        }
+        return symbolsFileData;
     }
 
     private static void downloadStockData(String symbol, Map<String, DownloadDateData> symbolToDates) {
@@ -1200,11 +1243,20 @@ public class StockDataDownloader2 {
         requestHeaders.add("Accept-Encoding", "gzip");
         HttpEntity<?> requestEntity = new HttpEntity<Object>(requestHeaders);
 
-        // Create a new RestTemplate instance
+        ResponseEntity<String> response = restTemplate.exchange(fullUri, HttpMethod.GET, requestEntity, String.class);
 
-        // Add the String message converter
+        String data = response.getBody();
+        return data;
+    }
 
-        // Make the HTTP GET request, marshaling the response to a String
+    public static String downloadUriWithHeaders(String fullUri, Map<String, String> additionalHeaders) {
+        HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.add("Accept-Encoding", "gzip");
+        for (var entry : additionalHeaders.entrySet()) {
+            requestHeaders.put(entry.getKey(), List.of(entry.getValue()));
+        }
+        HttpEntity<?> requestEntity = new HttpEntity<Object>(requestHeaders);
+
         ResponseEntity<String> response = restTemplate.exchange(fullUri, HttpMethod.GET, requestEntity, String.class);
 
         String data = response.getBody();

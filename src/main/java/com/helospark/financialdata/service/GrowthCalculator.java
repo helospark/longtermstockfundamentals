@@ -2,6 +2,7 @@ package com.helospark.financialdata.service;
 
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -300,6 +301,17 @@ public class GrowthCalculator {
 
         double distance = year - offsetYear;
         double resultPercent = calculatePercentChange(now, then, distance);
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(resultPercent);
+    }
+
+    public static Optional<Double> calculateAnnualGrowth(double oldValue, LocalDate oldDate, double newValue, LocalDate newDate) {
+        double daysDiff = Math.abs(ChronoUnit.DAYS.between(newDate, oldDate) / 365.0);
+        double resultPercent = calculatePercentChange(newValue, oldValue, daysDiff);
 
         if (!Double.isFinite(resultPercent)) {
             return Optional.empty();

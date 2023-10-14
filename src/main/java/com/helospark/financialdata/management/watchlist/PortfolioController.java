@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.domain.CompanyFinancials;
+import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.domain.PieChart;
@@ -29,6 +31,7 @@ import com.helospark.financialdata.management.watchlist.repository.LatestPricePr
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
 import com.helospark.financialdata.service.DataLoader;
+import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
@@ -204,6 +207,14 @@ public class PortfolioController {
         Map<String, Double> grossMToInvestment = new LinkedHashMap<>();
         Map<String, Double> piotroskyToInvestment = new LinkedHashMap<>();
 
+        double oneYearReturnTotal = 0.0;
+        double twoYearReturnTotal = 0.0;
+        double threeYearReturnTotal = 0.0;
+        double fiveYearReturnTotal = 0.0;
+        double tenYearReturnTotal = 0.0;
+        double fifteenYearReturnTotal = 0.0;
+        double expectedTotal = 0.0;
+
         Map<String, CompletableFuture<Double>> prices = new HashMap<>();
         for (int i = 0; i < watchlistElements.size(); ++i) {
             String symbol = watchlistElements.get(i).symbol;
@@ -267,14 +278,23 @@ public class PortfolioController {
                 returnsElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
                 returnsElement.put(OWNED_SHARES, watchlistService.formatString(ownedValue));
                 returnsElement.put(SYMBOL_RAW, ticker);
-                returnsElement.put("1 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 1 * 12), -5, 0, 8, 11, 20));
-                returnsElement.put("2 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 2 * 12), -5, 0, 8, 11, 20));
-                returnsElement.put("3 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 3 * 12), -5, 0, 8, 11, 20));
-                returnsElement.put("5 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 5 * 12), -5, 0, 8, 11, 20));
-                returnsElement.put("8 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 8 * 12), -5, 0, 8, 11, 20));
-                returnsElement.put("10 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 10 * 12), -5, 0, 8, 11, 20));
+
+                double oneYearReturn = calculateReturnMonthAgo(data, now, 1 * 12);
+                double twoYearReturn = calculateReturnMonthAgo(data, now, 2 * 12);
+                double threeYearReturn = calculateReturnMonthAgo(data, now, 3 * 12);
+                double fiveYearReturn = calculateReturnMonthAgo(data, now, 5 * 12);
+                double eightYearReturn = calculateReturnMonthAgo(data, now, 8 * 12);
+                double tenYearReturn = calculateReturnMonthAgo(data, now, 10 * 12);
+                double fifteenYearReturn = calculateReturnMonthAgo(data, now, 15 * 12);
+
+                returnsElement.put("1 year", formatStringWithThresholdsPercentAsc(oneYearReturn, -5, 0, 8, 11, 20));
+                returnsElement.put("2 year", formatStringWithThresholdsPercentAsc(twoYearReturn, -5, 0, 8, 11, 20));
+                returnsElement.put("3 year", formatStringWithThresholdsPercentAsc(threeYearReturn, -5, 0, 8, 11, 20));
+                returnsElement.put("5 year", formatStringWithThresholdsPercentAsc(fiveYearReturn, -5, 0, 8, 11, 20));
+                returnsElement.put("8 year", formatStringWithThresholdsPercentAsc(eightYearReturn, -5, 0, 8, 11, 20));
+                returnsElement.put("10 year", formatStringWithThresholdsPercentAsc(tenYearReturn, -5, 0, 8, 11, 20));
                 returnsElement.put("12 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 12 * 12), -5, 0, 8, 11, 20));
-                returnsElement.put("15 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 15 * 12), -5, 0, 8, 11, 20));
+                returnsElement.put("15 year", formatStringWithThresholdsPercentAsc(fifteenYearReturn, -5, 0, 8, 11, 20));
                 returnsElement.put("20 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 20 * 12), -5, 0, 8, 11, 20));
 
                 // pie charts
@@ -294,10 +314,98 @@ public class PortfolioController {
                     createPieChart(grossMToInvestment, data, ownedValue, calculateRanges(atGlance.grMargin, true, GROSS_MARGIN_RANGES));
                     createPieChart(piotroskyToInvestment, data, ownedValue, calculateRanges(atGlance.pietrosky, false, PIOTROSKY_RANGES));
                     createPieChart(shareChangeToInvestment, data, ownedValue, calculateRangesDesc(atGlance.shareCountGrowth, true, SHARE_CHANGE_RANGES));
+
+                    if (data.financials.size() > 0) {
+                        FinancialsTtm financialsTtm = data.financials.get(0);
+
+                        double eps = (double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+                        double fcf = (double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+                        double netAssetsNativeCurrency = (financialsTtm.balanceSheet.totalAssets - financialsTtm.balanceSheet.totalLiabilities)
+                                * ((double) currentElement.ownedShares / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+
+                        eps = DataLoader.convertFx(eps, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        fcf = DataLoader.convertFx(fcf, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        double netAssets = DataLoader.convertFx(netAssetsNativeCurrency, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+
+                        result.totalPrice += orZero(() -> ownedValue);
+                        result.totalEarnings += currentElement.ownedShares * eps;
+                        result.totalFcf += currentElement.ownedShares * fcf;
+                        result.totalNetAssets += orZero(() -> netAssets);
+                        result.numberOfStocks += 1;
+
+                        result.totalEpsGrowth += orZero(() -> ownedValue * atGlance.epsGrowth);
+                        result.totalRevGrowth += orZero(() -> ownedValue * atGlance.revenueGrowth);
+                        result.totalAltman += orZero(() -> ownedValue * atGlance.altman);
+                        result.totalOpMargin += orZero(() -> ownedValue * atGlance.opMargin);
+                        result.totalRoic += orZero(() -> ownedValue * atGlance.roic);
+                        result.totalShareChange += orZero(() -> ownedValue * atGlance.shareCountGrowth);
+                        result.totalDebtToEquity += orZero(() -> ownedValue * atGlance.dtoe);
+
+                        if (Double.isFinite(oneYearReturn)) {
+                            result.oneYearReturn += ownedValue * oneYearReturn;
+                            oneYearReturnTotal += ownedValue;
+                        }
+                        if (Double.isFinite(twoYearReturn)) {
+                            result.twoYearReturn += ownedValue * twoYearReturn;
+                            twoYearReturnTotal += ownedValue;
+                        }
+                        if (Double.isFinite(threeYearReturn)) {
+                            result.threeYearReturn += ownedValue * threeYearReturn;
+                            threeYearReturnTotal += ownedValue;
+                        }
+                        if (Double.isFinite(fiveYearReturn)) {
+                            result.fiveYearReturn += ownedValue * fiveYearReturn;
+                            fiveYearReturnTotal += ownedValue;
+                        }
+                        if (Double.isFinite(tenYearReturn)) {
+                            result.tenYearReturn += ownedValue * tenYearReturn;
+                            tenYearReturnTotal += ownedValue;
+                        }
+                        if (Double.isFinite(fifteenYearReturn)) {
+                            result.fifteenYearReturn += ownedValue * fifteenYearReturn;
+                            fifteenYearReturnTotal += ownedValue;
+                        }
+                        Optional<Double> reverseDcf = DcfCalculator.doDcfReverseDcfAnalysis(data, currentElement.calculatorParameters);
+                        if (reverseDcf.isPresent()) {
+                            result.expectedTenYrReturn += ownedValue * reverseDcf.get();
+                            expectedTotal += ownedValue;
+                        }
+                    }
                 }
 
                 result.returnsPortfolio.add(returnsElement);
             }
+        }
+
+        if (result.totalPrice > 0.0) {
+            result.totalEpsGrowth /= result.totalPrice;
+            result.totalRevGrowth /= result.totalPrice;
+            result.totalAltman /= result.totalPrice;
+            result.totalRoic /= result.totalPrice;
+            result.totalOpMargin /= result.totalPrice;
+            result.totalShareChange /= result.totalPrice;
+            result.totalDebtToEquity /= result.totalPrice;
+        }
+        if (oneYearReturnTotal > 0.0) {
+            result.oneYearReturn /= oneYearReturnTotal;
+        }
+        if (twoYearReturnTotal > 0.0) {
+            result.twoYearReturn /= twoYearReturnTotal;
+        }
+        if (threeYearReturnTotal > 0.0) {
+            result.threeYearReturn /= threeYearReturnTotal;
+        }
+        if (fiveYearReturnTotal > 0.0) {
+            result.fiveYearReturn /= fiveYearReturnTotal;
+        }
+        if (tenYearReturnTotal > 0.0) {
+            result.tenYearReturn /= tenYearReturnTotal;
+        }
+        if (fifteenYearReturnTotal > 0.0) {
+            result.fifteenYearReturn /= fifteenYearReturnTotal;
+        }
+        if (expectedTotal > 0.0) {
+            result.expectedTenYrReturn /= expectedTotal;
         }
 
         result.industry = convertToPieChart(industryToInvestment);
@@ -315,6 +423,15 @@ public class PortfolioController {
         result.grossMarginChart = convertToPieChartWithoutSorting(grossMToInvestment);
         result.shareChangeChart = convertToPieChartWithoutReverse(shareChangeToInvestment);
         result.piotroskyChart = convertToPieChartWithoutSorting(piotroskyToInvestment);
+
+        return result;
+    }
+
+    private double orZero(Supplier<Double> supplier) {
+        Double result = supplier.get();
+        if (result == null || !Double.isFinite(result)) {
+            return 0.0;
+        }
         return result;
     }
 

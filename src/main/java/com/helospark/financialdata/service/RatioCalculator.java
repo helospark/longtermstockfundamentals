@@ -133,12 +133,17 @@ public class RatioCalculator {
         return debt / equity;
     }
 
-    public static Double calculateTotalPayoutRatio(FinancialsTtm data) {
+    public static double calculateTotalPayoutRatio(FinancialsTtm data) {
         double netStockRepurchased = ((double) -data.cashFlowTtm.commonStockRepurchased - data.cashFlowTtm.commonStockIssued);
         double dividendPayed = -data.cashFlowTtm.dividendsPaid;
 
         double totalPayed = dividendPayed + netStockRepurchased;
-        return totalPayed / data.incomeStatementTtm.netIncome;
+        double result = totalPayed / data.incomeStatementTtm.netIncome;
+
+        if (!Double.isFinite(result)) {
+            return 0.0;
+        }
+        return result;
     }
 
     public static Double calculateTotalPayoutRatioAvg(List<FinancialsTtm> financials, int years) {
@@ -151,7 +156,7 @@ public class RatioCalculator {
         }
 
         int count = 0;
-        for (int i = startIndex; i <= endIndex; ++i) {
+        for (int i = startIndex; i <= endIndex && i < financials.size(); ++i) {
             sum += calculateTotalPayoutRatio(financials.get(i));
             ++count;
         }

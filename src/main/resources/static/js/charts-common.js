@@ -534,3 +534,104 @@ function createChart(urlPath, title, chartOptions) {
     
 
 }
+
+
+
+function createBubbleChart(url, title, chartOptions) {
+    var canvas =document.createElement("canvas");
+    canvas.style='width:100%;max-height:600px'
+    
+    var chart = undefined;
+    
+    var underChartBar = document.createElement("div");
+    underChartBar.style="width:100%";
+    
+    var chartDiv = document.createElement("div");
+    chartDiv.className="chartDiv";
+    
+    chartDiv.appendChild(canvas);
+    
+    var titleDiv = document.createElement("h2");
+    titleDiv.innerText = title;
+    titleDiv.className="chart-title";
+
+    var element = document.getElementById("charts");
+    element.appendChild(titleDiv);
+    element.appendChild(chartDiv);
+    element.appendChild(underChartBar);
+
+
+    fetch(url)
+      .then(res => res.json())
+      .then(out => {
+              const data = {
+                datasets: [{
+                  label: 'First Dataset',
+                  data: out,
+                  backgroundColor: 'rgba(0,0,255,0.8)'
+                }]
+              };
+              
+              const bubbleConfig = {
+                type: 'bubble',
+                data: data,
+                options: {
+                  plugins: {
+                      annotation: {
+                        annotations: [{
+                              drawTime: "beforeDraw",
+                              type: 'line',
+                              yMin: 0,
+                              yMax: 0,
+                              borderColor: 'rgb(255, 99, 132)',
+                              borderWidth: 4, 
+                        }]
+                    },
+                    tooltip: {
+                          callbacks: {
+                              label: (item) => {
+                                  return `${item.raw.description}`
+                              }
+                          },
+                      },
+                  }
+                },
+              };
+              chart = new Chart(canvas, bubbleConfig);
+              
+              chart.update();
+      })
+      .catch(err => { throw err });
+      
+      if (chartOptions.slider !== undefined) {
+        var sliderDiv = document.createElement("div")
+        sliderDiv.className="slider-div";
+        
+        var valueSpan = document.createElement("span");
+        
+        var optionSlider = document.createElement("input");
+        optionSlider.id=chartOptions.slider.id;
+        optionSlider.min = chartOptions.slider.min;
+        optionSlider.max = chartOptions.slider.max;
+        optionSlider.value = chartOptions.slider.default;
+        optionSlider.type="range";
+        
+        valueSpan.innerText = (chartOptions.slider.default + " " + chartOptions.slider.parameterName);
+        
+        optionSlider.oninput = function() {
+          valueSpan.innerText = (this.value + " " + chartOptions.slider.parameterName);
+          fetch(url + "?" + chartOptions.slider.parameterName + "=" + this.value)
+              .then(res => res.json())
+              .then(out => {
+                    chart.data.datasets[0].data = out;
+                    chart.update();
+                });
+          }
+          
+          sliderDiv.appendChild(optionSlider);
+          sliderDiv.appendChild(valueSpan);
+          
+          underChartBar.appendChild(sliderDiv);
+        }
+  }
+

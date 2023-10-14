@@ -29,10 +29,10 @@ import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2010, 2013), new YearRange(2017, 2023));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2008, 2012), new YearRange(2016, 2018));
     //            new YearDifferenceBasedRandomYearGeneratorStrategy(new YearRange(2008, 2020), 4);
     private static final double MINIMUM_BEAT_PERCENT = 97.0;
-    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 6;
+    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
     private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
     private static final double MINIMUM_INVEST_COUNT_PERCENT = 97.0;
     private static final int MIN_PARAMS = 5;
@@ -114,6 +114,7 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("redFlags", 0.0, 10.0, ltList));
         params.add(new RandomParam("revSD", 0.0, 1.0));
         params.add(new RandomParam("epsSD", 0.0, 1.0));
+        params.add(new RandomParam("tpr", -0.5, 1.2));
         params.add(new RandomParam("dividendYield", 0.0, 10.0));
         params.add(new RandomParam("marketCapUsd", 400.0, 4_000_000.0, ltList));
 

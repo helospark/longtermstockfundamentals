@@ -375,3 +375,8 @@ select, #start-date-dropdown, #end-date-dropdown {
   width: 14.2%;
   float:left;
 }
+
+.single-number-chart {
+  font-size: 20pt;
+  text-align: center;
+}

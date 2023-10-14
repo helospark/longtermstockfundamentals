@@ -81,7 +81,33 @@ createdCharts = new Map();
            addPieChart(data.shareChangeChart, "#sharechange-chart", "Share change", true);
            addPieChart(data.piotroskyChart, "#piotrosky-chart", "Piotrosky", true);
 
-
+           $("#total").text("$" + parseInt(data.totalPrice, 10).toLocaleString());
+           $("#total-earnings").text("$" + parseInt(data.totalEarnings, 10).toLocaleString());
+           $("#total-fcf").text("$" + parseInt(data.totalFcf, 10).toLocaleString());
+           $("#total-pe").text((data.totalPrice / data.totalEarnings).toFixed(2).toLocaleString());
+           $("#total-pfcf").text((data.totalPrice / data.totalFcf).toFixed(2).toLocaleString());
+           $("#total-net-assets").text("$" + parseInt(data.totalNetAssets).toLocaleString());
+           $("#stock-count").text(parseInt(data.numberOfStocks).toLocaleString());
+           
+           
+           $("#total-rev-growth").text(data.totalRevGrowth.toFixed(2).toLocaleString() + "%");
+           $("#total-eps-growth").text(data.totalEpsGrowth.toFixed(2).toLocaleString() + "%");
+           $("#total-share-change").text(data.totalShareChange.toFixed(2).toLocaleString() + "%");
+           $("#total-roic").text(data.totalRoic.toFixed(2).toLocaleString() + "%");
+           $("#total-altman").text(data.totalAltman.toFixed(2).toLocaleString());
+           $("#total-op-margin").text(data.totalOpMargin.toFixed(2).toLocaleString() + "%");
+           $("#total-d2e").text(data.totalDebtToEquity.toFixed(2).toLocaleString());
+           
+           
+           $("#one-year-returns").text(data.oneYearReturn.toFixed(2).toLocaleString() + "%");
+           $("#two-year-returns").text(data.twoYearReturn.toFixed(2).toLocaleString() + "%");
+           $("#three-year-returns").text(data.threeYearReturn.toFixed(2).toLocaleString() + "%");
+           $("#five-year-returns").text(data.fiveYearReturn.toFixed(2).toLocaleString() + "%");
+           $("#ten-year-returns").text(data.tenYearReturn.toFixed(2).toLocaleString() + "%");
+           $("#fifteen-year-returns").text(data.fifteenYearReturn.toFixed(2).toLocaleString() + "%");
+           $("#expected-returns").text(data.expectedTenYrReturn.toFixed(2).toLocaleString() + "%");
+           
+           
            
            watchlistHtml = createWatchlistTableHtml(data.columns, data.portfolio, false);
            $("#watchlist-table").html(watchlistHtml);

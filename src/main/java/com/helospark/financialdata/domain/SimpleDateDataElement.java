@@ -6,6 +6,10 @@ public class SimpleDateDataElement implements DateAware {
     public LocalDate date;
     public Double value;
 
+    public SimpleDateDataElement() {
+
+    }
+
     public SimpleDateDataElement(LocalDate date, Double value) {
         this.date = date;
         this.value = value;
