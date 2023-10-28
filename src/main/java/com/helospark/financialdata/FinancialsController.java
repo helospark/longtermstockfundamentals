@@ -576,6 +576,11 @@ public class FinancialsController {
         return getIncomeData(stock, false, financialsTtm -> RatioCalculator.calculateDebtToEquityRatio(financialsTtm));
     }
 
+    @GetMapping("/equity_per_share")
+    public List<SimpleDataElement> getEquityPerShare(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> (double) financialsTtm.balanceSheet.totalStockholdersEquity / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+    }
+
     @GetMapping("/non_current_assets")
     public List<SimpleDataElement> getLongTermLiabilities(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.balanceSheet.otherNonCurrentAssets);

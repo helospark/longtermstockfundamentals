@@ -49,8 +49,14 @@ createdCharts = new Map();
                                 dataArr.map(data => {
                                     sum += Number(data);
                                 });
+                                
+                                const options = {
+                                  style: 'decimal',  // Other options: 'currency', 'percent', etc.
+                                  minimumFractionDigits: 0,
+                                  maximumFractionDigits: 0,
+                                };
                  
-                                let percentage = (value * 100 / sum).toFixed(2) + '% ($' + value.toFixed(0).toLocaleString() + ")";
+                                let percentage = (value * 100 / sum).toFixed(2) + '% ($' + value.toLocaleString('en-US', options) + ")";
                                 return label + ": " + percentage;
                             }
                         }

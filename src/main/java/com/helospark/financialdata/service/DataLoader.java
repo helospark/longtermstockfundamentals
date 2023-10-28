@@ -280,11 +280,23 @@ public class DataLoader {
                 }
 
             }
-
         }
         if (symbol.equals("NVO")) {
             profile.reportedCurrency = "DKK";
             profile.currencySymbol = Currency.getInstance("DKK").getSymbol();
+        }
+        if (symbol.equals("CPRT")) {
+            int index = Helpers.findIndexWithOrBeforeDate(incomeStatement, LocalDate.of(2023, 10, 10));
+            if (index != -1) {
+                for (; index < incomeStatement.size(); ++index) { // fix split adjustment
+                    if (incomeStatement.get(index).weightedAverageShsOut < 900_000_000) {
+                        incomeStatement.get(index).weightedAverageShsOut *= 2;
+                    }
+                    if (incomeStatement.get(index).weightedAverageShsOutDil < 900_000_000) {
+                        incomeStatement.get(index).weightedAverageShsOutDil *= 2;
+                    }
+                }
+            }
         }
         if (profile.currency == null && symbol.endsWith(".BD")) {
             profile.currency = "HUF";

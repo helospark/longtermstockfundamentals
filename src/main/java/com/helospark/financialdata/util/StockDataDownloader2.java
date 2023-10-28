@@ -209,6 +209,7 @@ public class StockDataDownloader2 {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
     }
 
     public static Map<String, DownloadDateData> loadDateData(File downloadDates) throws IOException, StreamReadException, DatabindException {

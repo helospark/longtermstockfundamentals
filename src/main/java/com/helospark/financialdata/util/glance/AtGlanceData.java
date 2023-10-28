@@ -148,12 +148,12 @@ public class AtGlanceData {
     @ScreenerElement(name = "FCF margin", format = AtGlanceFormat.PERCENT)
     public float fcfMargin;
 
-    @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield")
+    @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield", format = AtGlanceFormat.PERCENT)
     public double getFreeCashFlowYield() {
         return fcfPerShare / latestStockPrice * 100.0;
     }
 
-    @ScreenerElement(id = "earnings_yield", name = "Earnings yield")
+    @ScreenerElement(id = "earnings_yield", name = "Earnings yield", format = AtGlanceFormat.PERCENT)
     public double getEarningsYield() {
         return eps / latestStockPrice * 100.0;
     }

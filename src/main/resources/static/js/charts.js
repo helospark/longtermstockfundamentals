@@ -276,6 +276,7 @@ createChart("/financials/intangible_assets_percent", "Intangible assets", {
    }
 ]});
 createChart("/financials/cash", "Cash and cash equivalents", {quarterlyEnabled: false});
+createChart("/financials/equity_per_share", "Equity per share", {quarterlyEnabled: false});
 
 //createChart("/financials/non_current_assets", "Non current assets", {quarterlyEnabled: false});
 //createChart("/financials/long_term_debt", "Long term debt", {quarterlyEnabled: false});
