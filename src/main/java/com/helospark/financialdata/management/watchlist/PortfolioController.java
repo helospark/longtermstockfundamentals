@@ -320,7 +320,7 @@ public class PortfolioController {
 
                         double eps = (double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
                         double fcf = (double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
-                        double netAssetsNativeCurrency = (financialsTtm.balanceSheet.totalAssets - financialsTtm.balanceSheet.totalLiabilities)
+                        double netAssetsNativeCurrency = (financialsTtm.balanceSheet.totalStockholdersEquity)
                                 * ((double) currentElement.ownedShares / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
 
                         eps = DataLoader.convertFx(eps, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);

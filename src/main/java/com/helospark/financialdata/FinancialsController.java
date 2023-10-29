@@ -86,6 +86,11 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.operatingIncome / financialsTtm.incomeStatementTtm.revenue));
     }
 
+    @GetMapping("/operating_fcf_margin")
+    public List<SimpleDataElement> getOperativeFcfMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.incomeStatementTtm.revenue));
+    }
+
     @GetMapping("/gross_margin")
     public List<SimpleDataElement> getGrossMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateGrossProfitMargin(financialsTtm)));
@@ -228,6 +233,11 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwillAndIntangibleAssets / financialsTtm.balanceSheet.totalAssets));
     }
 
+    @GetMapping("/asset_turnover_ratio")
+    public List<SimpleDataElement> getAssetTurnoverRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.incomeStatementTtm.revenue / financialsTtm.balanceSheet.totalAssets);
+    }
+
     @GetMapping("/goodwill_percent")
     public List<SimpleDataElement> getGoodwillPercent(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.balanceSheet.goodwill / financialsTtm.balanceSheet.totalAssets));
@@ -241,6 +251,11 @@ public class FinancialsController {
     @GetMapping("/quick_ratio")
     public List<SimpleDataElement> getQuickRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> RatioCalculator.calculateQuickRatio(financialsTtm).orElse(null));
+    }
+
+    @GetMapping("/current_ratio")
+    public List<SimpleDataElement> getCurrentRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> RatioCalculator.calculateCurrentRatio(financialsTtm).orElse(null));
     }
 
     @GetMapping("/short_term_coverage_ratio")
