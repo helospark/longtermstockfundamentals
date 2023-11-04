@@ -16,10 +16,12 @@ public class CalculatorParameters {
     public Double startPayout;
     public Double endPayout;
 
+    public String type;
+
     @Override
     public String toString() {
         return "CalculatorParameters [startMargin=" + startMargin + ", endMargin=" + endMargin + ", startGrowth=" + startGrowth + ", endGrowth=" + endGrowth + ", startShChange=" + startShChange
-                + ", endShChange=" + endShChange + ", discount=" + discount + ", endMultiple=" + endMultiple + ", startPayout=" + startPayout + ", endPayout=" + endPayout + "]";
+                + ", endShChange=" + endShChange + ", discount=" + discount + ", endMultiple=" + endMultiple + ", startPayout=" + startPayout + ", endPayout=" + endPayout + ", type=" + type + "]";
     }
 
     public static CalculatorParameters deepClone(CalculatorParameters old) {
@@ -35,6 +37,7 @@ public class CalculatorParameters {
         result.endMultiple = old.endMultiple;
         result.startPayout = old.startPayout;
         result.endPayout = old.endPayout;
+        result.type = old.type;
 
         return result;
     }

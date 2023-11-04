@@ -14,6 +14,7 @@
 
   <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
   <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.2/umd/popper.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -34,13 +35,45 @@
   <span id="stockToLoad" th:text="${stockToLoad}" style="display:none"></span>
   <h2 style="float:left"><span id="stock-name" th:text="${companyName} + ' complex DCF calculator'"></span></h2>
   <h5 id="add-to-watchlist-header" style="float:left" th:if="${isLoggedIn}"><span class="badge bg-primary" onclick="addToWatchlist()">Watchlist</span></h5>
+  
+  <script>
+    function changeCalculatorType(type) {
+        const currentUrl = new URL(window.location.href);
+        const searchParams = new URLSearchParams(currentUrl.search);
+        
+        var keysToRemove = [];
+        for (keyAsd of searchParams.keys()) {
+          keysToRemove.push(keyAsd);
+        }
+        for (key of keysToRemove) {
+          console.log("Deleting " + key);
+          searchParams.delete(key);
+        }
+        searchParams.set("type", type);
+        currentUrl.search = searchParams.toString();
+        window.location.href = currentUrl.toString();
+    }
+  </script>
+  
+  <div style="float:right">
+    <a class="btn btn-secondary dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      Calculator type
+    </a>
+  
+    <ul id="calculator-type-dropdown" class="dropdown-menu">
+      <li><a th:class="dropdown-item" href="#" onclick="changeCalculatorType('eps')" th:classappend="${calculatorType == 'eps'} ? active : inactive">EPS</a></li>
+      <li><a th:class="dropdown-item" href="#" onclick="changeCalculatorType('fcf')" th:classappend="${calculatorType == 'fcf'} ? active : inactive">FCF</a></li>
+    </ul>
+  </div>
   <div class="clearFloat"></div>
+  
   
   <span id="current-price" th:text="${latestPrice}" style="display:none"></span>
   <span id="current-price-in-trading-currency" th:text="${latestPriceTradingCurrency}" style="display:none"></span>
   <span id="reporting-currency-to-trading-currency-exchange-rate" th:text="${reportingCurrencyToTradingCurrencyRate}" style="display:none"></span>
   <span id="trading-currency-symbol" th:text="${tradingCurrencySymbol}" style="display:none"></span>
   <span id="stockToLoad" th:text="${stockToLoad}" style="display:none"></span>
+  <span id="calculatorType" th:text="${calculatorType}" style="display:none"></span>
 
 
 <form id="dcf_form">
@@ -50,7 +83,7 @@
       <input th:value="${revenue}" id="revenue" type="text" class="form-control no-modify" placeholder="Revenue in millions">
     </div>
     <div class="col-md-2 mb-3">
-      <label for="startMargin">Start net margin</label>
+      <label for="startMargin">Start <span th:text="${calculatorType == 'eps'} ? net : FCF"></span> margin</label>
       <input th:value="${startMargin}" id="startMargin" type="text" class="form-control" placeholder="Start margin">
     </div>
     <div class="col-md-2 mb-3">
@@ -76,7 +109,7 @@
       <input  th:value="${shareCount}" id="shareCount" type="text" class="form-control no-modify" placeholder="Share count">
     </div>
     <div class="col-md-2 mb-3">
-      <label for="endMargin">End net margin</label>
+      <label for="endMargin">End <span th:text="${calculatorType == 'eps'} ? net : FCF"></span> margin</label>
       <input th:value="${endMargin}" id="endMargin" type="text" class="form-control" placeholder="End margin">
     </div>
     <div class="col-md-2 mb-3">
@@ -116,10 +149,10 @@
     <td  scope="col">Revenue</td>
   </tr>
   <tr id="table_eps">
-    <td  scope="col">EPS</td>
+    <td  scope="col">${calculatorType == 'eps' ? 'EPS' : 'FCF / share'}</td>
   </tr>
   <tr id="table_deps">
-    <td  scope="col">Discounted EPS</td>
+    <td  scope="col">${calculatorType == 'eps' ? 'Discounted EPS' : 'Discounted FCF/share'}</td>
   </tr>
 </table>
 

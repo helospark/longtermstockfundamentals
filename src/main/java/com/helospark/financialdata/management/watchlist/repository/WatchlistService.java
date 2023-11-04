@@ -137,6 +137,9 @@ public class WatchlistService {
         if (calculatorParameters.startPayout != null) {
             uri += "&startPayout=" + calculatorParameters.startPayout + "&endPayout=" + calculatorParameters.endPayout;
         }
+        if (calculatorParameters.type != null) {
+            uri += "&type=" + calculatorParameters.type;
+        }
 
         return uri;
     }

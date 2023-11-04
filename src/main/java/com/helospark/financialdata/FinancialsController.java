@@ -71,6 +71,11 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.cashFlowTtm.freeCashFlow);
     }
 
+    @GetMapping("/ebitda_per_share")
+    public List<SimpleDataElement> getEbitdaPerShare(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.incomeStatementTtm.ebitda / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+    }
+
     @GetMapping("/net_income")
     public List<SimpleDataElement> getNetIncome(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.netIncome);
@@ -89,6 +94,34 @@ public class FinancialsController {
     @GetMapping("/operating_fcf_margin")
     public List<SimpleDataElement> getOperativeFcfMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.incomeStatementTtm.revenue));
+    }
+
+    @GetMapping("/operating_ebitda_margin")
+    public List<SimpleDataElement> getEbitdaMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.ebitda / financialsTtm.incomeStatementTtm.revenue));
+    }
+
+    @GetMapping("/marketing_per_operating_expense")
+    public List<SimpleDataElement> getMarketingPerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
+    }
+
+    @GetMapping("/rd_per_operating_expense")
+    public List<SimpleDataElement> getRdPerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
+    }
+
+    @GetMapping("/admin_per_operating_expense")
+    public List<SimpleDataElement> getAdministrativePerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.generalAndAdministrativeExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
+    }
+
+    @GetMapping("/other_per_operating_expense")
+    public List<SimpleDataElement> getOtherPerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.otherExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
     }
 
     @GetMapping("/gross_margin")
@@ -705,6 +738,11 @@ public class FinancialsController {
     @GetMapping("/total_payout_ratio")
     public List<SimpleDataElement> getTotalPayoutRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateTotalPayoutRatio(financialsTtm)));
+    }
+
+    @GetMapping("/total_payout_ratio_fcf")
+    public List<SimpleDataElement> getTotalPayoutRatioFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateTotalPayoutRatioFcf(financialsTtm)));
     }
 
     @GetMapping("/dividend_payout_ratio_with_fcf")

@@ -34,6 +34,7 @@
   <span id="stockToLoad" th:text="${stockToLoad}" style="display:none"></span>
   <h2 style="float:left"><span id="stock-name" th:text="${companyName} + ' DCF calculator'"></span></h2>
   <h5 id="add-to-watchlist-header" style="float:left" th:if="${isLoggedIn}"><span class="badge bg-primary" onclick="addToWatchlist()">Watchlist</span></h5>
+
   <div class="clearFloat"></div>
   
   <span id="current-price" th:text="${latestPrice}" style="display:none"></span>
@@ -41,6 +42,7 @@
   <span id="reporting-currency-to-trading-currency-exchange-rate" th:text="${reportingCurrencyToTradingCurrencyRate}" style="display:none"></span>
   <span id="trading-currency-symbol" th:text="${tradingCurrencySymbol}" style="display:none"></span>
   <span id="stockToLoad" th:text="${stockToLoad}" style="display:none"></span>
+  
 
 
 <form id="dcf_form">

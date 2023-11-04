@@ -268,18 +268,29 @@
    
   var stock = document.getElementById("stock").innerText;
   var stockToLoad = document.getElementById("stockToLoad").innerText;
+  var calculatorType = document.getElementById("calculatorType").innerText;
 
+  if (calculatorType === 'eps') {
+    chart=createChart("/financials/eps", "EPS", {
+         additionalLabelsAtEnd: dates,
+         lazyLoading: false,
+         label: "past",
+         quarterlyEnabled: false,
+         runAfter: updateCalculation,
+         zeroBasedChangeListener: updateCalculation
+    });
+  } else if (calculatorType === 'fcf') {
+    chart=createChart("/financials/pfcf", "FCF / share", {
+         additionalLabelsAtEnd: dates,
+         lazyLoading: false,
+         label: "past",
+         quarterlyEnabled: false,
+         runAfter: updateCalculation,
+         zeroBasedChangeListener: updateCalculation
+    });
+  }
 
-  chart=createChart("/financials/eps", "EPS", {
-       additionalLabelsAtEnd: dates,
-       lazyLoading: false,
-       label: "past",
-       quarterlyEnabled: false,
-       runAfter: updateCalculation,
-       zeroBasedChangeListener: updateCalculation
-  });
-
-    revChart=createChart("/financials/revenue", "revenue", {
+    revChart=createChart("/financials/revenue", "Revenue", {
          additionalLabelsAtEnd: dates,
          lazyLoading: false,
          label: "past",
@@ -288,14 +299,25 @@
          zeroBasedChangeListener: updateCalculation
     });
     
-    marginChart=createChart("/financials/net_margin", "net margin", {
-         additionalLabelsAtEnd: dates,
-         label: "past",
-         runAfter: updateCalculation,
-         zeroBasedChangeListener: updateCalculation,
-         quarterlyEnabled: false,
-         lazyLoading: false
-    });
+    if (calculatorType === 'eps') {
+      marginChart=createChart("/financials/net_margin", "net margin", {
+           additionalLabelsAtEnd: dates,
+           label: "past",
+           runAfter: updateCalculation,
+           zeroBasedChangeListener: updateCalculation,
+           quarterlyEnabled: false,
+           lazyLoading: false
+      });
+    } else if (calculatorType === 'fcf') {
+      marginChart=createChart("/financials/fcf_margin", "FCF margin", {
+           additionalLabelsAtEnd: dates,
+           label: "past",
+           runAfter: updateCalculation,
+           zeroBasedChangeListener: updateCalculation,
+           quarterlyEnabled: false,
+           lazyLoading: false
+      });
+    }
     
     shareCountChart = createChart("/financials/share_count", "Share count", {
          additionalLabelsAtEnd: dates,
@@ -306,14 +328,25 @@
          lazyLoad: false
      });
 
-    totalPayoutChart = createChart("/financials/total_payout_ratio", "Total payout ratio", {
-         additionalLabelsAtEnd: dates,
-         label: "past",
-         runAfter: updateCalculation,
-         zeroBasedChangeListener: updateCalculation,
-         quarterlyEnabled: false,
-         lazyLoad: false
-     });
+    if (calculatorType === 'eps') {
+      totalPayoutChart = createChart("/financials/total_payout_ratio", "Total payout ratio", {
+           additionalLabelsAtEnd: dates,
+           label: "past",
+           runAfter: updateCalculation,
+           zeroBasedChangeListener: updateCalculation,
+           quarterlyEnabled: false,
+           lazyLoad: false
+       });
+     } else if (calculatorType === 'fcf') {
+      totalPayoutChart = createChart("/financials/total_payout_ratio_fcf", "Total payout ratio", {
+           additionalLabelsAtEnd: dates,
+           label: "past",
+           runAfter: updateCalculation,
+           zeroBasedChangeListener: updateCalculation,
+           quarterlyEnabled: false,
+           lazyLoad: false
+       });
+     }
      
     
     createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {

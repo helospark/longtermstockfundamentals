@@ -164,4 +164,35 @@ public class RatioCalculator {
         return sum / count;
     }
 
+    public static Double calculateTotalPayoutRatioFcf(FinancialsTtm data) {
+        double netStockRepurchased = ((double) -data.cashFlowTtm.commonStockRepurchased - data.cashFlowTtm.commonStockIssued);
+        double dividendPayed = -data.cashFlowTtm.dividendsPaid;
+
+        double totalPayed = dividendPayed + netStockRepurchased;
+        double result = totalPayed / data.cashFlowTtm.freeCashFlow;
+
+        if (!Double.isFinite(result)) {
+            return 0.0;
+        }
+        return result;
+    }
+
+    public static double calculateTotalPayoutRatioAvgFcf(List<FinancialsTtm> financials, int years) {
+        double sum = 0.0;
+
+        int startIndex = 0;
+        int endIndex = Helpers.findIndexWithOrBeforeDate(financials, LocalDate.now().minusYears(years));
+        if (endIndex < 0) {
+            endIndex = financials.size();
+        }
+
+        int count = 0;
+        for (int i = startIndex; i <= endIndex && i < financials.size(); ++i) {
+            sum += calculateTotalPayoutRatioFcf(financials.get(i));
+            ++count;
+        }
+
+        return sum / count;
+    }
+
 }

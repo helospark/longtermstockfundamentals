@@ -48,4 +48,15 @@ public class MarginCalculator {
         return sum / count;
     }
 
+    public static Double getAvgFcfMargin(List<FinancialsTtm> financials, int oldIndex) {
+        double sum = 0.0;
+        int count = 0;
+        for (int i = oldIndex; i < oldIndex + 4 && i < financials.size(); ++i) {
+            double margin = (double) financials.get(i).cashFlowTtm.freeCashFlow / financials.get(i).incomeStatementTtm.revenue;
+            sum += margin;
+            ++count;
+        }
+        return sum / count;
+    }
+
 }

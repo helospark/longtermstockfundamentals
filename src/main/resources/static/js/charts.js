@@ -271,6 +271,7 @@ createChartInternal("/financials/net_income", "Net income", {label: "Net income"
 ]});
 createChartInternal("/financials/eps", "EPS", {});
 createChartInternal("/financials/pfcf", "FCF per share", {});
+createChartInternal("/financials/ebitda_per_share", "EBITDA per share", {}, defaultEnabled=false);
 
 
 createSeparatorInternal("Margins")
@@ -287,7 +288,23 @@ createChartInternal("/financials/net_margin", "Net margin", {suggestedMin: -20, 
   }
 ]});
 createChartInternal("/financials/operating_fcf_margin", "Operating FCF margin", {suggestedMin: -20, unit: '%'}, defaultEnabled=false);
+createChartInternal("/financials/operating_ebitda_margin", "EBITDA margin", {suggestedMin: -20, unit: '%'}, defaultEnabled=false);
 
+createSeparatorInternal("Expenses")
+createChartInternal("/financials/marketing_per_operating_expense", "Operating expense breakdown", {unit: '%', suggestedMin: 0, suggestedMax: 100, label: 'Marketing expense %', additionalCharts: [
+  {
+    "url": "/financials/rd_per_operating_expense",
+    "label": "Research and development expense %"
+  },
+  {
+    "url": "/financials/admin_per_operating_expense",
+    "label": "General administrative expense %"
+  },
+  {
+    "url": "/financials/other_per_operating_expense",
+    "label": "Other expense %"
+  }
+]});
 
 createSeparatorInternal("Price ratios")
 createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});

@@ -203,12 +203,15 @@ public class ViewController {
             @RequestParam(required = false, name = "discount") Double discountParam,
             @RequestParam(required = false, name = "endMultiple") Double endMultipleParam,
             @RequestParam(required = false, name = "startPayout") Double startPayoutRatio,
-            @RequestParam(required = false, name = "endPayout") Double endPayoutRatio) {
+            @RequestParam(required = false, name = "endPayout") Double endPayoutRatio,
+            @RequestParam(required = false, name = "type") String type) {
         if (!symbolIndexProvider.doesCompanyExists(stock)) {
             redirectAttributes.addAttribute("generalInfo", "stock_not_found");
             return "redirect:/";
         } else {
             fillModelWithCommonStockData(stock, model, request);
+
+            boolean useEps = (type == null || type.equals("eps"));
 
             if (Boolean.TRUE.equals(model.getAttribute("allowed"))) {
                 CompanyFinancials company = DataLoader.readFinancials(stock);
@@ -219,7 +222,8 @@ public class ViewController {
                     }
                     Double startMargin = startMarginParam;
                     if (startMargin == null) {
-                        startMargin = MarginCalculator.getAvgNetMargin(company.financials, 0) * 100.0;
+                        startMargin = useEps ? MarginCalculator.getAvgNetMargin(company.financials, 0) : MarginCalculator.getAvgFcfMargin(company.financials, 0);
+                        startMargin *= 100.0;
                     }
 
                     Double startShareCountGrowth = startShareChangeParam;
@@ -248,7 +252,8 @@ public class ViewController {
 
                     Double startPayoutRatioResult = startPayoutRatio;
                     if (startPayoutRatioResult == null) {
-                        startPayoutRatioResult = RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) * 100.0;
+                        startPayoutRatioResult = (useEps ? RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) : RatioCalculator.calculateTotalPayoutRatioAvgFcf(company.financials, 2))
+                                * 100.0;
                         if (startPayoutRatioResult <= 30.0) {
                             startPayoutRatioResult = 100.0;
                         }
@@ -271,6 +276,7 @@ public class ViewController {
                     model.addAttribute("discount", String.format("%.0f", discount));
                     model.addAttribute("startPayout", String.format("%.0f", startPayoutRatioResult));
                     model.addAttribute("endPayout", String.format("%.0f", endPayoutRatioResult));
+                    model.addAttribute("calculatorType", useEps ? "eps" : "fcf");
                     var tradingCurrency = Optional.ofNullable(company.profile.currency).orElse("");
                     var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
                     if (tradingCurrency.equals(reportedCurrency)) {
@@ -314,7 +320,7 @@ public class ViewController {
             return "redirect:/";
         } else {
             fillModelWithCommonStockData(stock, model, request);
-    
+
             if (Boolean.TRUE.equals(model.getAttribute("allowed"))) {
                 CompanyFinancials company = DataLoader.readFinancials(stock);
                 if (company.financials.size() > 0) {
@@ -326,13 +332,13 @@ public class ViewController {
                     if (startMargin == null) {
                         startMargin = MarginCalculator.getAvgNetMargin(company.financials, 0) * 100.0;
                     }
-    
+
                     Double startShareCountGrowth = startShareChangeParam;
                     if (startShareCountGrowth == null) {
                         startShareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5, 0).orElse(0.0);
                     }
                     double endGrowth = nonNullOf(endGrowthParam, startGrowth * 0.5);
-    
+
                     Double startPayoutRatioResult = startPayoutRatio;
                     if (startPayoutRatioResult == null) {
                         startPayoutRatioResult = RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) * 100.0;
@@ -344,12 +350,12 @@ public class ViewController {
                         }
                     }
                     double endPayoutRatioResult = nonNullOf(endPayoutRatio, startShareCountGrowth);
-    
+
                     Double endShareCountGrowth = endShareChangeParam;
                     if (endShareCountGrowth == null) {
                         endShareCountGrowth = startShareCountGrowth;
                     }
-    
+
                     Double endMultiple = endMultipleParam;
                     if (endMultiple == null) {
                         endMultiple = 12.0;
@@ -362,10 +368,10 @@ public class ViewController {
                     }
                     Double endMargin = nonNullOf(endMarginParam, startMargin);
                     Double discount = nonNullOf(discountParam, 10.0);
-    
+
                     model.addAttribute("revenue", (double) company.financials.get(0).incomeStatementTtm.revenue / 1_000_000);
                     model.addAttribute("shareCount", company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / 1000);
-    
+
                     model.addAttribute("startGrowth", String.format("%.2f", startGrowth));
                     model.addAttribute("endGrowth", String.format("%.2f", endGrowth));
                     model.addAttribute("startMargin", String.format("%.2f", startMargin));
@@ -389,14 +395,14 @@ public class ViewController {
                         model.addAttribute("reportingCurrencyToTradingCurrencyRate", exchangeRate.orElse(1.0));
                     }
                 }
-    
+
                 double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
                 Optional<Double> priceInReportCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, company.profile.currency, company.profile.reportedCurrency, LocalDate.now(), false);
                 model.addAttribute("latestPrice", priceInReportCurrency.orElse(company.latestPrice));
                 model.addAttribute("latestPriceTradingCurrency", latestPriceInTradingCurrency);
                 model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
             }
-    
+
             return "complex_calculator";
         }
     }*/

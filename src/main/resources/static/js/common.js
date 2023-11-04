@@ -203,6 +203,10 @@
     notes = $("#watchlist-notes").val();
     tags = $("#watchlist-tags").val().split(",");
     ownedShares = $("#watchlist-shares").val();
+    
+    const currentUrl = new URL(window.location.href);
+    const searchParams = new URLSearchParams(currentUrl.search);
+    const type = searchParams.get("type");
 
     fairValueSpan = $("#fair-value");
     var onCalculator = false;
@@ -218,7 +222,7 @@
       currentPrice = Number($("#current-price").text());
       startPayout = Number($("#startPayout").val());
       endPayout = Number($("#endPayout").text());
-      
+       
       calculatorParameters = {
         startMargin: startMargin,
         endMargin: endMargin,
@@ -233,7 +237,9 @@
         endMultiple: endMultiple,
         
         startPayout: startPayout,
-        endPayout: endPayout
+        endPayout: endPayout,
+        
+        type: type
       };
     } else {
       calculatorParameters = null;

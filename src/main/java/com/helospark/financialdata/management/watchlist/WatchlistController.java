@@ -93,6 +93,9 @@ public class WatchlistController {
         if (request.ownedShares < 0) {
             throw new WatchlistBadRequestException("Cannot own less than 0 shares");
         }
+        if (request.calculatorParameters.type != null && !(request.calculatorParameters.type.equals("eps") || request.calculatorParameters.type.equals("fcf"))) {
+            throw new WatchlistBadRequestException("Invalid calculator type");
+        }
 
         watchlistService.saveToWatchlist(jwt.get().getSubject(), request, loginController.getAccountType(jwt.get()));
     }
