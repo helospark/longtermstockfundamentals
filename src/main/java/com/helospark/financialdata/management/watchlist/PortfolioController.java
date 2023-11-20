@@ -13,16 +13,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
+import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.domain.PieChart;
@@ -41,6 +47,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 public class PortfolioController {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PortfolioController.class);
     private static final String MARKET_CAP = "MarketCap";
     private static final String RANK = "Rank";
     private static final String SYMBOL_RAW = "SYMBOL_RAW";
@@ -157,11 +164,15 @@ public class PortfolioController {
     }
 
     private Map<String, Integer> listToSummary(String data) {
-        String[] stocks = data.split(",");
+        String[] stocks = data.split("[,\n]");
         Map<String, Integer> result = new LinkedHashMap<>();
 
         for (var stock : stocks) {
             String trimmedStock = stock.trim();
+
+            if (trimmedStock.isBlank()) {
+                continue;
+            }
 
             int parIndex = trimmedStock.indexOf('(');
             if (parIndex != -1) {
@@ -680,4 +691,12 @@ public class PortfolioController {
     static class SummaryRequest {
         public String data = "";
     }
+
+    @ExceptionHandler(WatchlistPermissionDeniedException.class)
+    @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
+    public GenericResponseAccountResult handlePermissionDenied(WatchlistPermissionDeniedException exception) {
+        LOGGER.warn("Unauthorized exception", exception);
+        return new GenericResponseAccountResult(exception.getMessage());
+    }
+
 }

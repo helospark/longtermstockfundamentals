@@ -65,6 +65,11 @@ function createChart(urlPath, title, chartOptions) {
   var defaultQuarterlyEnabled = chartOptions.defaultQuarterlyEnabled === undefined ? false : chartOptions.defaultQuarterlyEnabled;
   var quaterlySupported = chartOptions.quarterlyEnabled === undefined ? true : chartOptions.quarterlyEnabled;
   var isSecondYAxisNeeded = chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts[0].secondYAxis === true ? true : false;
+  var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
+  
+  if (!addStockPrefix) {
+    stockToLoad = "";
+  }
   
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
@@ -313,7 +318,7 @@ function createChart(urlPath, title, chartOptions) {
           }
         }
         
-        let url = '/' + stockToLoad + urlPath;
+        let url = (addStockPrefix ? '/' + stockToLoad : "") + urlPath;
         var parameters = new Map();
         var parameterString = "";
         
@@ -340,6 +345,7 @@ function createChart(urlPath, title, chartOptions) {
         if (parameterString.length > 0) {
           url += "?" + parameterString;
         }
+        console.log("Fetching: " + url);
         fetch(url)
           .then(res => res.json())
           .then(out => {
@@ -415,7 +421,7 @@ function createChart(urlPath, title, chartOptions) {
     
     
     function addAdditionalChart(element, parameterString, chartToUpdate) {
-          localUri  = '/' + stockToLoad + element.url;
+          localUri  = (addStockPrefix ? '/' + stockToLoad : "") + element.url;
           
           if (parameterString.length > 0) {
             localUri += "?" + parameterString;

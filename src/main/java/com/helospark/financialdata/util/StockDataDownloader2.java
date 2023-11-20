@@ -4,6 +4,7 @@ import static com.helospark.financialdata.CommonConfig.BASE_FOLDER;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -28,7 +29,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPOutputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +40,9 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.VersionFieldSerializer;
 import com.fasterxml.jackson.core.exc.StreamReadException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DatabindException;
@@ -88,15 +91,17 @@ import com.helospark.financialdata.service.ProfitabilityCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.StockBasedCompensationCalculator;
+import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
 public class StockDataDownloader2 {
     private static final Logger LOGGER = LoggerFactory.getLogger(StockDataDownloader2.class);
-    public static final String SYMBOL_CACHE_FILE = BASE_FOLDER + "/info/symbols/atGlance.json";
+    public static final String SYMBOL_CACHE_FILE = BASE_FOLDER + "/info/symbols/atGlance.kryo.bin";
     public static final String DOWNLOAD_DATES = BASE_FOLDER + "/info/download-dates.json";
     public static final String SYMBOL_CACHE_HISTORY_FILE = BASE_FOLDER + "/info/symbols/";
     static final ObjectMapper objectMapper = new ObjectMapper();
+    static final Kryo kryo = new Kryo();
     static final String API_KEY = System.getProperty("API_KEY");
     static final Integer NUM_YEARS = 100;
     static final Integer NUM_QUARTER = NUM_YEARS * 4;
@@ -118,7 +123,7 @@ public class StockDataDownloader2 {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        boolean downloadNewData = true;
+        boolean downloadNewData = false;
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;
@@ -126,6 +131,7 @@ public class StockDataDownloader2 {
         if (downloadNewData) {
             //List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
             List<String> symbols = Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class));
+
             List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
             List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
             List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
@@ -197,15 +203,58 @@ public class StockDataDownloader2 {
         inProgress = false;
     }
 
-    public static DownloadDateData downloadOneStock(String symbol) {
+    public static DownloadDateData downloadOneStock(String symbol, SymbolAtGlanceProvider symbolAtGlanceProvider) {
         try {
             File downloadDates = new File(DOWNLOAD_DATES);
             Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
-            symbolToDates.remove(symbol);
+            var lastDownloaded = symbolToDates.remove(symbol);
             downloadStockData(symbol, symbolToDates);
             writeLastAttemptedFile(downloadDates, symbolToDates);
             DataLoader.clearCache(symbol);
-            return symbolToDates.get(symbol);
+            DownloadDateData newDownloaded = symbolToDates.get(symbol);
+
+            if (!lastDownloaded.equals(newDownloaded)) {
+                int currentMonth = LocalDate.now().getMonthValue();
+                Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
+
+                if (information.isPresent()) {
+                    LinkedHashMap<String, AtGlanceData> companies = new LinkedHashMap<>(symbolAtGlanceProvider.getSymbolCompanyNameCache());
+                    companies.put(symbol, information.get());
+                    saveSymbolCache(companies);
+                    symbolAtGlanceProvider.initCache();
+                }
+            }
+
+            return newDownloaded;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public static void downloadMultiStock(List<String> symbols, SymbolAtGlanceProvider symbolAtGlanceProvider) {
+        LinkedHashMap<String, AtGlanceData> companies = new LinkedHashMap<>(symbolAtGlanceProvider.getSymbolCompanyNameCache());
+        int currentMonth = LocalDate.now().getMonthValue();
+        try {
+            for (var symbol : symbols) {
+                File downloadDates = new File(DOWNLOAD_DATES);
+                Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+                var lastDownloaded = symbolToDates.remove(symbol);
+                downloadStockData(symbol, symbolToDates);
+                writeLastAttemptedFile(downloadDates, symbolToDates);
+                DataLoader.clearCache(symbol);
+                DownloadDateData newDownloaded = symbolToDates.get(symbol);
+
+                if (!lastDownloaded.equals(newDownloaded)) {
+                    Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
+
+                    if (information.isPresent()) {
+                        companies.put(symbol, information.get());
+                    }
+                }
+            }
+            saveSymbolCache(companies);
+            symbolAtGlanceProvider.initCache();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -302,87 +351,6 @@ public class StockDataDownloader2 {
         ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads);
         Set<String> symbols = DataLoader.provideAllSymbols();
         if (regenerateCurrentCompanyCache) {
-            /*
-            LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache = new LinkedHashMap<>();
-            Set<Profile> usCompanies = new TreeSet<>((a, b) -> Double.compare(b.mktCap, a.mktCap));
-            long allSymbolSize = DataLoader.provideAllSymbols().size();
-            // sort by most often searched regions
-            for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByRegion(ExchangeRegion.US))) {
-                List<Profile> profiles = DataLoader.readFinancialFile(symbol, "profile.json", Profile.class);
-                if (profiles.size() > 0 && !symbol.endsWith("-PL")) {
-                    usCompanies.add(profiles.get(0));
-                }
-                if (usCompanies.size() % 100 == 0) {
-                    progress = ((double) usCompanies.size() / allSymbolSize) * 100.0;
-                    if (!inProgress) {
-                        return;
-                    }
-                }
-            }
-            for (var usCompany : usCompanies) {
-                if (!symbolCompanyNameCache.containsKey(usCompany.symbol)) {
-                    Optional<AtGlanceData> symbolToSearchData = symbolToSearchData(usCompany.symbol, 0, currentMonth);
-                    if (symbolToSearchData.isPresent()) {
-                        symbolCompanyNameCache.put(usCompany.symbol, symbolToSearchData.get());
-                    }
-                }
-            }
-            for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByRegion(ExchangeRegion.US))) {
-                if (!symbolCompanyNameCache.containsKey(symbol)) {
-                    Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
-                    if (information.isPresent()) {
-                        symbolCompanyNameCache.put(symbol, information.get());
-                    }
-                }
-                if (symbolCompanyNameCache.size() % 100 == 0) {
-                    progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
-                    if (!inProgress) {
-                        return;
-                    }
-                }
-            }
-            for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByType(MarketType.DEVELOPED_MARKET))) {
-                if (!symbolCompanyNameCache.containsKey(symbol)) {
-                    Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
-                    if (information.isPresent()) {
-                        symbolCompanyNameCache.put(symbol, information.get());
-                    }
-                }
-                if (symbolCompanyNameCache.size() % 100 == 0) {
-                    progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
-                    if (!inProgress) {
-                        return;
-                    }
-                }
-            }
-            for (var symbol : DataLoader.provideSymbolsIn(Exchanges.getExchangesByType(MarketType.DEVELOPING_MARKET))) {
-                if (!symbolCompanyNameCache.containsKey(symbol)) {
-                    Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
-                    if (information.isPresent()) {
-                        symbolCompanyNameCache.put(symbol, information.get());
-                    }
-                }
-                if (symbolCompanyNameCache.size() % 100 == 0) {
-                    progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
-                    if (!inProgress) {
-                        return;
-                    }
-                }
-            }
-            for (var symbol : DataLoader.provideAllSymbols()) {
-                if (!symbolCompanyNameCache.containsKey(symbol)) {
-                    Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
-                    if (information.isPresent()) {
-                        symbolCompanyNameCache.put(symbol, information.get());
-                    }
-                }
-                if (symbolCompanyNameCache.size() % 100 == 0) {
-                    progress = ((double) symbolCompanyNameCache.size() / allSymbolSize) * 100.0;
-                    if (!inProgress) {
-                        return;
-                    }
-                }
-            } */
 
             ConcurrentHashMap<String, AtGlanceData> companies = new ConcurrentHashMap<String, AtGlanceData>();
 
@@ -411,20 +379,7 @@ public class StockDataDownloader2 {
                 future.join();
             }
 
-            TreeSet<AtGlanceData> orderedCompaniesSet = new TreeSet<>((a, b) -> Double.compare(b.marketCapUsd, a.marketCapUsd));
-            orderedCompaniesSet.addAll(companies.values());
-
-            LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache = new LinkedHashMap<>();
-            for (var element : orderedCompaniesSet) {
-                symbolCompanyNameCache.put(element.symbol, element);
-            }
-
-            File file = new File(SYMBOL_CACHE_FILE);
-            try {
-                objectMapper.writeValue(file, symbolCompanyNameCache);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            saveSymbolCache(companies);
         }
 
         var allSymbolsSet = symbols;
@@ -444,6 +399,7 @@ public class StockDataDownloader2 {
                     if (entry == null) {
                         break;
                     }
+                    CompanyFinancials company = DataLoader.readFinancialsWithCacheEnabled(entry, false);
                     int queueSize = allSymbolsSet.size() - queue.size();
                     if (queueSize % 1000 == 0) {
                         LOGGER.info("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
@@ -463,7 +419,7 @@ public class StockDataDownloader2 {
                                     yearData.put(mapIndex, companyMap);
                                 }
 
-                                Optional<AtGlanceData> offsetDataOptional = symbolToSearchData(entry, i, month);
+                                Optional<AtGlanceData> offsetDataOptional = symbolToSearchData(entry, company, i, month);
                                 if (offsetDataOptional.isPresent()) {
                                     AtGlanceData offsetData = offsetDataOptional.get();
                                     offsetData.companyName = null;
@@ -492,9 +448,11 @@ public class StockDataDownloader2 {
         for (var entry : yearData.entrySet()) {
             File backtestFile = getBacktestFileAtYear(entry.getKey().year, entry.getKey().month);
             if (!backtestFile.exists()) {
-                try (GZIPOutputStream fos = new GZIPOutputStream(new FileOutputStream(backtestFile))) {
-                    objectMapper.writeValue(fos, entry.getValue());
-                    System.out.println(backtestFile.getAbsolutePath() + " written");
+
+                try {
+                    Output output = new Output(new FileOutputStream(backtestFile));
+                    kryo.writeObject(output, entry.getValue());
+                    output.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -503,14 +461,49 @@ public class StockDataDownloader2 {
 
     }
 
+    public void saveWithKryo(LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache, Kryo kryo, String filename) {
+        Output output;
+        try {
+            output = new Output(new FileOutputStream(filename));
+            kryo.writeObject(output, symbolCompanyNameCache);
+            output.close();
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    public static void saveSymbolCache(Map<String, AtGlanceData> companies) {
+        TreeSet<AtGlanceData> orderedCompaniesSet = new TreeSet<>((a, b) -> Double.compare(b.marketCapUsd, a.marketCapUsd));
+        orderedCompaniesSet.addAll(companies.values());
+
+        LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache = new LinkedHashMap<>();
+        for (var element : orderedCompaniesSet) {
+            symbolCompanyNameCache.put(element.symbol, element);
+        }
+
+        try {
+            Output output = new Output(new FileOutputStream(SYMBOL_CACHE_FILE));
+            kryo.writeObject(output, symbolCompanyNameCache);
+            output.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     public static File getBacktestFileAtYear(int year, int month) {
-        return new File(SYMBOL_CACHE_HISTORY_FILE + year + "-" + month + ".json.gz");
+        return new File(SYMBOL_CACHE_HISTORY_FILE + year + "-" + month + ".kryo.bin");
     }
 
     public static Optional<AtGlanceData> symbolToSearchData(String symbol, int offsetYeari, int month) {
-        AtGlanceData data = new AtGlanceData();
         CompanyFinancials company = DataLoader.readFinancialsWithCacheEnabled(symbol, false);
 
+        return symbolToSearchData(symbol, company, offsetYeari, month);
+    }
+
+    public static Optional<AtGlanceData> symbolToSearchData(String symbol, CompanyFinancials company, int offsetYeari, int month) {
+        AtGlanceData data = new AtGlanceData();
         LocalDate now = LocalDate.now();
         LocalDate targetDate = LocalDate.of(now.getYear() - offsetYeari, month, 1);
 
@@ -524,7 +517,7 @@ public class StockDataDownloader2 {
         int index = Helpers.findIndexWithOrBeforeDate(company.financials, targetDate);
 
         if (index == -1) {
-            return Optional.of(data);
+            return Optional.empty();
         }
         var financial = company.financials.get(index);
 
@@ -982,6 +975,12 @@ public class StockDataDownloader2 {
         HttpComponentsClientHttpRequestFactory clientHttpRequestFactory = new HttpComponentsClientHttpRequestFactory();
         restTemplate = new RestTemplate(clientHttpRequestFactory);
         restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
+
+        kryo.register(AtGlanceData.class);
+        kryo.register(LinkedHashMap.class);
+        kryo.register(LocalDate.class);
+        kryo.register(ConcurrentHashMap.class);
+        kryo.setDefaultSerializer(VersionFieldSerializer.class);
     }
 
     private static List<String> downloadCompanyListCached(String urlPath, String folder) {
@@ -1306,6 +1305,23 @@ public class StockDataDownloader2 {
             this.lastAttemptedDownload = lastAttemptedDownload;
             this.lastPriceDownload = lastPriceDownload;
             this.previousReportPeriod = previousReportPeriod;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(lastPriceDownload, lastReportDate);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            DownloadDateData other = (DownloadDateData) obj;
+            return Objects.equals(lastPriceDownload, other.lastPriceDownload) && Objects.equals(lastReportDate, other.lastReportDate);
         }
 
     }

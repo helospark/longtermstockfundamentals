@@ -140,4 +140,34 @@ createdCharts = new Map();
              "iDisplayLength": 100,
              "order": [ '2', 'desc' ]
            });
+           
+           if (document.getElementById("charts") !== null) {
+            createChart("/historical-performance/eps", "Earnings", {
+                 quarterlyEnabled: false,
+                 addStockPrefix: false,
+                 label: "Earnings",
+                 unit: '$',
+                 additionalCharts: [
+                  {
+                    "url": "/historical-performance/fcf",
+                    "label": "Free cashflow"
+                  },
+                ]});
+            createChart("/historical-performance/equity", "Equity", {
+                 quarterlyEnabled: false,
+                 addStockPrefix: false,
+                 unit: '$'
+                });
+            createChart("/historical-performance/number-of-holdings", "Number of holdings", {
+                 quarterlyEnabled: false,
+                 addStockPrefix: false
+                });
+            createChart("/historical-performance/total", "Total", {
+                 quarterlyEnabled: false,
+                 addStockPrefix: false,
+                 unit: '$'
+                });
+        }
      }
+ 
+ 

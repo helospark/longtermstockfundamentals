@@ -18,7 +18,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" ></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="/js/common.js" ></script>
+  <script src="/js/charts-common.js"></script>
   <script src="/js/portfolio.js" ></script>
 
   <title>Portfolio</title>
@@ -153,8 +157,14 @@
   <div style="clear:both"></div>
   
   
+  <div th:if="${isLoggedIn}">
+  <h3 style="margin-top:40px">Historical performance</h3>
+  <div id="charts"></div>
+  </div>
+  
   <h3 style="margin-top:40px">Annualized returns</h3>
   <div id="returns-table"></div>
+  
 
   <script th:if="${isLoggedIn}">
      onlyOwned = $("#onlyOwned").text();

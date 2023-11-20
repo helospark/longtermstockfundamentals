@@ -4,12 +4,43 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-public class MessageCompresser {
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-    public static ByteBuffer compressString(byte[] uncompressed) throws IOException {
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+@Component
+public class MessageCompresser {
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    public ByteBuffer createCompressedValue(Object elements) {
+        try {
+            byte[] bytes = objectMapper.writeValueAsBytes(elements);
+            return compressString(bytes);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public <T> List<T> uncompressListOf(ByteBuffer data, Class<T> listType) {
+        try {
+            String rawString = uncompressString(data);
+
+            JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, listType);
+            List<T> result = objectMapper.readValue(rawString, type);
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public ByteBuffer compressString(byte[] uncompressed) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         GZIPOutputStream os = new GZIPOutputStream(baos);
         os.write(uncompressed);
@@ -23,7 +54,7 @@ public class MessageCompresser {
         return buffer;
     }
 
-    public static String uncompressString(ByteBuffer input) throws IOException {
+    public String uncompressString(ByteBuffer input) throws IOException {
         byte[] bytes = input.array();
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();

@@ -29,16 +29,21 @@ import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2008, 2012), new YearRange(2016, 2018));
-    //            new YearDifferenceBasedRandomYearGeneratorStrategy(new YearRange(2008, 2020), 4);
-    private static final double MINIMUM_BEAT_PERCENT = 97.0;
+    private static final double MINIMUM_MARKET_CAP = 300.0;
+
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2006, 2009), new YearRange(2020, 2024));
+
+    private static final double MINIMUM_BEAT_PERCENT = 95.0;
+    private static final double MINIMUM_INVEST_COUNT_PERCENT = 90.0;
+
     private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
     private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
-    private static final double MINIMUM_INVEST_COUNT_PERCENT = 97.0;
+
     private static final int MIN_PARAMS = 5;
     private static final int MAX_PARAMS = 12;
+
     private static final int RESULT_QUEUE_SIZE = 60;
-    private static final double MINIMUM_MARKET_CAP = 300.0;
+
     private static final List<String> EXCLUDED_STOCKS = List.of();
     private static final List<RandomParam> PARAMS = getAllParams();
     ScreenerController screenerController;

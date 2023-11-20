@@ -1,11 +1,13 @@
 package com.helospark.financialdata.management.user.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
 
 @Repository
 public class UserRepository {
@@ -22,6 +24,10 @@ public class UserRepository {
 
     public void delete(User user) {
         mapper.delete(user);
+    }
+
+    public List<User> getAllUsers() {
+        return mapper.scan(User.class, new DynamoDBScanExpression());
     }
 
 }

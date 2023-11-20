@@ -24,6 +24,8 @@ import com.helospark.financialdata.management.user.repository.PersistentSignin;
 import com.helospark.financialdata.management.user.repository.User;
 import com.helospark.financialdata.management.user.repository.UserRepository;
 import com.helospark.financialdata.management.user.repository.ViewedStocks;
+import com.helospark.financialdata.management.watchlist.repository.JobLastRunData;
+import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistory;
 import com.helospark.financialdata.management.watchlist.repository.Watchlist;
 
 import jakarta.annotation.PostConstruct;
@@ -46,6 +48,8 @@ public class DynamoDbInitializer {
         boolean wasConfirmationEmailTableCreated = createTable("ConfirmationEmail", ConfirmationEmail.class);
         createTable("StripeUserMapping", StripeUserMapping.class);
         createTable("UserLastPayment", UserLastPayment.class);
+        createTable("JobLastRunData", JobLastRunData.class);
+        createTable("PortfolioPerformanceHistory", PortfolioPerformanceHistory.class);
         createTableWithProvisioning("Watchlist", Watchlist.class, 5L, 5L);
 
         if (wasUserTableCreated || userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {

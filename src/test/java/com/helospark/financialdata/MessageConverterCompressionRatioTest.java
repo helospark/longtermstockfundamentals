@@ -14,6 +14,7 @@ public class MessageConverterCompressionRatioTest {
 
     @Test
     public void testSmallList() throws IOException {
+        MessageCompresser messageCompresser = new MessageCompresser();
         List<WatchlistElement> watchlistElements = new ArrayList<>();
 
         var amazon = new WatchlistElement();
@@ -43,13 +44,14 @@ public class MessageConverterCompressionRatioTest {
 
         System.out.println("Uncompressed=" + uncompressed.length);
 
-        byte[] compressed = MessageCompresser.compressString(uncompressed).array();
+        byte[] compressed = messageCompresser.compressString(uncompressed).array();
 
         System.out.println("Compressed=" + compressed.length);
     }
 
     @Test
     public void testEmptyNotes() throws IOException {
+        MessageCompresser messageCompresser = new MessageCompresser();
         List<WatchlistElement> watchlistElements = new ArrayList<>();
 
         var amazon = new WatchlistElement();
@@ -70,7 +72,7 @@ public class MessageConverterCompressionRatioTest {
 
         System.out.println("Uncompressed=" + uncompressed.length);
 
-        byte[] compressed = MessageCompresser.compressString(uncompressed).array();
+        byte[] compressed = messageCompresser.compressString(uncompressed).array();
 
         System.out.println("Compressed=" + compressed.length);
     }

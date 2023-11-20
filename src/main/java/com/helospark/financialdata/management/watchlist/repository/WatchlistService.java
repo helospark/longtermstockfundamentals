@@ -1,6 +1,5 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -54,6 +52,8 @@ public class WatchlistService {
     private SymbolAtGlanceProvider symbolIndexProvider;
     @Autowired
     private LatestPriceProvider latestPriceProvider;
+    @Autowired
+    private MessageCompresser messageCompresser;
 
     // Only for single server setup
     Cache<String, Optional<Watchlist>> watchlistCache = Caffeine.newBuilder()
@@ -111,7 +111,7 @@ public class WatchlistService {
 
         Watchlist watchlist = optionalWatchlist.get();
 
-        List<WatchlistElement> watchlistElements = decodeWatchlist(watchlist);
+        List<WatchlistElement> watchlistElements = messageCompresser.uncompressListOf(watchlist.getWatchlistRaw(), WatchlistElement.class);
         return watchlistElements;
     }
 
@@ -181,18 +181,6 @@ public class WatchlistService {
         }
     }
 
-    public List<WatchlistElement> decodeWatchlist(Watchlist watchlist) {
-        try {
-            String rawString = MessageCompresser.uncompressString(watchlist.getWatchlistRaw());
-
-            JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, WatchlistElement.class);
-            List<WatchlistElement> result = objectMapper.readValue(rawString, type);
-            return result;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     public void saveToWatchlist(String email, AddToWatchlistRequest request, AccountType accountType) {
         Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
 
@@ -201,7 +189,7 @@ public class WatchlistService {
         if (!optionalWatchlist.isPresent()) {
             elements = new ArrayList<>();
         } else {
-            elements = decodeWatchlist(optionalWatchlist.get());
+            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistRaw(), WatchlistElement.class);
         }
 
         int index = findIndexFor(elements, request.symbol);
@@ -231,7 +219,7 @@ public class WatchlistService {
 
         Watchlist toInsert = new Watchlist();
         toInsert.setEmail(email);
-        toInsert.setWatchlistRaw(createCompressedValue(elements));
+        toInsert.setWatchlistRaw(messageCompresser.createCompressedValue(elements));
 
         LOGGER.info("Inserting into watchlist, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
 
@@ -246,15 +234,6 @@ public class WatchlistService {
         return tags.stream()
                 .map(tag -> tag.strip())
                 .collect(Collectors.toList());
-    }
-
-    private ByteBuffer createCompressedValue(List<WatchlistElement> elements) {
-        try {
-            byte[] bytes = objectMapper.writeValueAsBytes(elements);
-            return MessageCompresser.compressString(bytes);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private List<String> escapeSymbols(List<String> tags) {
@@ -282,7 +261,7 @@ public class WatchlistService {
         if (!optionalWatchlist.isPresent()) {
             return;
         }
-        List<WatchlistElement> elements = decodeWatchlist(optionalWatchlist.get());
+        List<WatchlistElement> elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistRaw(), WatchlistElement.class);
 
         int index = findIndexFor(elements, request.symbol);
 
@@ -292,7 +271,7 @@ public class WatchlistService {
 
         Watchlist toInsert = new Watchlist();
         toInsert.setEmail(email);
-        toInsert.setWatchlistRaw(createCompressedValue(elements));
+        toInsert.setWatchlistRaw(messageCompresser.createCompressedValue(elements));
 
         LOGGER.info("Remove successful, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
 
@@ -306,7 +285,7 @@ public class WatchlistService {
         if (!optionalWatchlist.isPresent()) {
             return Optional.empty();
         }
-        List<WatchlistElement> elements = decodeWatchlist(optionalWatchlist.get());
+        List<WatchlistElement> elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistRaw(), WatchlistElement.class);
 
         int index = findIndexFor(elements, stock);
 

@@ -149,10 +149,10 @@
     <td  scope="col">Revenue</td>
   </tr>
   <tr id="table_eps">
-    <td  scope="col">${calculatorType == 'eps' ? 'EPS' : 'FCF / share'}</td>
+    <td  scope="col" th:text="${calculatorType == 'eps' ? 'EPS' : 'FCF / share'}"></td>
   </tr>
   <tr id="table_deps">
-    <td  scope="col">${calculatorType == 'eps' ? 'Discounted EPS' : 'Discounted FCF/share'}</td>
+    <td  scope="col" th:text="${calculatorType == 'eps' ? 'Discounted EPS' : 'Discounted FCF / share'}"></td>
   </tr>
 </table>
 

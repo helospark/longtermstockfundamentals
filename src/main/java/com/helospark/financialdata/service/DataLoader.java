@@ -22,12 +22,13 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPInputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.serializers.VersionFieldSerializer;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -792,7 +793,7 @@ public class DataLoader {
     }
 
     public static Optional<Map<String, AtGlanceData>> loadHistoricalAtGlanceData(int year) {
-        return loadHistoricalAtGlanceData(year);
+        return loadHistoricalAtGlanceData(year, 1);
     }
 
     public static Optional<Map<String, AtGlanceData>> loadHistoricalAtGlanceData(int year, int month) {
@@ -801,15 +802,28 @@ public class DataLoader {
         if (!file.exists()) {
             return Optional.empty();
         }
-
-        TypeReference<LinkedHashMap<String, AtGlanceData>> typeRef = new TypeReference<LinkedHashMap<String, AtGlanceData>>() {
+        /* TypeReference<LinkedHashMap<String, AtGlanceData>> typeRef = new TypeReference<LinkedHashMap<String, AtGlanceData>>() {
         };
-
-        try (var fis = new GZIPInputStream(new FileInputStream(file))) {
+        try (var fis = new GZIPInputStream(new FileInputStream(file.getAbsolutePath().replace("kryo.bin", "json.gz")))) {
             return Optional.of(objectMapper.readValue(fis, typeRef));
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }*/
+        Kryo kryo = new Kryo();
+        kryo.register(AtGlanceData.class);
+        kryo.register(LinkedHashMap.class);
+        kryo.register(LocalDate.class);
+        kryo.setDefaultSerializer(VersionFieldSerializer.class);
+
+        Optional<Map<String, AtGlanceData>> result;
+        try {
+            Input input = new Input(new FileInputStream(file));
+            result = Optional.of((Map<String, AtGlanceData>) (LinkedHashMap<String, AtGlanceData>) kryo.readObject(input, LinkedHashMap.class));
+            input.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
+        return result;
     }
 
     public static List<EconomicPriceElement> loadEconomicFile(String string) {

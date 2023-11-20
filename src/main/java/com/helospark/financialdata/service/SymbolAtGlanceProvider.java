@@ -1,7 +1,9 @@
 package com.helospark.financialdata.service;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,7 +13,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.serializers.VersionFieldSerializer;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
@@ -39,16 +43,25 @@ public class SymbolAtGlanceProvider {
             .build();
 
     public SymbolAtGlanceProvider() {
+        initCache();
+    }
+
+    public void initCache() {
         ObjectMapper om = new ObjectMapper();
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         om.registerModule(new JSR310Module());
         File file = new File(StockDataDownloader2.SYMBOL_CACHE_FILE);
 
-        TypeReference<LinkedHashMap<String, AtGlanceData>> typeRef = new TypeReference<LinkedHashMap<String, AtGlanceData>>() {
-        };
+        Kryo kryo = new Kryo();
+        kryo.register(AtGlanceData.class);
+        kryo.register(LinkedHashMap.class);
+        kryo.register(LocalDate.class);
+        kryo.setDefaultSerializer(VersionFieldSerializer.class);
 
         try {
-            symbolCompanyNameCache = om.readValue(file, typeRef);
+            Input input = new Input(new FileInputStream(file));
+            symbolCompanyNameCache = kryo.readObject(input, LinkedHashMap.class);
+            input.close();
 
             for (var entry : symbolCompanyNameCache.entrySet()) {
                 if (entry.getKey().length() > longestSymbol) {
