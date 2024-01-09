@@ -31,12 +31,12 @@ public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 300.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2006, 2009), new YearRange(2020, 2024));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2001, 2007), new YearRange(2017, 2019));
 
-    private static final double MINIMUM_BEAT_PERCENT = 95.0;
-    private static final double MINIMUM_INVEST_COUNT_PERCENT = 90.0;
+    private static final double MINIMUM_BEAT_PERCENT = 90.0;
+    private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
 
-    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
+    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 8;
     private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
 
     private static final int MIN_PARAMS = 5;
@@ -84,34 +84,56 @@ public class ParameterFinderBacktest {
         List<RandomParam> params = new ArrayList<>();
         params.add(new RandomParam("altman", 1.0, 10.0, gtList));
         params.add(new RandomParam("pietrosky", 1.0, 8.0, gtList));
+
         params.add(new RandomParam("roic", 8, 60, gtList));
         params.add(new RandomParam("fiveYrRoic", 0, 20, gtList));
-        params.add(new RandomParam("roe", 1, 30, gtList));
+        params.add(new RandomParam("roe", 1, 50));
+        params.add(new RandomParam("roa", 1, 50));
+        params.add(new RandomParam("rota", 1, 50));
         params.add(new RandomParam("icr", 1, 30, gtList));
-        params.add(new RandomParam("currentRatio", 0.0, 2.0));
+
         params.add(new RandomParam("trailingPeg", 0.1, 2.5));
         params.add(new RandomParam("cape", 3.0, 80.0));
         params.add(new RandomParam("fYrPe", 0.0, 50.0));
+        params.add(new RandomParam("fYrPFcf", 0.0, 50));
+
         params.add(new RandomParam("epsGrowth", -10, 100));
         params.add(new RandomParam("fcfGrowth", -10, 100));
         params.add(new RandomParam("revenueGrowth", -10, 100));
         params.add(new RandomParam("shareCountGrowth", -10, 10, ltList));
         params.add(new RandomParam("netMarginGrowth", -5, 5));
         params.add(new RandomParam("dividendGrowthRate", -10, 30));
+        params.add(new RandomParam("equityGrowth", -10, 30));
+
+        params.add(new RandomParam("epsGrowth2yr", -10, 100));
+        params.add(new RandomParam("fcfGrowth2yr", -10, 100));
+        params.add(new RandomParam("revenueGrowth2yr", -10, 100));
+        params.add(new RandomParam("shareCountGrowth2yr", -10, 10, ltList));
+        params.add(new RandomParam("equityGrowth2yr", -10, 30));
+
         params.add(new RandomParam("ltl5Fcf", 0.2, 10));
-        params.add(new RandomParam("fYrPFcf", 0.0, 50));
         params.add(new RandomParam("dtoe", 0.0, 4.0));
+        params.add(new RandomParam("currentRatio", 0.0, 2.0));
+        params.add(new RandomParam("assetTurnoverRatio", 0.0, 1.5));
+
         params.add(new RandomParam("opMargin", -10, 40));
         params.add(new RandomParam("opCMargin", -10, 40));
         params.add(new RandomParam("fcfMargin", -10, 30));
+        params.add(new RandomParam("ebitdaMargin", -10, 30));
+
         params.add(new RandomParam("pts", 0.2, 2));
         params.add(new RandomParam("ptb", 0.2, 2));
+        params.add(new RandomParam("priceToGrossProfit", 0.2, 2));
+
         params.add(new RandomParam("dividendPayoutRatio", 0.0, 120.0));
         params.add(new RandomParam("profitableYears", 0.0, 12.0));
         params.add(new RandomParam("stockCompensationPerMkt", 0.0, 3.0, ltList));
         params.add(new RandomParam("fvCalculatorMoS", -50.0, 1000.0));
         params.add(new RandomParam("ideal10yrRevCorrelation", 0.0, 1.0));
+
         params.add(new RandomParam("price10Gr", -20.0, 30.0));
+        params.add(new RandomParam("price5Gr", -20.0, 30.0));
+
         params.add(new RandomParam("fcf_yield", 0.0, 30.0));
         params.add(new RandomParam("starFlags", 0.0, 10.0, gtList));
         params.add(new RandomParam("greenFlags", 0.0, 10.0, gtList));

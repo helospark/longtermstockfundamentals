@@ -80,7 +80,7 @@
       </select>
       <span style="font-size:18pt">&rarr;</span>
       <select id="end-date-dropdown" >
-        <option th:value="${date}" th:text="${date}" th:each="date : ${backtestDates}"  th:selected="${date == 2023 ? 'true' : null}"></option>
+        <option th:value="${date}" th:text="${date}" th:each="date : ${backtestDates}"  th:selected="${date == 2024 ? 'true' : null}"></option>
       </select>
       <button id="backtest-button" class="btn btn-success" onclick="submitBacktest()">
         <span style="display:none" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>

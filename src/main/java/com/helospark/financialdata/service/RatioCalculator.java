@@ -195,4 +195,8 @@ public class RatioCalculator {
         return sum / count;
     }
 
+    public static double calculateAccrualRatio(FinancialsTtm financialsTtm) {
+        return ((double) financialsTtm.incomeStatementTtm.netIncome - financialsTtm.cashFlowTtm.freeCashFlow) / (financialsTtm.balanceSheet.totalAssets);
+    }
+
 }

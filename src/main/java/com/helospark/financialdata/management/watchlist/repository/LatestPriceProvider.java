@@ -113,6 +113,10 @@ public class LatestPriceProvider {
         cacheChanged = false;
     }
 
+    public void removeFromCache(List<String> symbols) {
+        tickerToPriceCache.invalidateAll(symbols);
+    }
+
     private void writeCacheToFile() {
         try {
             Map<String, DoubleCacheEntry> diskCache = new HashMap<>();

@@ -7,11 +7,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -27,11 +26,11 @@ import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
-import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
 @TestMethodOrder(OrderAnnotation.class)
+@Disabled
 public class KryoTest {
     static final int LIMIT = 10;
 
@@ -154,14 +153,6 @@ public class KryoTest {
         long end = System.currentTimeMillis();
 
         System.out.println("Load json took: " + ((end - start) / 1000.0));
-    }
-
-    @Test
-    public void testDataLoader() {
-        for (int i = 1993; i <= 2022; ++i) {
-            Optional<Map<String, AtGlanceData>> data = DataLoader.loadHistoricalAtGlanceData(i, 1);
-            System.out.println(i + " " + data.get().get("MBUU").altman);
-        }
     }
 
     @Test

@@ -335,10 +335,11 @@ public class StockDataDownloader {
         data.ideal10yrEpsCorrelation = (float) IdealGrowthCorrelationCalculator.calculateEpsCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal10yrFcfCorrelation = (float) IdealGrowthCorrelationCalculator.calculateFcfCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
 
+        /*
         data.ideal20yrRevCorrelation = (float) IdealGrowthCorrelationCalculator.calculateRevenueCorrelation(company.financials, 20.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal20yrEpsCorrelation = (float) IdealGrowthCorrelationCalculator.calculateEpsCorrelation(company.financials, 20.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal20yrFcfCorrelation = (float) IdealGrowthCorrelationCalculator.calculateFcfCorrelation(company.financials, 20.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
-
+        */
         data.fvCalculatorMoS = (float) ((DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
         data.fvCompositeMoS = (float) ((DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
 

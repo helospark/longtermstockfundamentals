@@ -760,12 +760,6 @@ public class ScreenerController {
                 return glance.ideal10yrEpsCorrelation;
             case "ideal10yrFcfCorrelation":
                 return glance.ideal10yrFcfCorrelation;
-            case "ideal20yrRevCorrelation":
-                return glance.ideal20yrRevCorrelation;
-            case "ideal20yrEpsCorrelation":
-                return glance.ideal20yrEpsCorrelation;
-            case "ideal20yrFcfCorrelation":
-                return glance.ideal20yrFcfCorrelation;
             case "fvCalculatorMoS":
                 return glance.fvCalculatorMoS;
             case "fvCompositeMoS":
@@ -804,6 +798,32 @@ public class ScreenerController {
                 return glance.fcfMargin;
             case "tpr":
                 return glance.tpr;
+            case "ebitdaMargin":
+                return glance.ebitdaMargin;
+            case "price5Gr":
+                return glance.price5Gr;
+            case "epsGrowth2yr":
+                return glance.epsGrowth2yr;
+            case "fcfGrowth2yr":
+                return glance.fcfGrowth2yr;
+            case "revenueGrowth2yr":
+                return glance.revenueGrowth2yr;
+            case "shareCountGrowth2yr":
+                return glance.shareCountGrowth2yr;
+            case "equityGrowth2yr":
+                return glance.equityGrowth2yr;
+            case "roa":
+                return glance.roa;
+            case "rota":
+                return glance.rota;
+            case "assetTurnoverRatio":
+                return glance.assetTurnoverRatio;
+            case "priceToGrossProfit":
+                return glance.priceToGrossProfit;
+            case "equityGrowth":
+                return glance.equityGrowth;
+            case "investmentScore":
+                return glance.investmentScore;
             default:
                 throw new RuntimeException("Unexpected type " + id);
         }

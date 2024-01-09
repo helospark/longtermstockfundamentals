@@ -85,6 +85,7 @@ import com.helospark.financialdata.service.GrowthCorrelationCalculator;
 import com.helospark.financialdata.service.GrowthStandardDeviationCounter;
 import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.IdealGrowthCorrelationCalculator;
+import com.helospark.financialdata.service.InvestmentScoreCalculator;
 import com.helospark.financialdata.service.MarginCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.ProfitabilityCalculator;
@@ -543,13 +544,18 @@ public class StockDataDownloader2 {
         data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial)).orElse(Double.NaN).floatValue();
         data.evToEbitda = (float) (EnterpriseValueCalculator.calculateEv(financial, latestPrice) / financial.incomeStatementTtm.ebitda);
         data.ptb = (float) RatioCalculator.calculatePriceToBookRatio(financial, latestPrice);
+        data.priceToGrossProfit = (float) ((latestPrice * financial.incomeStatementTtm.weightedAverageShsOut) / financial.incomeStatementTtm.grossProfit);
         data.pts = (float) RatioCalculator.calculatePriceToSalesRatio(financial, latestPrice);
+        data.cape = Optional.ofNullable(CapeCalculator.calculateCapeRatioQ(company.financials, 10, index)).orElse(Double.NaN).floatValue();
         data.icr = Optional.ofNullable(RatioCalculator.calculateInterestCoverageRatio(financial)).orElse(Double.NaN).floatValue();
         data.dtoe = (float) RatioCalculator.calculateDebtToEquityRatio(financial);
         data.roe = (float) (RoicCalculator.calculateROE(financial) * 100.0);
+        data.roa = (float) (RoicCalculator.calculateROA(financial) * 100.0);
+        data.rota = (float) (RoicCalculator.calculateROTA(financial) * 100.0);
         data.fcfPerShare = (double) financial.cashFlowTtm.freeCashFlow / financial.incomeStatementTtm.weightedAverageShsOut;
         data.currentRatio = RatioCalculator.calculateCurrentRatio(financial).orElse(Double.NaN).floatValue();
         data.quickRatio = RatioCalculator.calculateQuickRatio(financial).orElse(Double.NaN).floatValue();
+        data.assetTurnoverRatio = (float) ((double) financial.incomeStatementTtm.revenue / financial.balanceSheet.totalAssets);
 
         data.epsGrowth = GrowthCalculator.getEpsGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.fcfGrowth = GrowthCalculator.getFcfGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
@@ -557,7 +563,13 @@ public class StockDataDownloader2 {
         data.dividendGrowthRate = GrowthCalculator.getDividendGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.shareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.netMarginGrowth = MarginCalculator.getNetMarginGrowthRate(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
-        data.cape = Optional.ofNullable(CapeCalculator.calculateCapeRatioQ(company.financials, 10, index)).orElse(Double.NaN).floatValue();
+        data.equityGrowth = GrowthCalculator.getEquityPerShareGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
+
+        data.epsGrowth2yr = GrowthCalculator.getEpsGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.fcfGrowth2yr = GrowthCalculator.getFcfGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.revenueGrowth2yr = GrowthCalculator.getRevenueGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.shareCountGrowth2yr = GrowthCalculator.getShareCountGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.equityGrowth2yr = GrowthCalculator.getEquityPerShareGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
 
         data.epsSD = GrowthStandardDeviationCounter.calculateEpsGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.revSD = GrowthStandardDeviationCounter.calculateRevenueGrowthDeviation(company.financials, 7, offsetYear + 0).orElse(Double.NaN).floatValue();
@@ -579,9 +591,11 @@ public class StockDataDownloader2 {
         data.ideal10yrEpsCorrelation = (float) IdealGrowthCorrelationCalculator.calculateEpsCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal10yrFcfCorrelation = (float) IdealGrowthCorrelationCalculator.calculateFcfCorrelation(company.financials, 10.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
 
+        /*
         data.ideal20yrRevCorrelation = (float) IdealGrowthCorrelationCalculator.calculateRevenueCorrelation(company.financials, 20.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal20yrEpsCorrelation = (float) IdealGrowthCorrelationCalculator.calculateEpsCorrelation(company.financials, 20.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
         data.ideal20yrFcfCorrelation = (float) IdealGrowthCorrelationCalculator.calculateFcfCorrelation(company.financials, 20.0 + offsetYear, offsetYear).orElse(Double.NaN).doubleValue();
+        */
 
         data.fvCalculatorMoS = (float) ((DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
         data.fvCompositeMoS = (float) ((DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, offsetYear).orElse(Double.NaN) / latestPrice - 1.0) * 100.0);
@@ -595,6 +609,7 @@ public class StockDataDownloader2 {
         data.ltl5Fcf = EverythingMoneyCalculator.calculateLtlPer5YrFcf(company, offsetYear).orElse(Double.NaN).floatValue();
 
         // price
+        data.price5Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 5, offsetYear).orElse(Double.NaN).floatValue();
         data.price10Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 10, offsetYear).orElse(Double.NaN).floatValue();
         data.price15Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 15, offsetYear).orElse(Double.NaN).floatValue();
         data.price20Gr = GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(company, offsetYear + 20, offsetYear).orElse(Double.NaN).floatValue();
@@ -604,6 +619,9 @@ public class StockDataDownloader2 {
         data.opMargin = (float) (RatioCalculator.calculateOperatingMargin(financial) * 100.0);
         data.fcfMargin = (float) (RatioCalculator.calculateFcfMargin(financial) * 100.0);
         data.opCMargin = (float) (RatioCalculator.calculateOperatingCashflowMargin(financial) * 100.0);
+        data.ebitdaMargin = (float) (((double) financial.incomeStatementTtm.ebitda / financial.incomeStatementTtm.revenue) * 100.0);
+
+        data.investmentScore = InvestmentScoreCalculator.calculate(company, offsetYear).orElse(Double.NaN).floatValue();
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 
@@ -807,13 +825,14 @@ public class StockDataDownloader2 {
                     downloadFinancials = false;
                 }
             }
-            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastPriceDownload)) > 5 && Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) < 500) {
+            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastPriceDownload)) > 10 && Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) < 500) {
                 downloadPricesNeeded = true;
             }
         } else {
             downloadFinancials = true;
             downloadPricesNeeded = true;
-            downloadDateData = new DownloadDateData(LocalDate.of(1900, 1, 1), now, now, 90);
+            LocalDate never = LocalDate.of(1900, 1, 1);
+            downloadDateData = new DownloadDateData(never, now, never, 90);
         }
 
         symbol = symbol.replace("^", "%5E");
@@ -1092,7 +1111,6 @@ public class StockDataDownloader2 {
 
         LocalDate lastDate = null;
         HistoricalPrice elements = null;
-        boolean downloadNeeded = true;
         if (absoluteFile.exists()) {
             try {
                 elements = DataLoader.readClassFromFile(absoluteFile, HistoricalPrice.class);
@@ -1100,36 +1118,24 @@ public class StockDataDownloader2 {
                 e.printStackTrace();
             }
             lastDate = (elements != null && elements.historical.size() > 0) ? elements.historical.get(0).getDate() : null;
-            if (lastDate != null) {
-                long daysDiff = Math.abs(ChronoUnit.DAYS.between(LocalDate.now(), lastDate));
-                if (daysDiff > updateIntervalInDays) {
-                    downloadNeeded = true;
-                } else {
-                    downloadNeeded = false;
-                }
-            } else {
-                downloadNeeded = true;
-            }
         }
 
-        if (downloadNeeded) {
-            if (lastDate != null && elements != null && elements.historical != null) { // then merge files instead of redownloading everything
-                HashMap<String, String> newQueryParams = new HashMap<>(queryParams);
-                newQueryParams.put("from", lastDate.plusDays(1L).toString());
-                newQueryParams.put("to", LocalDate.now().toString());
+        if (lastDate != null && elements != null && elements.historical != null) { // then merge files instead of redownloading everything
+            HashMap<String, String> newQueryParams = new HashMap<>(queryParams);
+            newQueryParams.put("from", lastDate.plusDays(1L).toString());
+            newQueryParams.put("to", LocalDate.now().toString());
 
-                HistoricalPrice downloadedData = (HistoricalPrice) actuallyDownloadFileAndGet(absoluteFile, uriPath, newQueryParams, type);
-                List<HistoricalPriceElement> newElements = new ArrayList<>(downloadedData.historical);
-                if (newElements.size() > 0) {
-                    newElements.addAll(elements.historical);
-                    downloadedData.historical = newElements;
-                    actuallySaveFile(absoluteFile, downloadedData);
-                }
-            } else {
-                actuallyDownloadAndSaveFile(absoluteFile, uriPath, queryParams, type);
+            HistoricalPrice downloadedData = (HistoricalPrice) actuallyDownloadFileAndGet(absoluteFile, uriPath, newQueryParams, type);
+            List<HistoricalPriceElement> newElements = new ArrayList<>(downloadedData.historical);
+            if (newElements.size() > 0) {
+                newElements.addAll(elements.historical);
+                downloadedData.historical = newElements;
+                actuallySaveFile(absoluteFile, downloadedData);
             }
+        } else {
+            actuallyDownloadAndSaveFile(absoluteFile, uriPath, queryParams, type);
         }
-        return downloadNeeded;
+        return true;
     }
 
     // TODO: almost same as above, but with different types

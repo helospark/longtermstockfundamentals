@@ -50,7 +50,7 @@ public class RoicCalculator {
 
     public static Double calculateROTA(FinancialsTtm financialsTtm) {
         if (financialsTtm.balanceSheet.goodwillAndIntangibleAssets == 0) {
-            return null;
+            return Double.NaN;
         }
         return (financialsTtm.incomeStatementTtm.netIncome / calculateTangibleAssets(financialsTtm));
     }

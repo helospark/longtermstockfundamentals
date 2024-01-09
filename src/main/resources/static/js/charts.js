@@ -152,13 +152,39 @@ function findInArrayById(array, id) {
   }
 }
 
+function findIndexInArrayById(array, id) {
+  for (o = 0; o < array.length; ++o) {
+    if (array[o].id === id) {
+      return o;
+    }
+  }
+  return null;
+}
+
 function getCurrentlySavedCustomizedCharts() {
   if (localStorage !== undefined && localStorage.getItem("customizedCharts") !== undefined && localStorage.getItem("customizedCharts") !== null) {
     var result = JSON.parse(localStorage.getItem("customizedCharts"));
     
     for (k = 0; k < allCharts.length; ++k) {
       if (findInArrayById(result, allCharts[k].id) === null) {
-        result.push({id: allCharts[k].id, enabled:allCharts[k].defaultEnabled});
+        var item = {id: allCharts[k].id, enabled:allCharts[k].defaultEnabled};
+        if (k === 0) {
+          result.splice(0, 0, item);
+        } else {
+          for (u = k - 1; u >= 0; --u) {
+            var arrayIndex = findInArrayById(result, allCharts[u].id);
+            
+            if (arrayIndex !== null) {
+              break;
+            }
+          }
+          
+          if (u >= 0) {
+            result.splice(u + 1, 0, item);
+          } else {
+            result.push(item);
+          }
+        }
       }
     }
     return result;
@@ -312,6 +338,10 @@ createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, s
 createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 createChartInternal("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false}, defaultEnabled=false);
 createChartInternal("/financials/price_to_sales", "Price to sales ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+createChartInternal("/financials/accrual_ratio", "Accrual ratio", {
+  quarterlyEnabled: false,
+  tooltip: 'Small or negative are better. Formula: (netIncome - FCF) / totalAssets',
+}, defaultEnabled=false);
 
 
 createChartInternal("/financials/past_pe_to_growth_ratio", "Trailing PEG ratio", {
@@ -566,6 +596,10 @@ createChartInternal("/financials/cash_per_share", "Cash per share", {quarterlyEn
 createChartInternal("/financials/equity_per_share", "Equity per share", {quarterlyEnabled: false});
 createChartInternal("/financials/graham_number", "Graham number", {quarterlyEnabled: false}, defaultEnabled=false);
 
+createChartInternal("/financials/investment_score", "Investment score", {
+  quarterlyEnabled: false,
+  tooltip: 'Composite score of the most important fundamentals of the company, between 0.0 (worst) and 10.0 (best)'
+});
 
 
 createSeparatorInternal("Price")

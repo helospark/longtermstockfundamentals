@@ -71,16 +71,20 @@ public class PortfolioController {
     private static final String REVENUE_GROWTH = "Rev growth";
     private static final String EPS_GROWTH = "EPS growth";
     private static final String FCF_YIELD = "FCF yield";
+    private static final String INVESTMENT_SCORE = "IS";
 
-    static final double[] ROIC_RANGES = new double[] { 5, 10, 20, 30, 40 };
-    static final double[] ALTMAN_RANGES = new double[] { 0.5, 1.5, 2.0, 3.0, 4.0 };
-    static final double[] GROSS_MARGIN_RANGES = new double[] { 0, 20, 30, 40, 50 };
-    static final double[] REVENUE_RANGES = new double[] { 0, 3, 7, 10, 20 };
-    static final double[] GROWTH_RANGES = new double[] { 0, 6, 10, 15, 20 };
-    static final double[] ICR_RANGES = new double[] { 5, 10, 20, 30, 40 };
-    static final double[] SHARE_CHANGE_RANGES = new double[] { 3.0, 2.0, 0.5, 0.0, -3.0 };
-    static final double[] PE_RANGES = new double[] { 0.0, 7.0, 15.0, 22.0, 30.0 };
-    static final double[] PIOTROSKY_RANGES = new double[] { 3, 4, 5, 6, 7 };
+    public static final double[] ROIC_RANGES = new double[] { 5, 10, 20, 30, 40 };
+    public static final double[] FCF_ROIC_RANGES = new double[] { 4, 7, 10, 14, 20 };
+    public static final double[] ROE_RANGES = new double[] { 5, 10, 20, 30, 40 };
+    public static final double[] ALTMAN_RANGES = new double[] { 0.5, 1.5, 2.0, 3.0, 4.0 };
+    public static final double[] GROSS_MARGIN_RANGES = new double[] { 0, 20, 30, 40, 50 };
+    public static final double[] OP_MARGIN_RANGES = new double[] { 0, 10, 15, 20, 25 };
+    public static final double[] REVENUE_RANGES = new double[] { 0, 3, 7, 10, 20 };
+    public static final double[] GROWTH_RANGES = new double[] { 0, 6, 10, 15, 20 };
+    public static final double[] ICR_RANGES = new double[] { 5, 10, 20, 30, 40 };
+    public static final double[] SHARE_CHANGE_RANGES = new double[] { 3.0, 2.0, 0.5, 0.0, -3.0 };
+    public static final double[] PE_RANGES = new double[] { 0.0, 7.0, 15.0, 22.0, 30.0 };
+    public static final double[] PIOTROSKY_RANGES = new double[] { 3, 4, 5, 6, 7 };
 
     private static final String GOOD_COLOR = "green";
     private static final String OK_COLOR = "lime";
@@ -196,7 +200,7 @@ public class PortfolioController {
         result.columns = List.of(SYMBOL_COL, NAME_COL, DIFFERENCE_COL, OWNED_SHARES, PE, ROIC, FIVE_YR_ROIC, ROE, SHARE_CHANGE, DEBT_TO_EQUITY, ICR, LTL5FCF, ALTMAN, PIETROSKY, RED_FLAGS,
                 GROSS_MARGIN,
                 OPERATING_MARGIN,
-                REVENUE_GROWTH, EPS_GROWTH, FCF_YIELD);
+                REVENUE_GROWTH, EPS_GROWTH, FCF_YIELD, INVESTMENT_SCORE);
 
         result.returnsColumns = List.of(SYMBOL_COL, NAME_COL, OWNED_SHARES, "1 year", "2 year", "3 year", "5 year", "8 year", "10 year", "12 year", "15 year", "20 year");
 
@@ -229,7 +233,9 @@ public class PortfolioController {
         Map<String, CompletableFuture<Double>> prices = new HashMap<>();
         for (int i = 0; i < watchlistElements.size(); ++i) {
             String symbol = watchlistElements.get(i).symbol;
-            prices.put(symbol, latestPriceProvider.provideLatestPriceAsync(symbol));
+            if (onlyOwned == false || watchlistElements.get(i).ownedShares > 0) {
+                prices.put(symbol, latestPriceProvider.provideLatestPriceAsync(symbol));
+            }
         }
 
         initPieChart(roicToInvestment, ROIC_RANGES, true);
@@ -261,8 +267,8 @@ public class PortfolioController {
                 portfolioElement.put(OWNED_SHARES, watchlistService.formatString(ownedValue));
                 portfolioElement.put(PE, watchlistService.formatString(latestPriceInReportingCurrency / atGlance.eps));
                 portfolioElement.put(ROIC, formatStringWithThresholdsPercentAsc(atGlance.roic, ROIC_RANGES));
-                portfolioElement.put(FIVE_YR_ROIC, formatStringWithThresholdsPercentAsc(atGlance.fiveYrRoic, 4, 7, 10, 14, 20));
-                portfolioElement.put(ROE, formatStringWithThresholdsPercentAsc(atGlance.roe, 5, 10, 20, 30, 40));
+                portfolioElement.put(FIVE_YR_ROIC, formatStringWithThresholdsPercentAsc(atGlance.fiveYrRoic, FCF_ROIC_RANGES));
+                portfolioElement.put(ROE, formatStringWithThresholdsPercentAsc(atGlance.roe, ROE_RANGES));
                 portfolioElement.put(SHARE_CHANGE, formatStringWithThresholdsPercentDesc(atGlance.shareCountGrowth, SHARE_CHANGE_RANGES));
                 portfolioElement.put(DEBT_TO_EQUITY, formatStringWithThresholdsDescNonNegative(atGlance.dtoe, 1.5, 1.0, 0.8, 0.5, 0.1));
                 portfolioElement.put(ALTMAN, formatStringWithThresholdsAsc(atGlance.altman, ALTMAN_RANGES));
@@ -271,10 +277,11 @@ public class PortfolioController {
                 portfolioElement.put(ICR, formatStringWithThresholdsAsc(atGlance.icr, ICR_RANGES));
                 portfolioElement.put(LTL5FCF, formatStringWithThresholdsDescNonNegative(atGlance.ltl5Fcf, 20, 10, 7, 4, 2));
                 portfolioElement.put(GROSS_MARGIN, formatStringWithThresholdsPercentAsc(atGlance.grMargin, GROSS_MARGIN_RANGES));
-                portfolioElement.put(OPERATING_MARGIN, formatStringWithThresholdsPercentAsc(atGlance.opMargin, 0, 10, 15, 20, 25));
+                portfolioElement.put(OPERATING_MARGIN, formatStringWithThresholdsPercentAsc(atGlance.opMargin, OP_MARGIN_RANGES));
                 portfolioElement.put(REVENUE_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.revenueGrowth, REVENUE_RANGES));
                 portfolioElement.put(EPS_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.epsGrowth, GROWTH_RANGES));
                 portfolioElement.put(FCF_YIELD, formatStringWithThresholdsPercentAsc(atGlance.getFreeCashFlowYield(), 0, 3, 5, 8, 12));
+                portfolioElement.put(INVESTMENT_SCORE, formatStringWithThresholdsAsc(atGlance.investmentScore, 4, 5, 6, 7, 8.0));
                 portfolioElement.put(SYMBOL_RAW, ticker);
 
                 if (currentElement.calculatorParameters != null) {

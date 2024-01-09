@@ -309,6 +309,31 @@ public class GrowthCalculator {
         return Optional.of(resultPercent);
     }
 
+    public static Optional<Double> getEquityPerShareGrowthInInterval(List<FinancialsTtm> financials, double year, double offsetYear) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (offsetYear * 12.0)));
+
+        if (oldIndex >= financials.size() || oldIndex < 0 ||
+                newIndex > financials.size() || newIndex == -1) {
+            return Optional.empty();
+        }
+
+        var newFinancials = financials.get(newIndex);
+        var oldFinancials = financials.get(oldIndex);
+
+        double equityPerShareNow = (double) newFinancials.balanceSheet.totalStockholdersEquity / newFinancials.incomeStatementTtm.weightedAverageShsOut;
+        double equityPerShareThen = (double) oldFinancials.balanceSheet.totalStockholdersEquity / oldFinancials.incomeStatementTtm.weightedAverageShsOut;
+
+        double distance = year - offsetYear;
+        double resultPercent = calculatePercentChange(equityPerShareNow, equityPerShareThen, distance);
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(resultPercent);
+    }
+
     public static Optional<Double> calculateAnnualGrowth(double oldValue, LocalDate oldDate, double newValue, LocalDate newDate) {
         double daysDiff = Math.abs(ChronoUnit.DAYS.between(newDate, oldDate) / 365.0);
         double resultPercent = calculatePercentChange(newValue, oldValue, daysDiff);

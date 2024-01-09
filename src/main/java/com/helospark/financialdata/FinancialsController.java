@@ -36,6 +36,7 @@ import com.helospark.financialdata.service.EverythingMoneyCalculator;
 import com.helospark.financialdata.service.FedRateProvider;
 import com.helospark.financialdata.service.GrahamNumberCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
+import com.helospark.financialdata.service.InvestmentScoreCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.ReturnWithDividendCalculator;
@@ -83,7 +84,10 @@ public class FinancialsController {
 
     @GetMapping("/pfcf")
     public List<SimpleDataElement> getPFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = getIncomeData(company, quarterly, financialsTtm -> (double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+        return result;
+
     }
 
     @GetMapping("/operating_margin")
@@ -174,6 +178,11 @@ public class FinancialsController {
     @GetMapping("/price_to_sales")
     public List<SimpleDataElement> getPriceToSales(@PathVariable("stock") String stock) {
         return getPriceIncomeData(stock, false, (price, financialsTtm) -> (price * financialsTtm.incomeStatementTtm.weightedAverageShsOut) / (financialsTtm.incomeStatementTtm.revenue));
+    }
+
+    @GetMapping("/accrual_ratio")
+    public List<SimpleDataElement> getAccrualRatio(@PathVariable("stock") String stock) {
+        return getPriceIncomeData(stock, false, (price, financialsTtm) -> RatioCalculator.calculateAccrualRatio(financialsTtm));
     }
 
     @GetMapping("/expected_return")
@@ -682,6 +691,20 @@ public class FinancialsController {
     @GetMapping("/roic")
     public List<SimpleDataElement> getRoic(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RoicCalculator.calculateRoic(financialsTtm)));
+    }
+
+    @GetMapping("/investment_score")
+    public List<SimpleDataElement> getInvestScore(@PathVariable("stock") String stock) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (var financial : company.financials) {
+            double offset = calculateYearsAgo(financial.date);
+            Double score = InvestmentScoreCalculator.calculate(company, offset).orElse(null);
+            result.add(new SimpleDataElement(financial.date.toString(), score));
+        }
+
+        return result;
     }
 
     @GetMapping("/fcf_roic")

@@ -13,6 +13,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.WatchlistPermissionDeniedException;
+import com.helospark.financialdata.management.watchlist.repository.LatestPriceProvider;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
@@ -30,6 +31,8 @@ public class SingleStockDownloadController {
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
     @Autowired
     private WatchlistService watchlistService;
+    @Autowired
+    private LatestPriceProvider latestPriceProvider;
 
     public void ensureOnlyAdminAccess(HttpServletRequest request) {
         Optional<AccountType> accountType = loginController.getAccountType(request);
@@ -41,6 +44,7 @@ public class SingleStockDownloadController {
     @GetMapping("/download")
     public DownloadDateData download(@RequestParam("stock") String stock, HttpServletRequest request) {
         ensureOnlyAdminAccess(request);
+        latestPriceProvider.removeFromCache(List.of(stock));
         return StockDataDownloader2.downloadOneStock(stock, symbolAtGlanceProvider);
     }
 
@@ -48,6 +52,23 @@ public class SingleStockDownloadController {
     public void refreshPortfolio(HttpServletRequest request) {
         ensureOnlyAdminAccess(request);
 
+        List<String> symbols = getStocks(request);
+
+        StockDataDownloader2.downloadMultiStock(symbols, symbolAtGlanceProvider);
+
+        latestPriceProvider.removeFromCache(symbols);
+    }
+
+    @GetMapping("/drop-price-cache")
+    public void dropPriceCache(HttpServletRequest request) {
+        ensureOnlyAdminAccess(request);
+
+        List<String> symbols = getStocks(request);
+
+        latestPriceProvider.removeFromCache(symbols);
+    }
+
+    public List<String> getStocks(HttpServletRequest request) {
         Optional<DecodedJWT> jwt = loginController.getJwt(request);
         if (jwt.isEmpty()) {
             throw new WatchlistPermissionDeniedException("Not logged in");
@@ -61,7 +82,6 @@ public class SingleStockDownloadController {
                 .filter(a -> a.ownedShares > 0)
                 .map(a -> a.symbol)
                 .collect(Collectors.toList());
-
-        StockDataDownloader2.downloadMultiStock(symbols, symbolAtGlanceProvider);
+        return symbols;
     }
 }
