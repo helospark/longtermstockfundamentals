@@ -372,9 +372,15 @@ select, #start-date-dropdown, #end-date-dropdown {
 
 
 .general-portfolio-pie-chart {
-  width: 14.2%;
+  width: 12.5%;
   float:left;
 }
+
+.general-portfolio-data {
+  width: 12.5%;
+  float:left;
+}
+
 
 .single-number-chart {
   font-size: 20pt;

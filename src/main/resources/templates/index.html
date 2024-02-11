@@ -144,7 +144,7 @@
     </div>
     <script th:if="${isLoggedIn}">
       
-       fetch('/watchlist', {
+       fetch('/watchlistColumns', {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
@@ -152,12 +152,44 @@
         }).then(res => {
            return res.json();
         }).then(data => {
-           watchlistHtml = createWatchlistTableHtml(data.columns, data.portfolio, false);
+           watchlistHtml = createWatchlistTableHtml(data.columns, [], false);
+           console.log(watchlistHtml);
            $("#watchlist-table").html(watchlistHtml);
            $('#watchlist-table table').DataTable({
-              paging: false,
-             "iDisplayLength": 100,
-             "order": []
+              serverSide: true,
+              processing: true,
+              "pageLength": 25,
+              order: [],
+              "ajax":{
+                url: "/watchlistGetPaginated",
+                type: "POST",
+                contentType: "application/json",
+                data: function(d){
+                  return JSON.stringify(d)
+                }
+              },
+             "columnDefs": [{
+                "targets": 0,
+                "render": function ( data, type, row, meta ) {
+                  return '<a href="/stock/'+data+'">' + data + '</a>';
+                }
+             },
+             {
+                "targets": -1,
+                "render": function ( data, type, row, meta ) {
+                  var symbol = row[0];
+                  var resultHtml = `<div class="watchlist-actions-cell">`;
+                  if (data != null) {
+                     resultHtml += `<a href="` + data + `" class="fa-solid fa-calculator"></a>`;
+                  }
+                  resultHtml += `
+                       <i class="fa-solid fa-pen-to-square" onclick="addToWatchlistWithStock('` + symbol + `')"></i>
+                       <i class="fa-solid fa-trash" onclick="removeFromWatchlist('` + symbol + `')"></i>`;
+                  
+                  resultHtml += "</div>"
+                  return resultHtml;
+                }
+             }]
            });
         });
     

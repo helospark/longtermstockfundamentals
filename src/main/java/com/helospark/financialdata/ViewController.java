@@ -27,6 +27,8 @@ import com.helospark.financialdata.management.user.ViewedStocksService;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.FreeStockRepository;
 import com.helospark.financialdata.management.watchlist.repository.LatestPriceProvider;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.MarginCalculator;
@@ -54,6 +56,8 @@ public class ViewController {
     private ScreenerController screenerController;
     @Autowired
     private LatestPriceProvider latestPriceProvider;
+    @Autowired
+    private WatchlistService watchlistService;
 
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
@@ -296,6 +300,18 @@ public class ViewController {
                 model.addAttribute("latestPrice", priceInReportCurrency.orElse(company.latestPrice));
                 model.addAttribute("latestPriceTradingCurrency", latestPriceInTradingCurrency);
                 model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
+
+                Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+                if (jwtOptional.isPresent()) {
+                    Optional<WatchlistElement> watchlistElement = watchlistService.getWatchlistElement(jwtOptional.get().getSubject(), stock);
+                    if (watchlistElement.isPresent() && watchlistElement.get().calculatorParameters != null) {
+                        String calculatorUri = watchlistService.buildCalculatorUri(watchlistElement.get().calculatorParameters, stock);
+                        Double targetPrice = watchlistElement.get().targetPrice;
+
+                        model.addAttribute("calculatorUri", calculatorUri);
+                        model.addAttribute("calculatorPrice", targetPrice);
+                    }
+                }
             }
 
             return "complex_calculator";

@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,7 +20,8 @@ import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
-import com.helospark.financialdata.management.watchlist.domain.WatchListResponse;
+import com.helospark.financialdata.management.watchlist.domain.PaginatedWatchListResponse;
+import com.helospark.financialdata.management.watchlist.domain.datatables.DataTableRequest;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
@@ -38,14 +38,24 @@ public class WatchlistController {
     @Autowired
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
 
-    @GetMapping("/watchlist")
+    @GetMapping("/watchlistColumns")
     @RateLimit(requestPerMinute = 30)
-    public WatchListResponse getCurrentWatchList(HttpServletRequest httpRequest, @RequestParam(name = "onlyOwned", defaultValue = "false") boolean onlyOwned) {
+    public PaginatedWatchListResponse getCurrentWatchsListEmpty(HttpServletRequest httpRequest) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {
             throw new WatchlistPermissionDeniedException("Not logged in");
         }
-        return watchlistService.getWatchlist(jwt.get().getSubject(), onlyOwned);
+        return watchlistService.getWatchlistColumns();
+    }
+
+    @PostMapping("/watchlistGetPaginated")
+    @RateLimit(requestPerMinute = 30)
+    public PaginatedWatchListResponse getCurrentWatchsSListPaginated(HttpServletRequest httpRequest, @RequestBody DataTableRequest dataTableRequest) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (jwt.isEmpty()) {
+            throw new WatchlistPermissionDeniedException("Not logged in");
+        }
+        return watchlistService.getWatchlistPaginated(jwt.get().getSubject(), dataTableRequest.start, dataTableRequest.length, Optional.ofNullable(dataTableRequest.draw), dataTableRequest);
     }
 
     @GetMapping("/watchlist/{stock}")

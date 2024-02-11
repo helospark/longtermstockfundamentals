@@ -108,7 +108,7 @@ public class StockDataDownloader2 {
     static final Integer NUM_QUARTER = NUM_YEARS * 4;
     static final String FX_BASE_FOLDER = BASE_FOLDER + "/fxratefiles";
     static final String BASE_URL = "https://financialmodelingprep.com/api";
-    static final int RATE_LIMIT_PER_MINUTE = 700;
+    static final int RATE_LIMIT_PER_MINUTE = 300;
     private static final String API_LAYER_API_KEY = System.getProperty("API_LAYER_API_KEY");
 
     static RateLimiter rateLimiter = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 60.0);
@@ -527,12 +527,14 @@ public class StockDataDownloader2 {
 
         double latestPrice = (offsetYeari == 0 ? company.latestPrice : company.financials.get(index).price);
         double latestPriceUsd = (offsetYeari == 0 ? company.latestPriceUsd : company.financials.get(index).priceUsd);
+        double latestPriceTradingCurrency = (offsetYeari == 0 ? company.latestPriceTradingCurrency : company.financials.get(index).priceTradingCurrency);
 
         data.actualDate = actualDate;
         data.marketCapUsd = (latestPriceUsd * financial.incomeStatementTtm.weightedAverageShsOut) / 1_000_000.0;
         data.dividendPaid = (float) (-1.0 * financial.cashFlowTtm.dividendsPaid / financial.incomeStatementTtm.weightedAverageShsOut);
         data.latestStockPrice = latestPrice;
         data.latestStockPriceUsd = latestPriceUsd;
+        data.latestStockPriceTradingCur = company.latestPriceTradingCurrency;
         data.shareCount = financial.incomeStatementTtm.weightedAverageShsOut;
         data.trailingPeg = TrailingPegCalculator.calculateTrailingPegWithLatestPrice(company, offsetYear, latestPrice).orElse(Double.NaN).floatValue();
         data.roic = (float) (RoicCalculator.calculateRoic(financial) * 100.0);

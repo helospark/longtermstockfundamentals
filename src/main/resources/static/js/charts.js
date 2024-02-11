@@ -598,7 +598,9 @@ createChartInternal("/financials/graham_number", "Graham number", {quarterlyEnab
 
 createChartInternal("/financials/investment_score", "Investment score", {
   quarterlyEnabled: false,
-  tooltip: 'Composite score of the most important fundamentals of the company, between 0.0 (worst) and 10.0 (best)'
+  tooltip: 'Composite score of the most important fundamentals of the company, between 0.0 (worst) and 10.0 (best)',
+  suggestedMin: 0,
+  suggestedMax: 10
 });
 
 

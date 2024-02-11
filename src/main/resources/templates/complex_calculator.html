@@ -35,6 +35,8 @@
   <span id="stockToLoad" th:text="${stockToLoad}" style="display:none"></span>
   <h2 style="float:left"><span id="stock-name" th:text="${companyName} + ' complex DCF calculator'"></span></h2>
   <h5 id="add-to-watchlist-header" style="float:left" th:if="${isLoggedIn}"><span class="badge bg-primary" onclick="addToWatchlist()">Watchlist</span></h5>
+  <h5 id="add-to-watchlist-header" style="float:left" th:if="${isLoggedIn} and ${calculatorPrice}"><a th:href="${calculatorUri}"><span class="badge bg-secondary" onclick="addToWatchlist()" th:text="'Saved target: ' + ${tradingCurrencySymbol} + ${calculatorPrice}"></span></a></h5>
+
   
   <script>
     function changeCalculatorType(type) {

@@ -52,6 +52,7 @@ public class PortfolioController {
     private static final String RANK = "Rank";
     private static final String SYMBOL_RAW = "SYMBOL_RAW";
     private static final String PE = "PE";
+    private static final String PFCF = "PFCF";
     private static final String DEBT_TO_EQUITY = "D2E";
     private static final String SHARE_CHANGE = "Δ Shares";
     private static final String ROIC = "ROIC";
@@ -59,7 +60,7 @@ public class PortfolioController {
     private static final String ROE = "ROE";
     private static final String SYMBOL_COL = "Symbol";
     private static final String NAME_COL = "Name";
-    private static final String DIFFERENCE_COL = "Margin of safety";
+    private static final String DIFFERENCE_COL = "MOS";
     private static final String OWNED_SHARES = "Owned ($)";
     private static final String ALTMAN = "AltmanZ";
     private static final String PIETROSKY = "Piotrosky";
@@ -85,6 +86,7 @@ public class PortfolioController {
     public static final double[] SHARE_CHANGE_RANGES = new double[] { 3.0, 2.0, 0.5, 0.0, -3.0 };
     public static final double[] PE_RANGES = new double[] { 0.0, 7.0, 15.0, 22.0, 30.0 };
     public static final double[] PIOTROSKY_RANGES = new double[] { 3, 4, 5, 6, 7 };
+    public static final double[] INVESTMENT_SCORE_RANGES = new double[] { 4, 5, 6, 7, 8.0 };
 
     private static final String GOOD_COLOR = "green";
     private static final String OK_COLOR = "lime";
@@ -213,6 +215,7 @@ public class PortfolioController {
         Map<String, Double> profitableToInvestment = new HashMap<>();
         Map<String, Double> investmentsToInvestment = new HashMap<>();
         Map<String, Double> peToInvestment = new HashMap<>();
+        Map<String, Double> pfcfToInvestment = new HashMap<>();
 
         Map<String, Double> roicToInvestment = new LinkedHashMap<>();
         Map<String, Double> shareChangeToInvestment = new LinkedHashMap<>();
@@ -221,6 +224,7 @@ public class PortfolioController {
         Map<String, Double> icrToInvestment = new LinkedHashMap<>();
         Map<String, Double> grossMToInvestment = new LinkedHashMap<>();
         Map<String, Double> piotroskyToInvestment = new LinkedHashMap<>();
+        Map<String, Double> investmentScoreToInvestment = new LinkedHashMap<>();
 
         double oneYearReturnTotal = 0.0;
         double twoYearReturnTotal = 0.0;
@@ -228,7 +232,9 @@ public class PortfolioController {
         double fiveYearReturnTotal = 0.0;
         double tenYearReturnTotal = 0.0;
         double fifteenYearReturnTotal = 0.0;
+        double twentyYearReturnTotal = 0.0;
         double expectedTotal = 0.0;
+        double dividend = 0.0;
 
         Map<String, CompletableFuture<Double>> prices = new HashMap<>();
         for (int i = 0; i < watchlistElements.size(); ++i) {
@@ -246,6 +252,7 @@ public class PortfolioController {
         initPieChart(peToInvestment, PE_RANGES, false);
         initPieChart(piotroskyToInvestment, PIOTROSKY_RANGES, false);
         initPieChartDesc(shareChangeToInvestment, (SHARE_CHANGE_RANGES), true);
+        initPieChart(investmentScoreToInvestment, INVESTMENT_SCORE_RANGES, false);
 
         LocalDate now = LocalDate.now();
         for (int i = 0; i < watchlistElements.size(); ++i) {
@@ -266,6 +273,7 @@ public class PortfolioController {
                 portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
                 portfolioElement.put(OWNED_SHARES, watchlistService.formatString(ownedValue));
                 portfolioElement.put(PE, watchlistService.formatString(latestPriceInReportingCurrency / atGlance.eps));
+                portfolioElement.put(PFCF, watchlistService.formatString(latestPriceInReportingCurrency / atGlance.fcfPerShare));
                 portfolioElement.put(ROIC, formatStringWithThresholdsPercentAsc(atGlance.roic, ROIC_RANGES));
                 portfolioElement.put(FIVE_YR_ROIC, formatStringWithThresholdsPercentAsc(atGlance.fiveYrRoic, FCF_ROIC_RANGES));
                 portfolioElement.put(ROE, formatStringWithThresholdsPercentAsc(atGlance.roe, ROE_RANGES));
@@ -281,7 +289,7 @@ public class PortfolioController {
                 portfolioElement.put(REVENUE_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.revenueGrowth, REVENUE_RANGES));
                 portfolioElement.put(EPS_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.epsGrowth, GROWTH_RANGES));
                 portfolioElement.put(FCF_YIELD, formatStringWithThresholdsPercentAsc(atGlance.getFreeCashFlowYield(), 0, 3, 5, 8, 12));
-                portfolioElement.put(INVESTMENT_SCORE, formatStringWithThresholdsAsc(atGlance.investmentScore, 4, 5, 6, 7, 8.0));
+                portfolioElement.put(INVESTMENT_SCORE, formatStringWithThresholdsAsc(atGlance.investmentScore, INVESTMENT_SCORE_RANGES));
                 portfolioElement.put(SYMBOL_RAW, ticker);
 
                 if (currentElement.calculatorParameters != null) {
@@ -304,6 +312,7 @@ public class PortfolioController {
                 double eightYearReturn = calculateReturnMonthAgo(data, now, 8 * 12);
                 double tenYearReturn = calculateReturnMonthAgo(data, now, 10 * 12);
                 double fifteenYearReturn = calculateReturnMonthAgo(data, now, 15 * 12);
+                double twentyYearReturn = calculateReturnMonthAgo(data, now, 20 * 12);
 
                 returnsElement.put("1 year", formatStringWithThresholdsPercentAsc(oneYearReturn, -5, 0, 8, 11, 20));
                 returnsElement.put("2 year", formatStringWithThresholdsPercentAsc(twoYearReturn, -5, 0, 8, 11, 20));
@@ -313,7 +322,7 @@ public class PortfolioController {
                 returnsElement.put("10 year", formatStringWithThresholdsPercentAsc(tenYearReturn, -5, 0, 8, 11, 20));
                 returnsElement.put("12 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 12 * 12), -5, 0, 8, 11, 20));
                 returnsElement.put("15 year", formatStringWithThresholdsPercentAsc(fifteenYearReturn, -5, 0, 8, 11, 20));
-                returnsElement.put("20 year", formatStringWithThresholdsPercentAsc(calculateReturnMonthAgo(data, now, 20 * 12), -5, 0, 8, 11, 20));
+                returnsElement.put("20 year", formatStringWithThresholdsPercentAsc(twentyYearReturn, -5, 0, 8, 11, 20));
 
                 // pie charts
                 if (currentElement.ownedShares > 0) {
@@ -324,6 +333,7 @@ public class PortfolioController {
                     createPieChart(profitableToInvestment, data, ownedValue, atGlance.eps > 0 ? "profitable" : "non-profitable");
                     createPieChart(investmentsToInvestment, data, ownedValue, ticker);
                     createPieChart(peToInvestment, data, ownedValue, calculateRanges(atGlance.pe, false, PE_RANGES));
+                    createPieChart(pfcfToInvestment, data, ownedValue, calculateRanges(latestPriceInReportingCurrency / atGlance.fcfPerShare, false, PE_RANGES));
 
                     createPieChart(roicToInvestment, data, ownedValue, calculateRanges(atGlance.roic, true, ROIC_RANGES));
                     createPieChart(altmanToInvestment, data, ownedValue, calculateRanges(atGlance.altman, false, ALTMAN_RANGES));
@@ -332,6 +342,7 @@ public class PortfolioController {
                     createPieChart(grossMToInvestment, data, ownedValue, calculateRanges(atGlance.grMargin, true, GROSS_MARGIN_RANGES));
                     createPieChart(piotroskyToInvestment, data, ownedValue, calculateRanges(atGlance.pietrosky, false, PIOTROSKY_RANGES));
                     createPieChart(shareChangeToInvestment, data, ownedValue, calculateRangesDesc(atGlance.shareCountGrowth, true, SHARE_CHANGE_RANGES));
+                    createPieChart(investmentScoreToInvestment, data, ownedValue, calculateRanges(atGlance.investmentScore, false, INVESTMENT_SCORE_RANGES));
 
                     if (data.financials.size() > 0) {
                         FinancialsTtm financialsTtm = data.financials.get(0);
@@ -345,10 +356,13 @@ public class PortfolioController {
                         fcf = DataLoader.convertFx(fcf, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
                         double netAssets = DataLoader.convertFx(netAssetsNativeCurrency, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
 
+                        double dividendPaid = DataLoader.convertFx(atGlance.dividendPaid, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+
                         result.totalPrice += orZero(() -> ownedValue);
                         result.totalEarnings += currentElement.ownedShares * eps;
                         result.totalFcf += currentElement.ownedShares * fcf;
                         result.totalNetAssets += orZero(() -> netAssets);
+                        result.dividend += orZero(() -> currentElement.ownedShares * dividendPaid);
                         result.numberOfStocks += 1;
 
                         result.totalEpsGrowth += orZero(() -> ownedValue * atGlance.epsGrowth);
@@ -358,6 +372,7 @@ public class PortfolioController {
                         result.totalRoic += orZero(() -> ownedValue * atGlance.roic);
                         result.totalShareChange += orZero(() -> ownedValue * atGlance.shareCountGrowth);
                         result.totalDebtToEquity += orZero(() -> ownedValue * atGlance.dtoe);
+                        result.investmentScore += orZero(() -> ownedValue * atGlance.investmentScore);
 
                         if (Double.isFinite(oneYearReturn)) {
                             result.oneYearReturn += ownedValue * oneYearReturn;
@@ -383,6 +398,10 @@ public class PortfolioController {
                             result.fifteenYearReturn += ownedValue * fifteenYearReturn;
                             fifteenYearReturnTotal += ownedValue;
                         }
+                        if (Double.isFinite(twentyYearReturn)) {
+                            result.twentyYearReturn += ownedValue * twentyYearReturn;
+                            twentyYearReturnTotal += ownedValue;
+                        }
                         Optional<Double> reverseDcf = DcfCalculator.doDcfReverseDcfAnalysis(data, currentElement.calculatorParameters);
                         if (reverseDcf.isPresent()) {
                             result.expectedTenYrReturn += ownedValue * reverseDcf.get();
@@ -403,6 +422,7 @@ public class PortfolioController {
             result.totalOpMargin /= result.totalPrice;
             result.totalShareChange /= result.totalPrice;
             result.totalDebtToEquity /= result.totalPrice;
+            result.investmentScore /= result.totalPrice;
         }
         if (oneYearReturnTotal > 0.0) {
             result.oneYearReturn /= oneYearReturnTotal;
@@ -422,6 +442,9 @@ public class PortfolioController {
         if (fifteenYearReturnTotal > 0.0) {
             result.fifteenYearReturn /= fifteenYearReturnTotal;
         }
+        if (twentyYearReturnTotal > 0.0) {
+            result.twentyYearReturn /= twentyYearReturnTotal;
+        }
         if (expectedTotal > 0.0) {
             result.expectedTenYrReturn /= expectedTotal;
         }
@@ -433,6 +456,7 @@ public class PortfolioController {
         result.profitability = convertToPieChart(profitableToInvestment);
         result.investments = convertToPieChart(investmentsToInvestment);
         result.peChart = convertToPieChart(peToInvestment);
+        result.pfcfChart = convertToPieChart(pfcfToInvestment);
 
         result.roicChart = convertToPieChartWithoutSorting(roicToInvestment);
         result.altmanChart = convertToPieChartWithoutSorting(altmanToInvestment);
@@ -441,6 +465,7 @@ public class PortfolioController {
         result.grossMarginChart = convertToPieChartWithoutSorting(grossMToInvestment);
         result.shareChangeChart = convertToPieChartWithoutReverse(shareChangeToInvestment);
         result.piotroskyChart = convertToPieChartWithoutSorting(piotroskyToInvestment);
+        result.investmentScoreChart = convertToPieChartWithoutSorting(investmentScoreToInvestment);
 
         return result;
     }

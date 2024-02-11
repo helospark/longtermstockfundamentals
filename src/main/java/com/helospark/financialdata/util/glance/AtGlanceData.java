@@ -9,6 +9,7 @@ public class AtGlanceData {
     public String companyName;
     public String symbol;
     public double latestStockPrice;
+    public double latestStockPriceTradingCur;
     public double latestStockPriceUsd;
     public long shareCount;
     public LocalDate actualDate;

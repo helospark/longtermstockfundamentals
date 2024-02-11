@@ -1,6 +1,7 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -10,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.slf4j.Logger;
@@ -25,7 +27,9 @@ import com.helospark.financialdata.management.watchlist.DeleteFromWatchlistReque
 import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.domain.CalculatorParameters;
-import com.helospark.financialdata.management.watchlist.domain.WatchListResponse;
+import com.helospark.financialdata.management.watchlist.domain.PaginatedWatchListResponse;
+import com.helospark.financialdata.management.watchlist.domain.datatables.DataTableRequest;
+import com.helospark.financialdata.management.watchlist.domain.datatables.Order;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
@@ -61,46 +65,139 @@ public class WatchlistService {
             .maximumSize(1000)
             .build();
 
-    public WatchListResponse getWatchlist(String email, boolean onlyOwned) {
-
-        WatchListResponse result = new WatchListResponse();
+    public PaginatedWatchListResponse getWatchlistColumns() {
+        PaginatedWatchListResponse result = new PaginatedWatchListResponse();
         result.columns = List.of(SYMBOL_COL, NAME_COL, CURRENT_PRICE_COL, PRICE_TARGET_COL, DIFFERENCE_COL, OWNED_SHARES, TAGS_COL, NOTES_COL);
-        result.portfolio = new ArrayList<>();
+
+        return result;
+    }
+
+    public PaginatedWatchListResponse getWatchlistPaginated(String email, int start, int length, Optional<Integer> draw, DataTableRequest dataTableRequest) {
+
+        PaginatedWatchListResponse result = getWatchlistColumns();
 
         List<WatchlistElement> watchlistElements = readWatchlistFromDb(email);
+        result.recordsTotal = watchlistElements.size();
+
+        if (dataTableRequest.search.value != null) {
+            watchlistElements = watchlistElements.stream()
+                    .filter(a -> matchesSearch(a, dataTableRequest.search.value))
+                    .collect(Collectors.toList());
+        }
+
+        result.recordsFiltered = watchlistElements.size();
+
+        Collections.reverse(watchlistElements);
+
+        if (dataTableRequest.order.size() > 0) {
+            Order order = dataTableRequest.order.get(0);
+
+            Collections.sort(watchlistElements, (a, b) -> {
+                Comparable first = getDataAtColumn(a, order.column, result.columns);
+                Comparable second = getDataAtColumn(b, order.column, result.columns);
+                if (order.dir.equals("asc")) {
+                    return ObjectUtils.compare(first, second);
+                } else {
+                    return ObjectUtils.compare(second, first);
+                }
+            });
+        }
 
         Map<String, CompletableFuture<Double>> prices = new HashMap<>();
-        for (int i = 0; i < watchlistElements.size(); ++i) {
+        for (int i = start; i < watchlistElements.size() && i < start + length; ++i) {
             String symbol = watchlistElements.get(i).symbol;
             prices.put(symbol, latestPriceProvider.provideLatestPriceAsync(symbol));
         }
 
-        for (int i = 0; i < watchlistElements.size(); ++i) {
+        for (int i = start; i < watchlistElements.size() && i < start + length; ++i) {
             WatchlistElement currentElement = watchlistElements.get(i);
             String ticker = currentElement.symbol;
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
-            if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent() && (onlyOwned == false || currentElement.ownedShares > 0)) {
+            if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
                 double latestPriceInTradingCurrency = getPrice(prices, ticker);
-                Map<String, String> portfolioElement = new HashMap<>();
-                portfolioElement.put(SYMBOL_COL, ticker);
-                portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
-                portfolioElement.put(CURRENT_PRICE_COL, formatString(latestPriceInTradingCurrency));
-                portfolioElement.put(PRICE_TARGET_COL, formatString(currentElement.targetPrice));
-                portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
-                portfolioElement.put(OWNED_SHARES, formatString(atGlance.latestStockPriceUsd * currentElement.ownedShares));
-                portfolioElement.put(TAGS_COL, formatTags(currentElement.tags));
-                portfolioElement.put(NOTES_COL, currentElement.notes);
+                List<String> portfolioElement = new ArrayList<>();
+                portfolioElement.add(ticker);
+                portfolioElement.add(Optional.ofNullable(atGlance.companyName).orElse(""));
+                portfolioElement.add(formatString(latestPriceInTradingCurrency));
+                portfolioElement.add(formatString(currentElement.targetPrice));
+                portfolioElement.add(formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
+                portfolioElement.add(formatString(atGlance.latestStockPriceUsd * currentElement.ownedShares));
+                portfolioElement.add(formatTags(currentElement.tags));
+                portfolioElement.add(currentElement.notes);
 
                 if (currentElement.calculatorParameters != null) {
-                    portfolioElement.put("CALCULATOR_URI", buildCalculatorUri(currentElement.calculatorParameters, ticker));
+                    portfolioElement.add(buildCalculatorUri(currentElement.calculatorParameters, ticker));
                 }
 
-                result.portfolio.add(portfolioElement);
+                result.data.add(portfolioElement);
             }
         }
+        result.draw = draw.orElse(0);
 
         return result;
+    }
+
+    private boolean matchesSearch(WatchlistElement a, String value) {
+        value = value.toUpperCase();
+
+        if (a.notes.toUpperCase().contains(value)) {
+            return true;
+        }
+        if (a.tags != null) {
+            for (var tag : a.tags) {
+                if (tag.toUpperCase().contains(value)) {
+                    return true;
+                }
+            }
+        }
+        if (a.symbol.toUpperCase().contains(value)) {
+            return true;
+        }
+        Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(a.symbol);
+        if (optionalAtGlance.isPresent()) {
+            AtGlanceData glance = optionalAtGlance.get();
+
+            if (glance.companyName != null && glance.companyName.toUpperCase().contains(value)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Comparable getDataAtColumn(WatchlistElement a, int column, List<String> columns) {
+        Map<String, Comparable> datas = new HashMap<>();
+        Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(a.symbol);
+
+        if (optionalAtGlance.isEmpty()) {
+            return null;
+        }
+        if (column >= columns.size()) {
+            return null;
+        }
+        String columnKey = columns.get(column);
+        var glance = optionalAtGlance.get();
+
+        switch (columnKey) {
+            case SYMBOL_COL:
+                return a.symbol;
+            case NAME_COL:
+                return glance.companyName;
+            case CURRENT_PRICE_COL:
+                return glance.latestStockPriceTradingCur;
+            case PRICE_TARGET_COL:
+                return a.targetPrice;
+            case DIFFERENCE_COL:
+                return calculateTargetPercent(glance.latestStockPriceTradingCur, a.targetPrice);
+            case OWNED_SHARES:
+                return glance.latestStockPriceUsd * a.ownedShares;
+            case TAGS_COL:
+                return ((a.tags != null && a.tags.size() > 0) ? a.tags.get(0) : "");
+            case NOTES_COL:
+                return a.notes;
+            default:
+                return null;
+        }
     }
 
     public List<WatchlistElement> readWatchlistFromDb(String email) {
@@ -112,7 +209,7 @@ public class WatchlistService {
         Watchlist watchlist = optionalWatchlist.get();
 
         List<WatchlistElement> watchlistElements = messageCompresser.uncompressListOf(watchlist.getWatchlistRaw(), WatchlistElement.class);
-        return watchlistElements;
+        return new ArrayList<>(watchlistElements);
     }
 
     public Double getPrice(Map<String, CompletableFuture<Double>> prices, String ticker) {
@@ -196,8 +293,8 @@ public class WatchlistService {
 
         WatchlistElement elementToUpdate;
         if (index == -1) {
-            if (elements.size() > 200) {
-                throw new WatchlistBadRequestException("Maximum of 200 watchlist element supported");
+            if (elements.size() > 250) {
+                throw new WatchlistBadRequestException("Maximum of 250 watchlist element supported");
             }
             if (elements.size() > 30 && accountType.equals(AccountType.FREE)) {
                 throw new WatchlistBadRequestException("Maximum of 30 watchlist element supported for free subscription");

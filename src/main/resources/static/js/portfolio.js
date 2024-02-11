@@ -78,6 +78,7 @@ createdCharts = new Map();
            addPieChart(data.country, "#country-chart", "Country");
            addPieChart(data.profitability, "#profitability-chart", "Profitability");
            addPieChart(data.peChart, "#pe-chart", "PE");
+           addPieChart(data.pfcfChart, "#pfcf-chart", "PFCF");
            
            addPieChart(data.roicChart, "#roic-chart", "ROIC", true);
            addPieChart(data.altmanChart, "#altman-chart", "AltmanZ", true);
@@ -86,9 +87,11 @@ createdCharts = new Map();
            addPieChart(data.grossMarginChart, "#grossmargin-chart", "Gross margin", true);
            addPieChart(data.shareChangeChart, "#sharechange-chart", "Share change", true);
            addPieChart(data.piotroskyChart, "#piotrosky-chart", "Piotrosky", true);
+           addPieChart(data.investmentScoreChart, "#investment-score-chart", "Investment score", true);
 
            $("#total").text("$" + parseInt(data.totalPrice, 10).toLocaleString());
            $("#total-earnings").text("$" + parseInt(data.totalEarnings, 10).toLocaleString());
+           $("#total-dividend").text("$" + parseInt(data.dividend, 10).toLocaleString());
            $("#total-fcf").text("$" + parseInt(data.totalFcf, 10).toLocaleString());
            $("#total-pe").text((data.totalPrice / data.totalEarnings).toFixed(2).toLocaleString());
            $("#total-pfcf").text((data.totalPrice / data.totalFcf).toFixed(2).toLocaleString());
@@ -103,6 +106,7 @@ createdCharts = new Map();
            $("#total-altman").text(data.totalAltman.toFixed(2).toLocaleString());
            $("#total-op-margin").text(data.totalOpMargin.toFixed(2).toLocaleString() + "%");
            $("#total-d2e").text(data.totalDebtToEquity.toFixed(2).toLocaleString());
+           $("#total-is").text(data.investmentScore.toFixed(2).toLocaleString());
            
            
            $("#one-year-returns").text(data.oneYearReturn.toFixed(2).toLocaleString() + "%");
@@ -111,6 +115,7 @@ createdCharts = new Map();
            $("#five-year-returns").text(data.fiveYearReturn.toFixed(2).toLocaleString() + "%");
            $("#ten-year-returns").text(data.tenYearReturn.toFixed(2).toLocaleString() + "%");
            $("#fifteen-year-returns").text(data.fifteenYearReturn.toFixed(2).toLocaleString() + "%");
+           $("#twenty-year-returns").text(data.twentyYearReturn.toFixed(2).toLocaleString() + "%");
            $("#expected-returns").text(data.expectedTenYrReturn.toFixed(2).toLocaleString() + "%");
            
            

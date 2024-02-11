@@ -85,7 +85,7 @@
       }
       resultHtml = "";
         resultHtml += `
-      <table class="table table-striped ` + cssClass + `">
+      <table style="width:100%"  class="table table-striped ` + cssClass + `">
         <thead>
           <tr>`;
       for (i = 0; i < columns.length; ++i) {

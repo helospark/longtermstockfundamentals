@@ -245,6 +245,14 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("EVVTY")) {
+            for (int i = 1; i < incomeStatement.size(); ++i) {
+                if (incomeStatement.get(i).weightedAverageShsOut < 103454250L) {
+                    incomeStatement.get(i).weightedAverageShsOut = incomeStatement.get(i - 1).weightedAverageShsOut;
+                    incomeStatement.get(i).weightedAverageShsOutDil = incomeStatement.get(i - 1).weightedAverageShsOutDil;
+                }
+            }
+        }
         if (symbol.equals("FUBO")) {
             for (var element : incomeStatement) {
                 if (element.revenue > 32437400000L) {
@@ -336,6 +344,17 @@ public class DataLoader {
                         element.weightedAverageShsOutDil = incomeStatement.get(j).weightedAverageShsOutDil;
                         break;
                     }
+                }
+            }
+            if (element.reportedCurrency == null) {
+                for (int j = i + 1; j < incomeStatement.size(); ++j) {
+                    if (incomeStatement.get(j).reportedCurrency != null) {
+                        element.reportedCurrency = incomeStatement.get(j).reportedCurrency;
+                        break;
+                    }
+                }
+                if (element.reportedCurrency == null && profile.currency != null) {
+                    element.reportedCurrency = profile.currency;
                 }
             }
         }
@@ -498,6 +517,11 @@ public class DataLoader {
     }
 
     private static double convertCurrencyIfNeeded(double price, FinancialsTtm currentTtm, Profile profile) {
+        if (currentTtm.incomeStatement.reportedCurrency == null) {
+            System.out.println("[WARN] ReportedCurrency is null for " + profile.symbol);
+            return price;
+        }
+
         if (!currentTtm.incomeStatement.reportedCurrency.equals(profile.currency)) {
             Optional<Double> convertedCurrency = convertFx(price, profile.currency, currentTtm.incomeStatement.reportedCurrency, currentTtm.incomeStatement.getDate(), true);
             if (convertedCurrency.isEmpty()) {
