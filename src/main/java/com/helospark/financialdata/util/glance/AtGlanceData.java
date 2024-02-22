@@ -103,7 +103,7 @@ public class AtGlanceData {
     @ScreenerElement(name = "Dividend FCF payout ratio", format = AtGlanceFormat.PERCENT)
     public float dividendFcfPayoutRatio;
 
-    @ScreenerElement(name = "Total payout ratio", format = AtGlanceFormat.PERCENT)
+    @ScreenerElement(name = "Total payout ratio", format = AtGlanceFormat.SIMPLE_NUMBER)
     public float tpr;
 
     @ScreenerElement(name = "Profitable year count")

@@ -204,7 +204,7 @@ public class StockDataDownloader2 {
         inProgress = false;
     }
 
-    public static DownloadDateData downloadOneStock(String symbol, SymbolAtGlanceProvider symbolAtGlanceProvider) {
+    public static DownloadDateData downloadOneStock(String symbol, SymbolAtGlanceProvider symbolAtGlanceProvider, boolean forceRenew) {
         try {
             File downloadDates = new File(DOWNLOAD_DATES);
             Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
@@ -214,7 +214,7 @@ public class StockDataDownloader2 {
             DataLoader.clearCache(symbol);
             DownloadDateData newDownloaded = symbolToDates.get(symbol);
 
-            if (!lastDownloaded.equals(newDownloaded)) {
+            if (!lastDownloaded.equals(newDownloaded) || forceRenew) {
                 int currentMonth = LocalDate.now().getMonthValue();
                 Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
 

@@ -42,10 +42,10 @@ public class SingleStockDownloadController {
     }
 
     @GetMapping("/download")
-    public DownloadDateData download(@RequestParam("stock") String stock, HttpServletRequest request) {
+    public DownloadDateData download(@RequestParam("stock") String stock, HttpServletRequest request, @RequestParam(name = "force", required = false) boolean forceRenew) {
         ensureOnlyAdminAccess(request);
         latestPriceProvider.removeFromCache(List.of(stock));
-        return StockDataDownloader2.downloadOneStock(stock, symbolAtGlanceProvider);
+        return StockDataDownloader2.downloadOneStock(stock, symbolAtGlanceProvider, forceRenew);
     }
 
     @GetMapping("/refresh-portfolio")

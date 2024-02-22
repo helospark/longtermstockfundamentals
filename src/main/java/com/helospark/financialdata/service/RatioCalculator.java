@@ -52,7 +52,7 @@ public class RatioCalculator {
     }
 
     public static Double calculatePriceToEarningsRatio(double price, FinancialsTtm financialsTtm) {
-        double result = price / financialsTtm.incomeStatementTtm.eps;
+        double result = price / (financialsTtm.incomeStatementTtm.eps);
         if (!Double.isFinite(result)) {
             return null;
         }

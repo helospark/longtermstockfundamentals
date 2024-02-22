@@ -850,6 +850,23 @@ public class FinancialsController {
         return result;
     }
 
+    @GetMapping("/roiic")
+    public List<SimpleDataElement> getRoiic(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int year) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        for (int i = 0; i < company.financials.size(); ++i) {
+            FinancialsTtm element = company.financials.get(i);
+            double yearsAgo = calculateYearsAgo(element.getDate());
+
+            Optional<Double> roiic = RoicCalculator.calculateRoiic(company.financials, yearsAgo, year);
+
+            result.add(new SimpleDataElement(element.getDate().toString(), toPercent(roiic.orElse(null))));
+        }
+
+        return result;
+    }
+
     @GetMapping("/revenue_growth_rate_xyr_moving_avg")
     public List<SimpleDataElement> getXyrGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int year) {
         CompanyFinancials company = DataLoader.readFinancials(stock);

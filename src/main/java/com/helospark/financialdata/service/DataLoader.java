@@ -245,6 +245,41 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("EPAM")) {
+            if (cashFlow.size() > 1 && cashFlow.get(0).freeCashFlow == 0) {
+                cashFlow.get(0).freeCashFlow = cashFlow.get(1).freeCashFlow;
+            }
+            if (balanceSheet.size() > 1 && balanceSheet.get(0).totalCurrentAssets == 0) {
+                balanceSheet.get(0).totalCurrentAssets = balanceSheet.get(1).totalCurrentAssets;
+                balanceSheet.get(0).totalCurrentLiabilities = balanceSheet.get(1).totalCurrentLiabilities;
+            }
+            if (balanceSheet.size() > 1 && balanceSheet.get(0).totalLiabilities == 0) {
+                balanceSheet.get(0).totalAssets = balanceSheet.get(1).totalAssets;
+                balanceSheet.get(0).totalLiabilities = balanceSheet.get(1).totalLiabilities;
+                balanceSheet.get(0).intangibleAssets = balanceSheet.get(1).intangibleAssets;
+                balanceSheet.get(0).goodwillAndIntangibleAssets = balanceSheet.get(1).goodwillAndIntangibleAssets;
+                balanceSheet.get(0).goodwill = balanceSheet.get(1).goodwill;
+                balanceSheet.get(0).cashAndCashEquivalents = balanceSheet.get(1).cashAndCashEquivalents;
+                balanceSheet.get(0).cashAndShortTermInvestments = balanceSheet.get(1).cashAndShortTermInvestments;
+                balanceSheet.get(0).totalStockholdersEquity = balanceSheet.get(1).totalStockholdersEquity;
+            }
+        }
+        if (symbol.equals("UNH")) {
+            if (balanceSheet.size() > 1 && balanceSheet.get(0).totalStockholdersEquity == 0) {
+                balanceSheet.get(0).totalStockholdersEquity = balanceSheet.get(1).totalStockholdersEquity;
+                balanceSheet.get(0).totalEquity = balanceSheet.get(1).totalEquity;
+                balanceSheet.get(0).goodwill = balanceSheet.get(1).goodwill;
+                balanceSheet.get(0).goodwillAndIntangibleAssets = balanceSheet.get(1).goodwillAndIntangibleAssets;
+            }
+            if (cashFlow.size() > 1 && cashFlow.get(0).stockBasedCompensation == 0) {
+                cashFlow.get(0).stockBasedCompensation = cashFlow.get(1).stockBasedCompensation;
+            }
+            for (var element : balanceSheet) {
+                if (element.getDate().equals(LocalDate.of(2023, 12, 31))) {
+                    element.totalLiabilities = 179299000000L;
+                }
+            }
+        }
         if (symbol.equals("EVVTY")) {
             for (int i = 1; i < incomeStatement.size(); ++i) {
                 if (incomeStatement.get(i).weightedAverageShsOut < 103454250L) {
@@ -294,6 +329,17 @@ public class DataLoader {
             profile.reportedCurrency = "DKK";
             profile.currencySymbol = Currency.getInstance("DKK").getSymbol();
         }
+        if (symbol.equals("TSM")) {
+            for (var element : incomeStatement) {
+                // ADR share correction
+                element.weightedAverageShsOut /= 5;
+                element.weightedAverageShsOutDil /= 5;
+            }
+            for (var element : incomeStatement) {
+                element.eps = element.netIncome / element.weightedAverageShsOut;
+                element.epsdiluted = element.netIncome / element.weightedAverageShsOutDil;
+            }
+        }
         if (symbol.equals("CPRT")) {
             int index = Helpers.findIndexWithOrBeforeDate(incomeStatement, LocalDate.of(2023, 10, 10));
             if (index != -1) {
@@ -307,6 +353,7 @@ public class DataLoader {
                 }
             }
         }
+
         if (profile.currency == null && symbol.endsWith(".BD")) {
             profile.currency = "HUF";
             profile.currencySymbol = Currency.getInstance("HUF").getSymbol();

@@ -40,6 +40,33 @@ public class RoicCalculator {
         return (fcf * (1.0 - taxRate)) / (financialsTtm.balanceSheet.totalStockholdersEquity + financialsTtm.balanceSheet.totalDebt);
     }
 
+    public static Optional<Double> calculateRoiic(List<FinancialsTtm> financials, double offset, double intervalYears) {
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((long) ((offset + intervalYears) * 12.0)));
+
+        if (newIndex == -1 || oldIndex == -1) {
+            return Optional.empty();
+        }
+
+        FinancialsTtm oldData = financials.get(oldIndex);
+        FinancialsTtm newData = financials.get(newIndex);
+
+        double oldNopat = calculateNOPAT(oldData);
+        double newNopat = calculateNOPAT(newData);
+
+        double oldInvestedCapital = (oldData.balanceSheet.totalStockholdersEquity + oldData.balanceSheet.totalDebt);
+        double newInvestedCapital = (newData.balanceSheet.totalStockholdersEquity + newData.balanceSheet.totalDebt);
+
+        return Optional.of((newNopat - oldNopat) / (newInvestedCapital - oldInvestedCapital));
+    }
+
+    public static double calculateNOPAT(FinancialsTtm financialsTtm) {
+        double ebit = calculateEbit(financialsTtm);
+        double taxRate = (double) financialsTtm.incomeStatementTtm.incomeTaxExpense / financialsTtm.incomeStatementTtm.netIncome;
+
+        return (ebit * (1.0 - taxRate));
+    }
+
     public static long calculateEbit(FinancialsTtm financialsTtm) {
         return financialsTtm.incomeStatementTtm.ebitda + financialsTtm.incomeStatementTtm.depreciationAndAmortization;
     }

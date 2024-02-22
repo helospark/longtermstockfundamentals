@@ -447,6 +447,20 @@ createChartInternal("/financials/fcf_roic", "Return on invested capital using FC
 createChartInternal("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 createChartInternal("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 createChartInternal("/financials/return_on_equity", "Return on equity", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChartInternal("/financials/roiic", "Return on incremental invested capital (ROIIC)", {
+  unit: '%',
+  quarterlyEnabled: false,
+  suggestedMin: -100,
+  suggestedMax: 100,
+  tooltip: 'Using formula: (NOPAT2 - NOPAT1) / (IC2 - IC1)',
+  slider: {
+    id: "roiic_year_slider",
+    parameterName: "year",
+    min: 1,
+    max: 10,
+    default: 7
+  }
+});
 
 
 createSeparatorInternal("Yields")
