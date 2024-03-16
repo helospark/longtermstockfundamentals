@@ -431,7 +431,7 @@ createChartInternal("/financials/long_term_debt", "Long term debt", {quarterlyEn
 
 
 
-createSeparatorInternal("Return ratios")
+createSeparatorInternal("Return ratios") 
 createChartInternal("/financials/roic", "Return on invested capital", {
   unit: '%',
   quarterlyEnabled: false,

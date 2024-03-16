@@ -18,6 +18,125 @@ function createCheckbox(label) {
   return label;
 }
 
+const plugin = {
+    id: 'corsair',
+    lastElement: {},
+    downElement: {},
+    cagr: {},
+    defaults: {
+        width: 1,
+        color: '#FF4949',
+        dash: [3, 3],
+    },
+    afterInit: (chart, args, opts) => {
+      chart.corsair = {
+        x: 0,
+        y: 0,
+      }
+    },
+    afterEvent: (chart, args) => {
+      const {inChartArea} = args
+      const {type,x,y} = args.event
+
+     if (plugin.downElement.dataset !== plugin.lastElement.dataset) {
+       plugin.cagr = {};
+     }
+
+     if (args.event.type === "mousedown") {
+        console.log("Element down at: ");
+        console.log(plugin.lastElement);
+        plugin.downElement = plugin.lastElement;
+     }
+     if (args.event.type === "mousemove" &&
+             plugin.downElement.label !== undefined &&
+             plugin.lastElement.label !== undefined &&
+             plugin.downElement.label != plugin.lastElement.label &&
+             plugin.downElement.dataset === plugin.lastElement.dataset) {
+       
+       
+       var dateObj1 = new Date(plugin.downElement.label);
+       var dateObj2 = new Date(plugin.lastElement.label);
+
+       var then = plugin.downElement.data;
+       var now = plugin.lastElement.data;
+
+       if (dateObj1 > dateObj2) {
+         var tmp = dateObj2;
+         dateObj2 = dateObj1;
+         dateObj1 = tmp;
+         
+         tmp = then;
+         then = now;
+         now = tmp;
+       }
+
+      if (!(isNaN(dateObj1.getTime()) || isNaN(dateObj2.getTime()))) {
+            const timeDiff = Math.abs(dateObj2.getTime() - dateObj1.getTime());
+            const yearsDiff = timeDiff / (1000 * 60 * 60 * 24 * 365.0);
+            
+
+
+            var cagrInternal = NaN;
+
+            if (now < 0.0 && then < 0.0) {
+                cagrInternal =  -(Math.pow(now / then, 1.0 / yearsDiff) - 1.0) * 100.0;
+            } else if (now > 0.0 && then > 0.0) {
+                cagrInternal =  (Math.pow(now / then, 1.0 / yearsDiff) - 1.0) * 100.0;
+            }
+
+            var totalChange = (now / then - 1.0) * 100.0;
+            
+            if (then < 0.0 && then < 0) {
+              totalChange *= -1.0;
+            }
+
+            if (Number.isFinite(totalChange) && Number.isFinite(cagrInternal)) {
+              plugin.cagr = {
+                init: true,
+                startDate: dateObj1.toISOString().slice(0, 10),
+                endDate: dateObj2.toISOString().slice(0, 10),
+                change: totalChange,
+                cagr: cagrInternal
+              };
+            } else {
+              plugin.cagr = {};
+            }
+            
+            console.log(plugin.cagr)
+        }
+     }
+     if (args.event.type === "mouseup" || args.event.type === "click") {
+       plugin.downElement = {};
+       plugin.cagr = {};
+     }
+
+      chart.corsair = {x, y, draw: inChartArea}
+      chart.draw()
+    },
+    beforeDatasetsDraw: (chart, args, opts) => {
+      const {ctx} = chart
+      const {top, bottom, left, right} = chart.chartArea
+      const {x, y, draw} = chart.corsair
+      if (!draw) return
+
+      ctx.save()
+      
+      ctx.beginPath()
+      ctx.lineWidth = opts.width
+      ctx.strokeStyle = opts.color
+      ctx.setLineDash(opts.dash)
+      ctx.moveTo(x, bottom)
+      ctx.lineTo(x, top)
+      ctx.moveTo(left, y)
+      ctx.lineTo(right, y)
+      ctx.stroke()
+      
+      ctx.restore()
+    }
+  }
+
+
+
 function createChart(urlPath, title, chartOptions) {
   var canvas =document.createElement("canvas");
   canvas.style='width:100%;max-height:400px'
@@ -94,28 +213,43 @@ function createChart(urlPath, title, chartOptions) {
         label: label,
         yAxisID: "y"
       }]
-    }, 
+    },
+    plugins: [plugin],
     options: {
       animation: animation,
       responsive: true,
+         events: ['mousemove', 'mouseout', 'click', 'mouseup', 'mousedown'],
 
        label: {
          display: false
        },
       plugins: {
-        /*title: {
-          display: true,
-          text: title
-        },*/
         legend: {
           display: legendDisplay
         },
         tooltip: {
             callbacks: {
-                label: (item) =>
-                    `${item.dataset.label}: ${item.formattedValue}${unit}`,
+                label: (item) => {
+                    //console.log("Over item: " + item);
+                    //console.log(item);
+                    var resultArray = [];
+                    plugin.lastElement = {label: item.label, data: item.raw, dataset: item.dataset.label}
+                    resultArray.push(`${item.dataset.label}: ${item.formattedValue}${unit}`);
+                    
+                    if (plugin.cagr.init !== undefined && plugin.cagr.init === true) {
+                       resultArray.push("");
+                       resultArray.push( plugin.cagr.startDate + " -> " + plugin.cagr.endDate);
+                       resultArray.push( "Change: " + plugin.cagr.change.toFixed(2) + "%");
+                       resultArray.push( "CAGR: " + plugin.cagr.cagr.toFixed(2) + "%");
+                    }
+                    
+                    return resultArray;
+                }
             },
         },
+        corsair: {
+          color: 'black',
+        }
       },
       scales: {
         x: {
