@@ -34,6 +34,13 @@ public class RoicCalculator {
         return ebit / (financialsTtm.balanceSheet.totalAssets - financialsTtm.balanceSheet.totalCurrentLiabilities);
     }
 
+    public static double calculateReturnOnTangibleCapital(FinancialsTtm financialsTtm) {
+        double ebit = calculateEbit(financialsTtm);
+        long netWorkingCapital = financialsTtm.balanceSheet.totalCurrentAssets - financialsTtm.balanceSheet.totalCurrentLiabilities;
+        long fixedAssets = financialsTtm.balanceSheet.propertyPlantEquipmentNet;
+        return ebit / (netWorkingCapital + fixedAssets);
+    }
+
     public static double calculateFcfRoic(FinancialsTtm financialsTtm) {
         double fcf = financialsTtm.cashFlowTtm.freeCashFlow;
         double taxRate = (double) financialsTtm.incomeStatementTtm.incomeTaxExpense / financialsTtm.incomeStatementTtm.netIncome;

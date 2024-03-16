@@ -323,6 +323,11 @@ public class FinancialsController {
         return getIncomeData(stock, false, financialsTtm -> toPercent(RoicCalculator.calculateROE(financialsTtm)));
     }
 
+    @GetMapping("/return_on_tangible_capital")
+    public List<SimpleDataElement> getReturnOnTangibleCapital(@PathVariable("stock") String stock) {
+        return getIncomeData(stock, false, financialsTtm -> toPercent(RoicCalculator.calculateReturnOnTangibleCapital(financialsTtm)));
+    }
+
     @GetMapping("/return_on_tangible_assets")
     public List<SimpleDataElement> getReturnOnTangibleAssets(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RoicCalculator.calculateROTA(financialsTtm)));

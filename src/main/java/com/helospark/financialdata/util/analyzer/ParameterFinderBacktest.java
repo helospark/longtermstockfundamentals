@@ -28,19 +28,19 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
-    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
-    private static final double MINIMUM_MARKET_CAP = 300.0;
+    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE", "TSX", "STO");
+    private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2001, 2007), new YearRange(2017, 2019));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2000, 2003), new YearRange(2015, 2016));
 
-    private static final double MINIMUM_BEAT_PERCENT = 90.0;
-    private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
+    private static final double MINIMUM_BEAT_PERCENT = 95.0;
+    private static final double MINIMUM_INVEST_COUNT_PERCENT = 80.0;
 
-    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 8;
+    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
     private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
 
     private static final int MIN_PARAMS = 5;
-    private static final int MAX_PARAMS = 12;
+    private static final int MAX_PARAMS = 10;
 
     private static final int RESULT_QUEUE_SIZE = 60;
 
@@ -84,6 +84,7 @@ public class ParameterFinderBacktest {
         List<RandomParam> params = new ArrayList<>();
         params.add(new RandomParam("altman", 1.0, 10.0, gtList));
         params.add(new RandomParam("pietrosky", 1.0, 8.0, gtList));
+        params.add(new RandomParam("investmentScore", 0.0, 10.0));
 
         params.add(new RandomParam("roic", 8, 60, gtList));
         params.add(new RandomParam("fiveYrRoic", 0, 20, gtList));
@@ -167,6 +168,7 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("dividendYield", 0.0, 10.0));
         params.add(new RandomParam("profitableYears", 0.0, 12.0));
         params.add(new RandomParam("revenueGrowth", 0.0, 50.0, gtList));
+        params.add(new RandomParam("investmentScore", 0.0, 10.0));
         return params;
     }
 

@@ -446,6 +446,11 @@ createChartInternal("/financials/fcf_roic", "Return on invested capital using FC
 });
 createChartInternal("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 createChartInternal("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChartInternal("/financials/return_on_tangible_capital", "Return on tangible capital", {
+  unit: '%',
+  quarterlyEnabled: false,
+  suggestedMin: -10,
+  tooltip: 'Using formula: EBIT / (workingCapital + fixedAssets)'});
 createChartInternal("/financials/return_on_equity", "Return on equity", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
 createChartInternal("/financials/roiic", "Return on incremental invested capital (ROIIC)", {
   unit: '%',

@@ -277,6 +277,7 @@ public class DataLoader {
             for (var element : balanceSheet) {
                 if (element.getDate().equals(LocalDate.of(2023, 12, 31))) {
                     element.totalLiabilities = 179299000000L;
+                    break;
                 }
             }
         }
