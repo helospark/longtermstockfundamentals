@@ -277,7 +277,8 @@
          label: "past",
          quarterlyEnabled: false,
          runAfter: updateCalculation,
-         zeroBasedChangeListener: updateCalculation
+         zeroBasedChangeListener: updateCalculation,
+         continousTooltipCagr: true,
     });
   } else if (calculatorType === 'fcf') {
     chart=createChart("/financials/pfcf", "FCF / share", {
@@ -286,7 +287,8 @@
          label: "past",
          quarterlyEnabled: false,
          runAfter: updateCalculation,
-         zeroBasedChangeListener: updateCalculation
+         zeroBasedChangeListener: updateCalculation,
+         continousTooltipCagr: true,
     });
   }
 
@@ -296,7 +298,8 @@
          label: "past",
          quarterlyEnabled: false,
          runAfter: updateCalculation,
-         zeroBasedChangeListener: updateCalculation
+         zeroBasedChangeListener: updateCalculation,
+         continousTooltipCagr: true,
     });
     
     if (calculatorType === 'eps') {
@@ -306,7 +309,8 @@
            runAfter: updateCalculation,
            zeroBasedChangeListener: updateCalculation,
            quarterlyEnabled: false,
-           lazyLoading: false
+           lazyLoading: false,
+           continousTooltipCagr: true,
       });
     } else if (calculatorType === 'fcf') {
       marginChart=createChart("/financials/fcf_margin", "FCF margin", {
@@ -315,7 +319,8 @@
            runAfter: updateCalculation,
            zeroBasedChangeListener: updateCalculation,
            quarterlyEnabled: false,
-           lazyLoading: false
+           lazyLoading: false,
+           continousTooltipCagr: true,
       });
     }
     
@@ -325,7 +330,8 @@
          runAfter: updateCalculation,
          zeroBasedChangeListener: updateCalculation,
          quarterlyEnabled: false,
-         lazyLoad: false
+         lazyLoad: false,
+         continousTooltipCagr: true,
      });
 
     if (calculatorType === 'eps') {
@@ -335,7 +341,8 @@
            runAfter: updateCalculation,
            zeroBasedChangeListener: updateCalculation,
            quarterlyEnabled: false,
-           lazyLoad: false
+           lazyLoad: false,
+           continousTooltipCagr: true,
        });
      } else if (calculatorType === 'fcf') {
       totalPayoutChart = createChart("/financials/total_payout_ratio_fcf", "Total payout ratio", {
@@ -344,7 +351,8 @@
            runAfter: updateCalculation,
            zeroBasedChangeListener: updateCalculation,
            quarterlyEnabled: false,
-           lazyLoad: false
+           lazyLoad: false,
+           continousTooltipCagr: true,
        });
      }
      
@@ -354,6 +362,7 @@
       unit: '%',
       lazyLoading: false,
       quarterlyEnabled: false,
+      continousTooltipCagr: true,
       slider: {
         id: "revenue_growth_rate_xyr_moving_avg_slider",
         parameterName: "year",

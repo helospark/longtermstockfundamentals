@@ -27,32 +27,29 @@ const plugin = {
         width: 1,
         color: '#FF4949',
         dash: [3, 3],
+        continousTooltipCagr: false
     },
-    afterInit: (chart, args, opts) => {
-      chart.corsair = {
-        x: 0,
-        y: 0,
-      }
-    },
-    afterEvent: (chart, args) => {
+    afterEvent: (chart, args, opts) => {
       const {inChartArea} = args
       const {type,x,y} = args.event
-
-     if (plugin.downElement.dataset !== plugin.lastElement.dataset) {
+      
+      var isSameChart = (chart.canvas === plugin.lastElement.canvas);
+      
+     if (plugin.downElement.dataset !== plugin.lastElement.dataset && !opts.continousTooltipCagr) {
        plugin.cagr = {};
      }
 
      if (args.event.type === "mousedown") {
-        console.log("Element down at: ");
-        console.log(plugin.lastElement);
         plugin.downElement = plugin.lastElement;
+        plugin.downElement.x = x;
      }
      if (args.event.type === "mousemove" &&
              plugin.downElement.label !== undefined &&
              plugin.lastElement.label !== undefined &&
              plugin.downElement.label != plugin.lastElement.label &&
-             plugin.downElement.dataset === plugin.lastElement.dataset) {
+             (plugin.downElement.dataset === plugin.lastElement.dataset || opts.continousTooltipCagr)) {
        
+        plugin.lastElement.x = x;
        
        var dateObj1 = new Date(plugin.downElement.label);
        var dateObj2 = new Date(plugin.lastElement.label);
@@ -69,11 +66,14 @@ const plugin = {
          then = now;
          now = tmp;
        }
+       
+       if (typeof now === 'object') {
+         now = now.y;
+       }
 
       if (!(isNaN(dateObj1.getTime()) || isNaN(dateObj2.getTime()))) {
             const timeDiff = Math.abs(dateObj2.getTime() - dateObj1.getTime());
             const yearsDiff = timeDiff / (1000 * 60 * 60 * 24 * 365.0);
-            
 
 
             var cagrInternal = NaN;
@@ -89,7 +89,7 @@ const plugin = {
             if (then < 0.0 && then < 0) {
               totalChange *= -1.0;
             }
-
+            
             if (Number.isFinite(totalChange) && Number.isFinite(cagrInternal)) {
               plugin.cagr = {
                 init: true,
@@ -101,8 +101,6 @@ const plugin = {
             } else {
               plugin.cagr = {};
             }
-            
-            console.log(plugin.cagr)
         }
      }
      if (args.event.type === "mouseup" || args.event.type === "click") {
@@ -110,28 +108,30 @@ const plugin = {
        plugin.cagr = {};
      }
 
-      chart.corsair = {x, y, draw: inChartArea}
       chart.draw()
     },
     beforeDatasetsDraw: (chart, args, opts) => {
       const {ctx} = chart
       const {top, bottom, left, right} = chart.chartArea
-      const {x, y, draw} = chart.corsair
-      if (!draw) return
 
-      ctx.save()
+      if (plugin.downElement.x !== undefined && plugin.downElement.canvas === chart.canvas) {
+        ctx.save()
+        
+        ctx.beginPath()
+        ctx.lineWidth = opts.width
+        ctx.strokeStyle = opts.color
+        ctx.setLineDash(opts.dash)
+        
+        ctx.moveTo(plugin.downElement.x, bottom)
+        ctx.lineTo(plugin.downElement.x, top)
+        
+        ctx.moveTo(plugin.lastElement.x, bottom)
+        ctx.lineTo(plugin.lastElement.x, top)
+
+        ctx.stroke()
       
-      ctx.beginPath()
-      ctx.lineWidth = opts.width
-      ctx.strokeStyle = opts.color
-      ctx.setLineDash(opts.dash)
-      ctx.moveTo(x, bottom)
-      ctx.lineTo(x, top)
-      ctx.moveTo(left, y)
-      ctx.lineTo(right, y)
-      ctx.stroke()
-      
-      ctx.restore()
+        ctx.restore()
+      }
     }
   }
 
@@ -185,6 +185,7 @@ function createChart(urlPath, title, chartOptions) {
   var quaterlySupported = chartOptions.quarterlyEnabled === undefined ? true : chartOptions.quarterlyEnabled;
   var isSecondYAxisNeeded = chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts[0].secondYAxis === true ? true : false;
   var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
+  var continousTooltipCagr = chartOptions.continousTooltipCagr !== undefined ? chartOptions.continousTooltipCagr : false;
   
   if (!addStockPrefix) {
     stockToLoad = "";
@@ -229,17 +230,18 @@ function createChart(urlPath, title, chartOptions) {
         },
         tooltip: {
             callbacks: {
-                label: (item) => {
-                    //console.log("Over item: " + item);
-                    //console.log(item);
+                label: (item, t) => {
                     var resultArray = [];
-                    plugin.lastElement = {label: item.label, data: item.raw, dataset: item.dataset.label}
+                    plugin.lastElement = {label: item.label, data: item.raw, dataset: item.dataset.label, canvas: item.chart.canvas}
                     resultArray.push(`${item.dataset.label}: ${item.formattedValue}${unit}`);
                     
-                    if (plugin.cagr.init !== undefined && plugin.cagr.init === true) {
+                    if (plugin.cagr.init !== undefined && plugin.cagr.init === true && plugin.lastElement.dataset === plugin.downElement.dataset) {
+                       var multipleX = plugin.cagr.change / 100.0 + 1.0;
+                       var multipleXString = " (" + multipleX.toFixed(1) + "x)";
+                       
                        resultArray.push("");
                        resultArray.push( plugin.cagr.startDate + " -> " + plugin.cagr.endDate);
-                       resultArray.push( "Change: " + plugin.cagr.change.toFixed(2) + "%");
+                       resultArray.push( "Change: " + plugin.cagr.change.toFixed(2) + "%" + multipleXString);
                        resultArray.push( "CAGR: " + plugin.cagr.cagr.toFixed(2) + "%");
                     }
                     
@@ -249,6 +251,7 @@ function createChart(urlPath, title, chartOptions) {
         },
         corsair: {
           color: 'black',
+          continousTooltipCagr: continousTooltipCagr
         }
       },
       scales: {
