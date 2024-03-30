@@ -159,7 +159,7 @@ public class ScreenerController {
     @RateLimit(requestPerMinute = 20)
     public ScreenerResult screenStocks(@RequestBody ScreenerRequest request, HttpServletRequest httpRequest) {
         LOGGER.info("Received screener request '{}'", request);
-        validateRequest(request, httpRequest);
+        validateRequest(request.operations, request.exchanges, httpRequest);
         return screenStockInternal(request);
     }
 
@@ -305,7 +305,7 @@ public class ScreenerController {
                 throw new ScreenerClientSideException("Backtest is only available for users with 'Advanced' plan");
             }
         }
-        validateRequest(request, httpRequest);
+        validateRequest(request.operations, request.exchanges, httpRequest);
 
         return performBacktestInternal(request);
     }
@@ -622,19 +622,19 @@ public class ScreenerController {
         }
     }
 
-    public void validateRequest(ScreenerRequest request, HttpServletRequest httpRequest) {
-        if (request.operations.size() > 20) {
-            throw new ScreenerClientSideException("Maximum of 20 screeners allowed, " + request.operations.size() + " found");
+    public void validateRequest(List<ScreenerOperation> operations, List<String> exchanges, HttpServletRequest httpRequest) {
+        if (operations.size() > 20) {
+            throw new ScreenerClientSideException("Maximum of 20 screeners allowed, " + operations.size() + " found");
         }
-        if (request.exchanges.size() > Exchanges.values().length) {
+        if (exchanges.size() > Exchanges.values().length) {
             throw new ScreenerClientSideException("Too many exchanges");
         }
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
-        if (!jwt.isPresent() && request.operations.size() > 1) {
-            throw new ScreenerClientSideException("Logged out users can add maximum of 1 screeners, " + request.operations.size() + " found");
+        if (!jwt.isPresent() && operations.size() > 1) {
+            throw new ScreenerClientSideException("Logged out users can add maximum of 1 screeners, " + operations.size() + " found");
         }
 
-        for (var element : request.operations) {
+        for (var element : operations) {
             if (!idToDescription.containsKey(element.id)) {
                 throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
             }

@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -29,11 +30,14 @@ public class MessageCompresser {
     }
 
     public <T> List<T> uncompressListOf(ByteBuffer data, Class<T> listType) {
+        if (data == null) {
+            return new ArrayList<>();
+        }
         try {
             String rawString = uncompressString(data);
 
             JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, listType);
-            List<T> result = objectMapper.readValue(rawString, type);
+            List<T> result = new ArrayList<>(objectMapper.readValue(rawString, type));
             return result;
         } catch (Exception e) {
             throw new RuntimeException(e);

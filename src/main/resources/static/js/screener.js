@@ -21,6 +21,8 @@
     submitScreenerWithLastAndFirstItem(lastDisplayedItem, firstDisplayedItem, true);
   }
 
+  var serverScreenerCache = null;
+
   function submitScreenerWithLastAndFirstItem(lastItem, firstItem, next) {
     exchanges = $("#exchanges").val();
     screenerOperations = collectOperations();
@@ -305,8 +307,29 @@
           $("#backtest-result").append(fullInvestmentHtml);
         });
   }
+  
+  async function onSaveScreenerNameChange(newValue) {
+      var screeners = await loadScreenersFromServer();
+      var screenersToLoad = screeners.find(element => element.id == newValue);
+      
+      console.log(screenersToLoad);
+      
+      if (screenersToLoad === null || screenersToLoad === undefined) {
+        $("#screener-save-button").html("Save as new");
+        $("#screener-save-button").removeClass("btn-warning");
+        $("#screener-save-button").addClass("btn-primary");
+      } else {
+        $("#screener-save-button").html("Save & override");
+        $("#screener-save-button").addClass("btn-warning");
+        $("#screener-save-button").removeClass("btn-primary");
+      }
+  }
 
   function saveScreener() {
+    var lastLoadedScreenerName = localStorage.getItem("last-loaded-screener-name");
+    if (lastLoadedScreenerName === null || lastLoadedScreenerName === undefined) {
+      lastLoadedScreenerName = "";
+    }
 
     $("#generic-modal .modal-content").html(`
         <div class="modal-header">
@@ -315,28 +338,38 @@
         <div class="modal-body" id="modal-body">
           <div class="mb-3">
             <label for="screener-name" class="col-form-label">Save as:</label>
-            <input type="text" class="form-control" id="screener-name">
+            <input type="text" class="form-control" oninput="onSaveScreenerNameChange(this.value)" id="screener-name" value="` + lastLoadedScreenerName + `">
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" onclick="saveScreenerWithName()">Save</button>
+          <button id="screener-save-button" type="button" class="btn btn-primary" onclick="saveScreenerWithName()">Save</button>
         </div>`);
     $("#generic-modal").modal("show");
+    
+     onSaveScreenerNameChange(lastLoadedScreenerName)
   }
   
 
-  function loadScreener() {
-    var screenersString = localStorage.getItem('screeners');
-    
-    if (screenersString === undefined || screenersString === null) {
-      screenersToLoad = [];
-    } else {
-      screenersToLoad = JSON.parse(screenersString);
+  async function loadScreenersFromServer() {
+    if (serverScreenerCache === null) {
+       serverScreenerCache = await fetch('/screener-query')
+                            .then(res => res.json())
+                            .catch(err => []);
+    }
+    return serverScreenerCache;
+  }  
+
+  async function loadScreener() {
+    var screenersToLoad = await loadScreenersFromServer();
+    var lastLoadedScreenerName = localStorage.getItem("last-loaded-screener-name");
+    if (lastLoadedScreenerName === null || lastLoadedScreenerName === undefined) {
+      lastLoadedScreenerName = "";
     }
     
     options = "<select style=\"max-width: 450px;\" id=\"screener-name\">";
-    for (let [key, value] of Object.entries(screenersToLoad)) {
-      options += "<option value='" + key + "'>" + key + "</option>";
+    for (let value of screenersToLoad) {
+      var selected = " " + ((value.id === lastLoadedScreenerName) ? 'selected="selected"' : '');
+      options += "<option value='" + value.id + "' " + selected + ">" + value.id + "</option>";
     }
     options += "</select>"
     
@@ -350,6 +383,7 @@
             ` + options + `
         </div>
         <div class="modal-footer">
+          <button type="button" class="btn btn-danger me-auto" data-bs-dismiss="modal" onclick="deleteScreenerWithName($('#screener-name').val())">Delete selected</button>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="button" class="btn btn-primary" onclick="loadScreenerWithName($('#screener-name').val())">Load</button>
         </div>`);
@@ -373,52 +407,73 @@
       return;
     }
     
-    var screenersString = localStorage.getItem('screeners');
-    
-    if (screenersString === undefined || screenersString === null) {
-      screenersToSave = {};
-    } else {
-      screenersToSave = JSON.parse(screenersString);
-    }
-    
-    result = screenersToSave[name];
-    
-    screenersToSave[name] = {operations: screenerOperations, exchanges: exchanges};
-    
-    localStorage.setItem('screeners', JSON.stringify(screenersToSave));
-    localStorage.setItem('last-loaded-screener', name);
-    
-    $("#generic-modal").modal("hide");
+    var screenerToSave = JSON.stringify({id: name, operations: screenerOperations, exchanges: exchanges});
+
+    fetch('/screener-query', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: screenerToSave
+    }).then(async data => {
+        if (data.status != 200) {
+          data = await data.json();
+          console.log("error " + data);
+          showErrorDialog(data.errorMessage);
+          $.notify("Error while saving: " + data.errorMessage, { position:"bottom", className:"error" });
+        } else {
+          serverScreenerCache = null;
+          $("#generic-modal").modal("hide");
+          $.notify("Successfully saved", { position:"bottom", className:"success" });
+        }
+    });
+
+    localStorage.setItem('last-loaded-screener-data', screenerToSave);
+  }
+
+  
+  function deleteScreenerWithName(name) {
+   fetch('/screener-query?queryId=' + name, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    }).then(async data => {
+        serverScreenerCache = null;
+        if (data.status != 200) {
+          data = await data.json();
+          console.log("error " + data);
+          showErrorDialog(data.errorMessage);
+        } else {
+          $("#generic-modal").modal("hide");
+          $.notify("Successfully removed " + name, { position:"bottom", className:"success" });
+        }
+    });
   }
   
-  function loadScreenerWithName(name) {
-    
+  async function loadScreenerWithName(name) {
     if (name.length < 1) {
       showErrorDialog("Cannot load screener with no name");
       return;
     }
+
+    var screeners = await loadScreenersFromServer();
     
+    var screenersToLoad = screeners.find(element => element.id == name);
     
-    var screenersString = localStorage.getItem('screeners');
-    
-    if (screenersString === undefined || screenersString === null) {
-      showErrorDialog("Cannot find screener with that name");
-      return;
-    }
-    screenersToSave = JSON.parse(screenersString);
-    
-    result = screenersToSave[name];
-    if (result === undefined || result === null) {
+    if (screenersToLoad === undefined || screenersToLoad === null) {
       showErrorDialog("Cannot find screener with that name");
       return;
     }
     
-    localStorage.setItem('last-loaded-screener', name);
-    createScreeners(result);
+    localStorage.setItem('last-loaded-screener-data', JSON.stringify(screenersToLoad));
+    createScreeners(screenersToLoad);
     
     $("#generic-modal").modal("hide");
   }
-  
+
   function createScreeners(data) {
     if (data.operations === undefined || data.operations == null || data.operations.length == 0) {
       return;
@@ -436,6 +491,8 @@
     }
     
     $("#exchanges").val(data.exchanges);
+    
+    localStorage.setItem("last-loaded-screener-name", data.id);
     
     submitScreener();
   }
@@ -534,6 +591,41 @@ $('#conditions').on("click", ".remove-filter",  function(e){
     }
 });
 
+function migrateFromLocalStorageToBackend() {
+    var screenersString = localStorage.getItem('screeners');
+    
+    if (screenersString === undefined || screenersString === null) {
+      showErrorDialog("Cannot find screener with that name");
+      return;
+    }
+    screenersToSave = JSON.parse(screenersString);
+
+    for (let [key, value] of Object.entries(screenersToSave)) {
+        var screenerToSave = JSON.stringify({id: key, operations: value.operations, exchanges: value.exchanges});
+        
+        console.log("Saving");
+        console.log(screenerToSave);
+    
+        fetch('/screener-query', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: screenerToSave
+        }).then(async data => {
+            if (data.status != 200) {
+              data = await data.json();
+              console.log("error " + data);
+              showErrorDialog(data.errorMessage);
+            } else {
+              serverScreenerCache = null;
+              $("#generic-modal").modal("hide");
+            }
+        });
+    }
+}
+
 $(".metric-dropdown").val("roic");
 $(".operator-dropdown").val(">");
 $("#conditions input").first().val("30");
@@ -541,20 +633,21 @@ $("#conditions input").first().val("30");
 
 var runInit = false;
 if (typeof localStorage !== 'undefined') {
-  lastLoadedScreener = localStorage.getItem('last-loaded-screener');
-  if (lastLoadedScreener != null) {
-    var screenersString = localStorage.getItem('screeners');
-    if (!(screenersString === undefined || screenersString === null)) {
-      screenersToSave = JSON.parse(screenersString);
-      if (screenersToSave[lastLoadedScreener] !== undefined && lastLoadedScreener[lastLoadedScreener] !== null) {
-        loadScreenerWithName(lastLoadedScreener);
-        runInit = true;
-      }
+  screenersString = localStorage.getItem('last-loaded-screener-data');
+  if (!(screenersString === undefined || screenersString === null)) {
+    try {
+        screenersToLoad = JSON.parse(screenersString);
+        if (screenersToLoad !== undefined && screenersToLoad != null) {
+          createScreeners(screenersToLoad);
+        }
+    } catch (e) {
+        console.log(e);
     }
   }
 }
 if (!runInit) {
   submitScreener();
+  //migrateFromLocalStorageToBackend();
 }
 });
 

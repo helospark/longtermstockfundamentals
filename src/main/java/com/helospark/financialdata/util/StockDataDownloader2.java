@@ -124,7 +124,7 @@ public class StockDataDownloader2 {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        boolean downloadNewData = false;
+        boolean downloadNewData = true;
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;
