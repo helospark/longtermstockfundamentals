@@ -1,4 +1,4 @@
-## Financial data application
+## LongTermStockFundamentals
 
 Investment platform previously behind longtermstockfundamentals.com used to analyze stock fundamentals over the long term.
 
@@ -16,7 +16,7 @@ Sample stock charts:
 
 ![screenshot](images/screenshot.png)
 
-See more images on the bottom of the readme.
+See more images on the bottom of the README.
 
 ### Usage
 
@@ -24,8 +24,8 @@ First you need to download the fundamental data. You only need to do this once (
 
  - You need a license to https://site.financialmodelingprep.com/developer/docs/ to download the financial fundamental data (currently cheapest is $19/month).
  - You also need a free API key to https://apilayer.com/marketplace/currency_data-api
- - Run com.helospark.financialdata.util.StockDataDownloader as Java application, and give `-DAPI_KEY=FINANCIALMODLINGPREP_API_KEY -DAPI_LAYER_API_KEY=APILAYER_API_KEY`` as VM arguments
- -- By default it will download it under your: ~/Documents/financials
+ - Run com.helospark.financialdata.util.StockDataDownloader as Java application, and give `-DAPI_KEY=FINANCIALMODLINGPREP_API_KEY -DAPI_LAYER_API_KEY=APILAYER_API_KEY` as VM arguments
+ -- By default it will download it under your: `~/Documents/financials`
  - You may want to filter what to download by commenting out unnecessary symbols. By default it downloads all known stocks (about 40 000 stocks, ~20GB).
 
 Then run the DB and graphite instance using docker-compose in the base directory like:
