@@ -296,6 +296,10 @@ select, #start-date-dropdown, #end-date-dropdown {
   font-size: 17px;
 }
 
+.topnav .dropdown-item {
+  text-align: left;
+}
+
 @supports (-moz-appearance:none) {
   .topnav a {
     padding: 14px 16px;

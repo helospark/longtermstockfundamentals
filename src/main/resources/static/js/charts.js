@@ -66,6 +66,7 @@ function populateProfile() {
               if (out.website !== undefined && out.website != null) {
                 innerHtml += "<li>Website: <a href=\"" + out.website + "\">" + out.website + "</a></li>";
               }
+              innerHtml += "<li>Yahoo Finance: <a href=\"https://finance.yahoo.com/quote/" + stockToLoad + "\">https://finance.yahoo.com/quote/" + stockToLoad + "</a></li>";
               innerHtml += "</ul>";
               var lines = out.description.split(/\. /gm);
               var description = "";

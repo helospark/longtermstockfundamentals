@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/css/charts_style.css">
   <link rel="stylesheet" type="text/css" href="/css/common-style.css">
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.9.2/umd/popper.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
   <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
   <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
@@ -25,7 +26,7 @@
 </head>
 <body>
 
-<div th:replace="~{fragments/navbar :: my_fragment(active='portfolio')}"></div>
+<div th:replace="~{fragments/navbar :: my_fragment(active='summary')}"></div>
 <div class="clearFloat"></div>
 
 <span style="display:none" id="onlyOwned" th:text="${onlyOwned}"></span>
@@ -34,10 +35,10 @@
 
   <h1>Summary</h1>
   
-  <label for="stocks">Stocks, comma separated, optional count in parantheses, like: 'MA(38), ADBE(33), IDXX(29)'</label><br/>
+  <label for="stocks">Get summary for stocks, comma or new-line separated, optional count in parantheses, like: 'MA(38), ADBE(33), IDXX(29)'</label><br/>
   <textarea id="stocks" style="width: 50%; height: 300px;"></textarea><br/>
   
-  <button id="getSummary" onclick="getSummary()">Get summary</button>
+  <button class="btn btn-primary" id="getSummary" onclick="getSummary()">Get summary</button>
 
   <div id="watchlist-table"></div>
   

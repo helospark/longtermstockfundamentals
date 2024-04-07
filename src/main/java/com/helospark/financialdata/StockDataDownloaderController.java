@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.repository.AccountType;
-import com.helospark.financialdata.util.StockDataDownloader2;
+import com.helospark.financialdata.util.StockDataDownloader;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -33,11 +33,11 @@ public class StockDataDownloaderController {
     @GetMapping("/start")
     public void start(HttpServletRequest request) {
         ensureOnlyAdminAccess(request);
-        if (executor == null && !StockDataDownloader2.isRunning()) {
+        if (executor == null && !StockDataDownloader.isRunning()) {
             executor = Executors.newSingleThreadExecutor();
             future = CompletableFuture.runAsync(() -> {
                 try {
-                    StockDataDownloader2.main(null);
+                    StockDataDownloader.main(null);
                 } catch (IOException e) {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
@@ -56,8 +56,8 @@ public class StockDataDownloaderController {
     @GetMapping("/stop")
     public void stop(HttpServletRequest request) {
         ensureOnlyAdminAccess(request);
-        if (StockDataDownloader2.isRunning()) {
-            StockDataDownloader2.stop();
+        if (StockDataDownloader.isRunning()) {
+            StockDataDownloader.stop();
         }
         try {
             future.get(20000, TimeUnit.MILLISECONDS);
@@ -87,14 +87,14 @@ public class StockDataDownloaderController {
     @GetMapping("/status")
     public String status(HttpServletRequest request) {
         ensureOnlyAdminAccess(request);
-        if (!StockDataDownloader2.isRunning()) {
+        if (!StockDataDownloader.isRunning()) {
             return "Not running";
         }
         if (future == null) {
             return "Not running (2)";
         }
-        String responseString = StockDataDownloader2.getStatusMessage();
-        double progress = StockDataDownloader2.getProgress();
+        String responseString = StockDataDownloader.getStatusMessage();
+        double progress = StockDataDownloader.getProgress();
         if (progress != Double.NaN) {
             responseString += " " + String.format("%.2f%%", progress);
         }

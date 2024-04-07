@@ -17,8 +17,8 @@ import com.helospark.financialdata.management.watchlist.repository.LatestPricePr
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
-import com.helospark.financialdata.util.StockDataDownloader2;
-import com.helospark.financialdata.util.StockDataDownloader2.DownloadDateData;
+import com.helospark.financialdata.util.StockDataDownloader;
+import com.helospark.financialdata.util.StockDataDownloader.DownloadDateData;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -45,7 +45,7 @@ public class SingleStockDownloadController {
     public DownloadDateData download(@RequestParam("stock") String stock, HttpServletRequest request, @RequestParam(name = "force", required = false) boolean forceRenew) {
         ensureOnlyAdminAccess(request);
         latestPriceProvider.removeFromCache(List.of(stock));
-        return StockDataDownloader2.downloadOneStock(stock, symbolAtGlanceProvider, forceRenew);
+        return StockDataDownloader.downloadOneStock(stock, symbolAtGlanceProvider, forceRenew);
     }
 
     @GetMapping("/refresh-portfolio")
@@ -54,7 +54,7 @@ public class SingleStockDownloadController {
 
         List<String> symbols = getStocks(request);
 
-        StockDataDownloader2.downloadMultiStock(symbols, symbolAtGlanceProvider);
+        StockDataDownloader.downloadMultiStock(symbols, symbolAtGlanceProvider);
 
         latestPriceProvider.removeFromCache(symbols);
     }

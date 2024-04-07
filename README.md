@@ -1,8 +1,22 @@
 ## Financial data application
 
-Used to visualize financial fundamental data, as well as it contains many other utilities to screen and backtest investment strategies.
+Investment platform previously behind longtermstockfundamentals.com used to analyze stock fundamentals over the long term.
+
+Features:
+ - Visualize long term stock data, including but not limited to: revenue, earning, EPS, balance sheet, ROIC, AltmanZ score, etc.
+ - Complex and fast stock screener
+ - Backtest stock screener and compare returns to S&P500
+ - Manage portfolio, track performance
+ - Highlight risks in investment
+ - Run DCF calculations (and provide data based on historical trend to properly fill out parameters)
+ - Provides quick summary and overview of company fundamentals
+ - Promotes long term oriented fundamental based investing
+
+Sample stock charts:
 
 ![screenshot](images/screenshot.png)
+
+See more images on the bottom of the readme.
 
 ### Usage
 
@@ -11,12 +25,28 @@ First you need to download the fundamental data. You only need to do this once (
  - You need a license to https://site.financialmodelingprep.com/developer/docs/ to download the financial fundamental data (currently cheapest is $19/month).
  - You also need a free API key to https://apilayer.com/marketplace/currency_data-api
  - Run com.helospark.financialdata.util.StockDataDownloader as Java application, and give `-DAPI_KEY=FINANCIALMODLINGPREP_API_KEY -DAPI_LAYER_API_KEY=APILAYER_API_KEY`` as VM arguments
-    - You may want to filter what to download by commenting out unnecessary symbols. By default it downloads all known stocks (about 40 000 stocks, ~20GB).
+ -- By default it will download it under your: ~/Documents/financials
+ - You may want to filter what to download by commenting out unnecessary symbols. By default it downloads all known stocks (about 40 000 stocks, ~20GB).
 
-Once you have the data, run `com.helospark.financialdata.FinancialDataApplication` as Java application. You will then be able to reach the UI on http://localhost:8080/stock/INTC
+Then run the DB and graphite instance using docker-compose in the base directory like:
 
-You can change the stock ticket in the URI to see different stocks.
+    docker-compose up
 
+Finally you can run the application: `com.helospark.financialdata.FinancialDataApplication` as Java application using parameters:
+
+    -Xmx4200m -DSTOCK_CACHE_SIZE=100 -DFX_CACHE_SIZE=100 -DAPI_KEY=FINANCIALMODLINGPREP_API_KEY
+
+You will then be able to reach the UI on http://localhost:8080
+
+Default (admin) account to login:
+ - Username: root@longtermstockfundamentals.com
+ - Pass: changeme1
+
+You can change the default user in DynamoDbInitializer class.
+
+To get full functionality, you also have to pass `-Dspring.profiles.active=development-secret` and create a application-development-secret.properties file from the secrets at the bottom of application.properties properly filled out (needed for registration, Stripe integration).
+
+To run in production environment pass the the right active profile and create the necessary properties file.
 
 ### Utils
 
@@ -53,3 +83,18 @@ Create TXT records in your DNS for root sender domain:
 Create dmarc record with sub-domain `_dmarc`:
 
     v=DMARC1; p=quarantine; rua=mailto:support@longtermstockfundamentals.com
+
+    
+### Images
+
+#### Screener and backtest:
+
+![screenshot](images/screener.png)
+
+#### Portfolio summary:
+
+![screenshot](images/portfolio.png)
+
+#### DCF calculator:
+
+![screenshot](images/calculator.png)

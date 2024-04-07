@@ -108,7 +108,7 @@ const plugin = {
        plugin.cagr = {};
      }
 
-      chart.draw()
+     //chart.draw()
     },
     beforeDatasetsDraw: (chart, args, opts) => {
       const {ctx} = chart
@@ -219,13 +219,14 @@ function createChart(urlPath, title, chartOptions) {
     options: {
       animation: animation,
       responsive: true,
-         events: ['mousemove', 'mouseout', 'click', 'mouseup', 'mousedown'],
+      events: ['mousemove', 'mouseout', 'click', 'mouseup', 'mousedown'],
 
        label: {
          display: false
        },
       plugins: {
         legend: {
+          events: ['click'],
           display: legendDisplay
         },
         tooltip: {

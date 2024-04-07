@@ -51,7 +51,7 @@ import com.helospark.financialdata.domain.NoTtmNeeded;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.TresuryRate;
 import com.helospark.financialdata.service.exchanges.Exchanges;
-import com.helospark.financialdata.util.StockDataDownloader2;
+import com.helospark.financialdata.util.StockDataDownloader;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
 public class DataLoader {
@@ -339,6 +339,16 @@ public class DataLoader {
             for (var element : incomeStatement) {
                 element.eps = element.netIncome / element.weightedAverageShsOut;
                 element.epsdiluted = element.netIncome / element.weightedAverageShsOutDil;
+            }
+        }
+        if (symbol.equals("KNSL")) {
+            for (var element : incomeStatement) {
+                if (element.ebitda == 1L) {
+                    element.ebitda = 132_000_000L;
+                }
+            }
+            for (int i = 0; i < incomeStatement.size() && i < cashFlow.size(); ++i) {
+                incomeStatement.get(i).depreciationAndAmortization = cashFlow.get(i).depreciationAndAmortization;
             }
         }
         if (symbol.equals("CPRT")) {
@@ -869,7 +879,7 @@ public class DataLoader {
     }
 
     public static Optional<Map<String, AtGlanceData>> loadHistoricalAtGlanceData(int year, int month) {
-        File file = StockDataDownloader2.getBacktestFileAtYear(year, month);
+        File file = StockDataDownloader.getBacktestFileAtYear(year, month);
 
         if (!file.exists()) {
             return Optional.empty();

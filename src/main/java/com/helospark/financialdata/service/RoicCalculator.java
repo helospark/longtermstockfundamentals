@@ -76,6 +76,7 @@ public class RoicCalculator {
 
     public static long calculateEbit(FinancialsTtm financialsTtm) {
         return financialsTtm.incomeStatementTtm.ebitda + financialsTtm.incomeStatementTtm.depreciationAndAmortization;
+        //        return financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.interestExpense + financialsTtm.incomeStatementTtm.incomeTaxExpense;
     }
 
     public static double calculateROA(FinancialsTtm financialsTtm) {

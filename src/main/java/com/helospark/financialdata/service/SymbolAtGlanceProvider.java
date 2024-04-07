@@ -22,8 +22,8 @@ import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.domain.SearchElement;
-import com.helospark.financialdata.util.StockDataDownloader2;
-import com.helospark.financialdata.util.StockDataDownloader2.YearMonthPair;
+import com.helospark.financialdata.util.StockDataDownloader;
+import com.helospark.financialdata.util.StockDataDownloader.YearMonthPair;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
 @Component
@@ -50,7 +50,7 @@ public class SymbolAtGlanceProvider {
         ObjectMapper om = new ObjectMapper();
         om.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         om.registerModule(new JSR310Module());
-        File file = new File(StockDataDownloader2.SYMBOL_CACHE_FILE);
+        File file = new File(StockDataDownloader.SYMBOL_CACHE_FILE);
 
         Kryo kryo = new Kryo();
         kryo.register(AtGlanceData.class);

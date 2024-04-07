@@ -2,6 +2,7 @@ package com.helospark.financialdata.management.config;
 
 import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
@@ -34,12 +35,15 @@ import jakarta.annotation.PostConstruct;
 @Component
 public class DynamoDbInitializer {
     private static final String ADMIN_EMAIL = "admin@longtermstockfundamentals.com";
+    private static final String ROOT_EMAIL = "root@longtermstockfundamentals.com";
     @Autowired
     AmazonDynamoDB amazonDynamoDB;
     @Autowired
     DynamoDBMapper mapper;
     @Autowired
     UserRepository userRepository;
+    @Autowired
+    BCryptPasswordEncoder passwordEncoder;
 
     @PostConstruct
     public void createTables() {
@@ -60,6 +64,15 @@ public class DynamoDbInitializer {
             user.setActivated(true);
             user.setEmail(ADMIN_EMAIL);
             user.setPassword("$2a$10$a83Kk3OS5I.HUR7i8G8NkOlTOIQ6XMGk/YUUGtVr2rRm7M6345ufu");
+            user.setRegistered(LocalDate.now().toString());
+            userRepository.save(user);
+        }
+        if (wasUserTableCreated || userRepository.findByEmail(ROOT_EMAIL).isEmpty()) {
+            User user = new User();
+            user.setAccountType(AccountType.ADMIN);
+            user.setActivated(true);
+            user.setEmail(ROOT_EMAIL);
+            user.setPassword(passwordEncoder.encode("changeme1"));
             user.setRegistered(LocalDate.now().toString());
             userRepository.save(user);
         }

@@ -29,7 +29,7 @@ import com.github.benmanes.caffeine.cache.Expiry;
 import com.github.benmanes.caffeine.cache.Policy.VarExpiration;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.service.DataLoader;
-import com.helospark.financialdata.util.StockDataDownloader2;
+import com.helospark.financialdata.util.StockDataDownloader;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -146,7 +146,7 @@ public class LatestPriceProvider {
 
     private double provideApiBasedPrice(String symbol) {
         try {
-            double result = StockDataDownloader2.loadLatestPrice(symbol);
+            double result = StockDataDownloader.loadLatestPrice(symbol);
             if (result == 0.0) {
                 result = provideFileBasedPrice(symbol);
             }
