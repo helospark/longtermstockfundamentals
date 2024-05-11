@@ -185,17 +185,60 @@
                   <input type="text" class="form-control" id="watchlist-tags" value="` + tags + `">
                   <label for="watchlist-shares" class="col-form-label" maxlength="7">Owned shares</label>
                   <input type="text" class="form-control" id="watchlist-shares" value="` + ownedShares + `">
+                  
+                  <label class="col-form-label">Moats</label>
+                  <div class="moats container">
+                      <div class="row">
+                          ` + 
+                          createMoatElement("Network effect", "network-effect", data.moats?.networkEffect) + 
+                          createMoatElement("Switching cost", "switching-cost", data.moats?.switchingCost) + 
+                          createMoatElement("Economy of scale", "economy-of-scale", data.moats?.economyOfScale) + ` 
+                      </div>
+                      <div class="row">
+                          ` + 
+                          createMoatElement("Brand", "brand-moat", data.moats?.brand) + 
+                          createMoatElement("Assets", "intangible-assets", data.moats?.intangibles) + 
+                          createMoatElement("Cost advantage", "cost-advantage", data.moats?.costAdvantage) + ` 
+                      </div>
+                  </div>
+
+                  
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-primary" onclick="addToWatchlistExec('` + stock + `')">Save</button>
               </div>`;
           
-          $("#generic-modal .modal-content").html(formHtml);
+          $("#generic-large-modal .modal-content").html(formHtml);
               
-          modal = new bootstrap.Modal(document.getElementById("generic-modal"));
+          modal = new bootstrap.Modal(document.getElementById("generic-large-modal"));
           modal.show();
     });
+  }
+  
+  function createMoatElement(name, id, defaultValue) {
+    var selected = (defaultValue == null || defaultValue == undefined ? 0 : defaultValue);
+  
+    return `
+        <div class="col-md-4">
+          <div class="row">
+             <div class="col-md-7" style="align-content: center;">
+              ` + name + `
+             </div>
+             <div class="col-md-5">
+              <select name="cars" id="` + id +`">
+                <option value="0" ` + (selected == 0 ? "selected" : "") + `>-</option>
+                <option value="1" ` + (selected == 1 ? "selected" : "") + `>1</option>
+                <option value="2" ` + (selected == 2 ? "selected" : "") + `>2</option>
+                <option value="3" ` + (selected == 3 ? "selected" : "") + `>3</option>
+                <option value="4" ` + (selected == 4 ? "selected" : "") + `>4</option>
+                <option value="5" ` + (selected == 5 ? "selected" : "") + `>5</option>
+              </select> 
+               <span style="font-size:18pt">/ 5</span>
+             </div>
+           </div>
+        </div>
+    `;
   }
 
   function addToWatchlistExec(stock) {
@@ -210,6 +253,17 @@
 
     fairValueSpan = $("#fair-value");
     var onCalculator = false;
+  
+    moats = {
+      networkEffect: Number($("#network-effect").val()),
+      switchingCost: Number($("#switching-cost").val()),
+      economyOfScale: Number($("#economy-of-scale").val()),
+      brand: Number($("#brand-moat").val()),
+      intangibles: Number($("#intangible-assets").val()),
+      costAdvantage: Number($("#cost-advantage").val())
+    }
+       
+       
     if (fairValueSpan.length > 0) {
       startGrowth = Number($("#startGrowth").val());
       endGrowth = Number($("#endGrowth").val());
@@ -222,7 +276,7 @@
       currentPrice = Number($("#current-price").text());
       startPayout = Number($("#startPayout").val());
       endPayout = Number($("#endPayout").text());
-       
+      
       calculatorParameters = {
         startMargin: startMargin,
         endMargin: endMargin,
@@ -239,7 +293,7 @@
         startPayout: startPayout,
         endPayout: endPayout,
         
-        type: type
+        type: type,
       };
     } else {
       calculatorParameters = null;
@@ -251,13 +305,13 @@
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({symbol: stock, priceTarget: priceTarget, notes: notes, tags: tags, ownedShares: ownedShares, calculatorParameters: calculatorParameters})
+      body: JSON.stringify({symbol: stock, priceTarget: priceTarget, notes: notes, tags: tags, ownedShares: ownedShares, calculatorParameters: calculatorParameters, moats: moats})
     }).then(async data => {
         if (data.status != 200) {
           data = await data.json();
           $("#watchlist-error-message").text(data.errorMessage);
         } else {
-          $("#generic-modal").modal("hide");
+          $("#generic-large-modal").modal("hide");
           if ($("#watchlist-table").length > 0) {
             location.reload();
           }

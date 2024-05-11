@@ -9,11 +9,12 @@ public class AddToWatchlistRequest {
     public String notes;
     public int ownedShares = 0;
     public CalculatorParameters calculatorParameters;
+    public Moats moats;
 
     @Override
     public String toString() {
         return "AddToWatchlistRequest [symbol=" + symbol + ", priceTarget=" + priceTarget + ", tags=" + tags + ", notes=" + notes + ", ownedShares=" + ownedShares + ", calculatorParameters="
-                + calculatorParameters + "]";
+                + calculatorParameters + ", moats=" + moats + "]";
     }
 
 }

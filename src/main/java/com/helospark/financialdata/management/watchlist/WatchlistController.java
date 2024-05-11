@@ -27,6 +27,7 @@ import com.helospark.financialdata.management.watchlist.repository.WatchlistServ
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 @RestController
 public class WatchlistController {
@@ -50,7 +51,7 @@ public class WatchlistController {
 
     @PostMapping("/watchlistGetPaginated")
     @RateLimit(requestPerMinute = 30)
-    public PaginatedWatchListResponse getCurrentWatchsSListPaginated(HttpServletRequest httpRequest, @RequestBody DataTableRequest dataTableRequest) {
+    public PaginatedWatchListResponse getCurrentWatchsListPaginated(HttpServletRequest httpRequest, @RequestBody DataTableRequest dataTableRequest) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {
             throw new WatchlistPermissionDeniedException("Not logged in");
@@ -79,7 +80,7 @@ public class WatchlistController {
 
     @PostMapping("/watchlist")
     @RateLimit(requestPerMinute = 30)
-    public void addToWatchlist(@RequestBody AddToWatchlistRequest request, HttpServletRequest httpRequest) {
+    public void addToWatchlist(@RequestBody @Valid AddToWatchlistRequest request, HttpServletRequest httpRequest) {
         Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
         if (jwt.isEmpty()) {
             throw new WatchlistPermissionDeniedException("Not logged in");

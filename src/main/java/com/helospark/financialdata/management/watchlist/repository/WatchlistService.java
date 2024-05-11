@@ -313,6 +313,13 @@ public class WatchlistService {
         if (request.calculatorParameters != null) {
             elementToUpdate.calculatorParameters = request.calculatorParameters;
         }
+        if (request.moats == null ||
+                (request.moats.brand == 0 && request.moats.costAdvantage == 0 && request.moats.economyOfScale == 0 && request.moats.intangibles == 0 && request.moats.networkEffect == 0
+                        && request.moats.switchingCost == 0)) {
+            elementToUpdate.moats = null;
+        } else {
+            elementToUpdate.moats = request.moats;
+        }
 
         Watchlist toInsert = new Watchlist();
         toInsert.setEmail(email);

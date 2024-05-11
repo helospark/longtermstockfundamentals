@@ -40,6 +40,7 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.Helpers;
+import com.helospark.financialdata.service.MoatScoreCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 import com.helospark.financialdata.util.spconstituents.GeneralCompanyMetrics;
@@ -74,6 +75,7 @@ public class PortfolioController {
     private static final String EPS_GROWTH = "EPS growth";
     private static final String FCF_YIELD = "FCF yield";
     private static final String INVESTMENT_SCORE = "IS";
+    private static final String MOAT_SCORE = "Moat";
 
     public static final double[] ROIC_RANGES = new double[] { 5, 10, 20, 30, 40 };
     public static final double[] FCF_ROIC_RANGES = new double[] { 4, 7, 10, 14, 20 };
@@ -88,6 +90,7 @@ public class PortfolioController {
     public static final double[] PE_RANGES = new double[] { 0.0, 7.0, 15.0, 22.0, 30.0 };
     public static final double[] PIOTROSKY_RANGES = new double[] { 3, 4, 5, 6, 7 };
     public static final double[] INVESTMENT_SCORE_RANGES = new double[] { 4, 5, 6, 7, 8.0 };
+    public static final double[] MOAT_SCORE_RANGES = new double[] { 2, 3, 4, 5, 6.0 };
 
     private static final String GOOD_COLOR = "green";
     private static final String OK_COLOR = "lime";
@@ -203,7 +206,7 @@ public class PortfolioController {
         result.columns = List.of(SYMBOL_COL, NAME_COL, DIFFERENCE_COL, OWNED_SHARES, PE, ROIC, FIVE_YR_ROIC, ROE, SHARE_CHANGE, DEBT_TO_EQUITY, ICR, LTL5FCF, ALTMAN, PIETROSKY, RED_FLAGS,
                 GROSS_MARGIN,
                 OPERATING_MARGIN,
-                REVENUE_GROWTH, EPS_GROWTH, FCF_YIELD, INVESTMENT_SCORE);
+                REVENUE_GROWTH, EPS_GROWTH, FCF_YIELD, MOAT_SCORE, INVESTMENT_SCORE);
 
         result.returnsColumns = List.of(SYMBOL_COL, NAME_COL, OWNED_SHARES, "1 year", "2 year", "3 year", "5 year", "8 year", "10 year", "12 year", "15 year", "20 year");
 
@@ -274,6 +277,8 @@ public class PortfolioController {
                         .orElse(atGlance.latestStockPrice);
                 double ownedValue = latestPriceInUsd * currentElement.ownedShares;
                 Map<String, String> portfolioElement = new HashMap<>();
+                Optional<Double> moat = MoatScoreCalculator.calculate(currentElement.moats);
+
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
                 portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
@@ -296,6 +301,7 @@ public class PortfolioController {
                 portfolioElement.put(EPS_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.epsGrowth, GROWTH_RANGES));
                 portfolioElement.put(FCF_YIELD, formatStringWithThresholdsPercentAsc(atGlance.getFreeCashFlowYield(), 0, 3, 5, 8, 12));
                 portfolioElement.put(INVESTMENT_SCORE, formatStringWithThresholdsAsc(atGlance.investmentScore, INVESTMENT_SCORE_RANGES));
+                portfolioElement.put(MOAT_SCORE, moat.isEmpty() ? "?" : formatStringWithThresholdsAsc(moat.get(), MOAT_SCORE_RANGES));
                 portfolioElement.put(SYMBOL_RAW, ticker);
 
                 if (currentElement.calculatorParameters != null) {
