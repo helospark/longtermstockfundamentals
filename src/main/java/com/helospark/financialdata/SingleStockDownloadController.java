@@ -1,5 +1,6 @@
 package com.helospark.financialdata;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -19,6 +20,7 @@ import com.helospark.financialdata.management.watchlist.repository.WatchlistServ
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.StockDataDownloader;
 import com.helospark.financialdata.util.StockDataDownloader.DownloadDateData;
+import com.helospark.financialdata.util.spconstituents.Sp500MetricSaverJob;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -33,6 +35,8 @@ public class SingleStockDownloadController {
     private WatchlistService watchlistService;
     @Autowired
     private LatestPriceProvider latestPriceProvider;
+    @Autowired
+    private Sp500MetricSaverJob metricSaverJob;
 
     public void ensureOnlyAdminAccess(HttpServletRequest request) {
         Optional<AccountType> accountType = loginController.getAccountType(request);
@@ -66,6 +70,13 @@ public class SingleStockDownloadController {
         List<String> symbols = getStocks(request);
 
         latestPriceProvider.removeFromCache(symbols);
+    }
+
+    @GetMapping("/rerun-sp-job")
+    public void rerunSpJob(HttpServletRequest request) {
+        ensureOnlyAdminAccess(request);
+
+        metricSaverJob.runJob(LocalDate.now());
     }
 
     public List<String> getStocks(HttpServletRequest request) {

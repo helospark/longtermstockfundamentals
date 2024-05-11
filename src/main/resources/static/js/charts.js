@@ -297,6 +297,15 @@ createChartInternal("/financials/net_income", "Net income", {label: "Net income"
   },
 ]});
 createChartInternal("/financials/eps", "EPS", {});
+createChartInternal("/financials/eps_excl_rnd", "EPS excluding research and development", {
+  tooltip: 'Some companies, such as AMZN reinvest most of their earnings via R&D, making EPS meaningless, but we could readd the R&D cost to see what the company could have achieved. Also EPS excluding marketing is shown, if the consumers sticiking to the brand, the marketing could be stopped.',
+  label: "EPS excluding R&D",
+  additionalCharts: [
+  {
+    "url": "/financials/eps_excl_marketing",
+    "label": "EPS excluding marketing expense"
+  }
+]}, defaultEnabled=false);
 createChartInternal("/financials/pfcf", "FCF per share", {});
 createChartInternal("/financials/ebitda_per_share", "EBITDA per share", {}, defaultEnabled=false);
 
@@ -495,6 +504,7 @@ createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '
 createChartInternal("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
 createChartInternal("/financials/asset_turnover_ratio", "Asset turnover ratio", {quarterlyEnabled: true}, defaultEnabled=false);
 createChartInternal("/financials/pietrosky_score", "Piotrosky score", {quarterlyEnabled: false});
+createChartInternal("/financials/effective_tax_rate", "Effective tax rate", {quarterlyEnabled: true, unit: '%'}, defaultEnabled=false);
 //createChartInternal("/financials/earnings_surprise", "Earnings surprise", {type: 'bar', unit: '%', quarterlyEnabled: false});
 
 

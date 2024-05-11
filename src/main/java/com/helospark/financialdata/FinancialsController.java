@@ -62,6 +62,23 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
     }
 
+    @GetMapping("/eps_excl_rnd")
+    public List<SimpleDataElement> getEpsExcludingRnd(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses)
+                / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+    }
+
+    @GetMapping("/eps_excl_marketing")
+    public List<SimpleDataElement> getEpsExcludingMarketing(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> {
+            if (financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses < financialsTtm.incomeStatementTtm.costAndExpenses) {
+                return ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses) / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+            } else {
+                return null;
+            }
+        });
+    }
+
     @GetMapping("/revenue")
     public List<SimpleDataElement> getRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> financialsTtm.incomeStatementTtm.revenue);
@@ -331,6 +348,11 @@ public class FinancialsController {
     @GetMapping("/return_on_tangible_assets")
     public List<SimpleDataElement> getReturnOnTangibleAssets(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RoicCalculator.calculateROTA(financialsTtm)));
+    }
+
+    @GetMapping("/effective_tax_rate")
+    public List<SimpleDataElement> getTaxRate(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.incomeTaxExpense / financialsTtm.incomeStatementTtm.incomeBeforeTax));
     }
 
     @GetMapping("/cash_flow_to_debt")

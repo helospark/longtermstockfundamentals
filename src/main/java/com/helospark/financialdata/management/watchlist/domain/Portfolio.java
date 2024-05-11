@@ -39,7 +39,11 @@ public class Portfolio {
     public double totalEpsGrowth = 0.0;
     public double totalAltman = 0.0;
     public double totalRoic = 0.0;
+    public double totalRoe = 0.0;
+    public double totalFcfRoic = 0.0;
     public double totalOpMargin = 0;
+    public double totalGrossMargin = 0;
+    public double totalNetMargin = 0;
     public double totalShareChange = 0;
     public double totalDebtToEquity = 0.0;
     public double investmentScore = 0.0;

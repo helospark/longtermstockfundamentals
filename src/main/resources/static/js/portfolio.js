@@ -125,7 +125,8 @@ createdCharts = new Map();
            
            dataTableConfig={
               paging: false,
-             "iDisplayLength": 100
+             "iDisplayLength": 100,
+              fixedHeader: true
            };
            
            if (options.reorder === true) {
@@ -140,10 +141,11 @@ createdCharts = new Map();
 
            returnsWatchlistHtml = createWatchlistTableHtml(data.returnsColumns, data.returnsPortfolio, false);
            $("#returns-table").html(returnsWatchlistHtml);
-           $('#returns-table table').DataTable({
+           var table = $('#returns-table table').DataTable({
               paging: false,
              "iDisplayLength": 100,
-             "order": [ '2', 'desc' ]
+             "order": [ '2', 'desc' ],
+              fixedHeader: false
            });
            
            if (document.getElementById("charts") !== null) {

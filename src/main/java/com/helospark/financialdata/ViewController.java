@@ -35,6 +35,7 @@ import com.helospark.financialdata.service.MarginCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.exchanges.Exchanges;
+import com.helospark.financialdata.util.spconstituents.PortfolioCompareGenerator;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -58,6 +59,8 @@ public class ViewController {
     private LatestPriceProvider latestPriceProvider;
     @Autowired
     private WatchlistService watchlistService;
+    @Autowired
+    private PortfolioCompareGenerator compareGenerator;
 
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
@@ -94,6 +97,21 @@ public class ViewController {
         model.addAttribute("onlyOwned", onlyOwned);
 
         return "portfolio";
+    }
+
+    @GetMapping("/portfolio-compare")
+    public String portfolioCompare(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request) {
+        Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+
+        if (!jwtOptional.isPresent()) {
+            model.addAttribute("accountType", "NOT_LOGGED_IN");
+            model.addAttribute("allowed", false);
+        } else {
+            model.addAttribute("compareList", compareGenerator.generate(request));
+        }
+        model.addAttribute("stock", stock);
+
+        return "portfolio-compare";
     }
 
     @GetMapping("/summary")
@@ -336,7 +354,7 @@ public class ViewController {
             return "redirect:/";
         } else {
             fillModelWithCommonStockData(stock, model, request);
-    
+
             if (Boolean.TRUE.equals(model.getAttribute("allowed"))) {
                 CompanyFinancials company = DataLoader.readFinancials(stock);
                 if (company.financials.size() > 0) {
@@ -348,13 +366,13 @@ public class ViewController {
                     if (startMargin == null) {
                         startMargin = MarginCalculator.getAvgNetMargin(company.financials, 0) * 100.0;
                     }
-    
+
                     Double startShareCountGrowth = startShareChangeParam;
                     if (startShareCountGrowth == null) {
                         startShareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5, 0).orElse(0.0);
                     }
                     double endGrowth = nonNullOf(endGrowthParam, startGrowth * 0.5);
-    
+
                     Double startPayoutRatioResult = startPayoutRatio;
                     if (startPayoutRatioResult == null) {
                         startPayoutRatioResult = RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) * 100.0;
@@ -366,12 +384,12 @@ public class ViewController {
                         }
                     }
                     double endPayoutRatioResult = nonNullOf(endPayoutRatio, startShareCountGrowth);
-    
+
                     Double endShareCountGrowth = endShareChangeParam;
                     if (endShareCountGrowth == null) {
                         endShareCountGrowth = startShareCountGrowth;
                     }
-    
+
                     Double endMultiple = endMultipleParam;
                     if (endMultiple == null) {
                         endMultiple = 12.0;
@@ -384,10 +402,10 @@ public class ViewController {
                     }
                     Double endMargin = nonNullOf(endMarginParam, startMargin);
                     Double discount = nonNullOf(discountParam, 10.0);
-    
+
                     model.addAttribute("revenue", (double) company.financials.get(0).incomeStatementTtm.revenue / 1_000_000);
                     model.addAttribute("shareCount", company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / 1000);
-    
+
                     model.addAttribute("startGrowth", String.format("%.2f", startGrowth));
                     model.addAttribute("endGrowth", String.format("%.2f", endGrowth));
                     model.addAttribute("startMargin", String.format("%.2f", startMargin));
@@ -411,14 +429,14 @@ public class ViewController {
                         model.addAttribute("reportingCurrencyToTradingCurrencyRate", exchangeRate.orElse(1.0));
                     }
                 }
-    
+
                 double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
                 Optional<Double> priceInReportCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, company.profile.currency, company.profile.reportedCurrency, LocalDate.now(), false);
                 model.addAttribute("latestPrice", priceInReportCurrency.orElse(company.latestPrice));
                 model.addAttribute("latestPriceTradingCurrency", latestPriceInTradingCurrency);
                 model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
             }
-    
+
             return "complex_calculator";
         }
     }*/

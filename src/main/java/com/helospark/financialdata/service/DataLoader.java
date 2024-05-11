@@ -245,6 +245,14 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("ODFL")) {
+            for (var element : incomeStatement) {
+                if (element.weightedAverageShsOut < 200_000_000L) {
+                    element.weightedAverageShsOut *= 2;
+                    element.weightedAverageShsOutDil *= 2;
+                }
+            }
+        }
         if (symbol.equals("EPAM")) {
             if (cashFlow.size() > 1 && cashFlow.get(0).freeCashFlow == 0) {
                 cashFlow.get(0).freeCashFlow = cashFlow.get(1).freeCashFlow;
@@ -333,8 +341,10 @@ public class DataLoader {
         if (symbol.equals("TSM")) {
             for (var element : incomeStatement) {
                 // ADR share correction
-                element.weightedAverageShsOut /= 5;
-                element.weightedAverageShsOutDil /= 5;
+                if (element.weightedAverageShsOut > 6_000_000_000L) {
+                    element.weightedAverageShsOut /= 5;
+                    element.weightedAverageShsOutDil /= 5;
+                }
             }
             for (var element : incomeStatement) {
                 element.eps = element.netIncome / element.weightedAverageShsOut;
@@ -418,6 +428,17 @@ public class DataLoader {
         }
 
         CompanyFinancials result = createToTtm(symbol, balanceSheet, incomeStatement, cashFlow, historicalPrice, profile, auxilaryInformation);
+
+        for (int i = 0; i < result.financials.size(); ++i) {
+            IncomeStatement element = result.financials.get(i).incomeStatementTtm;
+            element.eps = (double) element.netIncome / element.weightedAverageShsOut;
+            element.epsdiluted = (double) element.netIncome / element.weightedAverageShsOutDil;
+        }
+        for (int i = 0; i < result.financials.size(); ++i) {
+            IncomeStatement element = result.financials.get(i).incomeStatement;
+            element.eps = (double) element.netIncome / element.weightedAverageShsOut;
+            element.epsdiluted = (double) element.netIncome / element.weightedAverageShsOutDil;
+        }
 
         for (var elemen : result.financials) {
             double mktCap = elemen.priceUsd * elemen.incomeStatementTtm.weightedAverageShsOut;

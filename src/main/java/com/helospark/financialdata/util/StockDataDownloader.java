@@ -125,24 +125,35 @@ public class StockDataDownloader {
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
         boolean downloadNewData = true;
+        boolean downloadFx = true;
+        boolean downloadJustSp = false;
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;
 
         if (downloadNewData) {
             //List<String> symbols = Arrays.asList(downloadSimpleUrlCached("/v3/financial-statement-symbol-lists", "info/financial-statement-symbol-lists.json", String[].class));
-            List<String> symbols = Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class));
 
             List<String> sp500Symbols = downloadCompanyListCached("/v3/sp500_constituent", "info/sp500_constituent.json");
             List<String> nasdaqSymbols = downloadCompanyListCached("/v3/nasdaq_constituent", "info/nasdaq_constituent.json");
             List<String> dowjones_constituent = downloadCompanyListCached("/v3/dowjones_constituent", "info/dowjones_constituent.json");
             statusMessage = "Downloading FX";
-            downloadFxRates();
+            if (downloadFx) {
+                downloadFxRates();
+            }
             statusMessage = "Downloading useful info";
             downloadUsefulInfo();
 
             int threads = 10;
             var executor = Executors.newFixedThreadPool(threads);
+
+            List<String> symbols;
+
+            if (downloadJustSp) {
+                symbols = sp500Symbols;
+            } else {
+                symbols = Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class));
+            }
 
             List<String> newSymbols = new ArrayList<>(symbols);
             Collections.shuffle(newSymbols);
@@ -1122,7 +1133,9 @@ public class StockDataDownloader {
             lastDate = (elements != null && elements.historical.size() > 0) ? elements.historical.get(0).getDate() : null;
         }
 
-        if (lastDate != null && elements != null && elements.historical != null) { // then merge files instead of redownloading everything
+        boolean mergeFiles = false; // due to splits
+
+        if (lastDate != null && elements != null && elements.historical != null && mergeFiles) { // then merge files instead of redownloading everything
             HashMap<String, String> newQueryParams = new HashMap<>(queryParams);
             newQueryParams.put("from", lastDate.plusDays(1L).toString());
             newQueryParams.put("to", LocalDate.now().toString());

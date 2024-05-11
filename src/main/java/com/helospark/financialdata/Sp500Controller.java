@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,12 +31,21 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
+import com.helospark.financialdata.util.spconstituents.Sp500ConstituentsProvider;
+import com.helospark.financialdata.util.spconstituents.Sp500MetricCalculator;
+import com.helospark.financialdata.util.spconstituents.GeneralCompanyMetrics;
+import com.helospark.financialdata.util.spconstituents.Sp500WeightedConstituent;
 
 @RestController
 @RequestMapping("/sp500/data")
 public class Sp500Controller {
     private static final Set<String> VALID_INDICATORS = Set.of("CPI", "15YearFixedRateMortgageAverage", "30YearFixedRateMortgageAverage",
             "unemploymentRate", "consumerSentiment", "realGDP", "GDP");
+
+    @Autowired
+    private Sp500ConstituentsProvider constituentsProvider;
+    @Autowired
+    private Sp500MetricCalculator metrics;
 
     @GetMapping("/price")
     public List<SimpleDataElement> getPrice() {
@@ -371,6 +381,16 @@ public class Sp500Controller {
     @GetMapping("/inflatation_return")
     public List<ThreeDDataElement> getInflationReturns(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
         return createBubbleChart(years, cpiToInflation(loadFpFile("/info/CPI.json")), 30.0);
+    }
+
+    @GetMapping("/getconst")
+    public List<Sp500WeightedConstituent> getConstituents() {
+        return constituentsProvider.getConstituents();
+    }
+
+    @GetMapping("/metrics")
+    public GeneralCompanyMetrics getMetrics() {
+        return metrics.calculateMetrics();
     }
 
     public List<ThreeDDataElement> createBubbleChart(int years, List<SimpleDateDataElement> dataElements, double maxValue) throws IOException, StreamReadException, DatabindException {

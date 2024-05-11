@@ -368,7 +368,7 @@ select, #start-date-dropdown, #end-date-dropdown {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1240px) {
   .topnav-text {
     display:none;
   }
@@ -389,4 +389,14 @@ select, #start-date-dropdown, #end-date-dropdown {
 .single-number-chart {
   font-size: 20pt;
   text-align: center;
+}
+
+.compare-winner {
+  font-weight: 900;
+  color: green;
+}
+
+.compare-looser {
+  font-weight: 500;
+  color: red;
 }

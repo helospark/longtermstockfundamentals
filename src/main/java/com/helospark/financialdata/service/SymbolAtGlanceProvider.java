@@ -6,9 +6,11 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.springframework.stereotype.Component;
@@ -90,7 +92,7 @@ public class SymbolAtGlanceProvider {
         if (parts.length() > longestCompanyName || parts.isBlank()) {
             return List.of();
         }
-        List<SearchElement> result = new ArrayList<>();
+        Set<SearchElement> result = new LinkedHashSet<>();
         String partsUppercase = parts.toUpperCase();
 
         List<SearchElement> bestSymbols = new ArrayList<>();
@@ -120,7 +122,7 @@ public class SymbolAtGlanceProvider {
                 }
             }
         }
-        return result;
+        return result.stream().toList();
     }
 
     public Optional<String> getCompanyName(String stock) {

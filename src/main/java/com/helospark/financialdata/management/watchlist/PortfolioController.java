@@ -42,6 +42,7 @@ import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
+import com.helospark.financialdata.util.spconstituents.GeneralCompanyMetrics;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -234,7 +235,12 @@ public class PortfolioController {
         double fifteenYearReturnTotal = 0.0;
         double twentyYearReturnTotal = 0.0;
         double expectedTotal = 0.0;
-        double dividend = 0.0;
+        double totalDebt = 0.0;
+        double totalEquity = 0.0;
+        double totalEarnings = 0.0;
+        double totalRevenue = 0.0;
+        double totalGrossProfit = 0.0;
+        double totalOpIncome = 0.0;
 
         Map<String, CompletableFuture<Double>> prices = new HashMap<>();
         for (int i = 0; i < watchlistElements.size(); ++i) {
@@ -354,7 +360,14 @@ public class PortfolioController {
 
                         eps = DataLoader.convertFx(eps, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
                         fcf = DataLoader.convertFx(fcf, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+
                         double netAssets = DataLoader.convertFx(netAssetsNativeCurrency, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        double debt = DataLoader.convertFx(financialsTtm.balanceSheet.totalDebt, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        double equity = DataLoader.convertFx(financialsTtm.balanceSheet.totalStockholdersEquity, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        double netIncome = DataLoader.convertFx(financialsTtm.incomeStatementTtm.netIncome, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        double revenue = DataLoader.convertFx(financialsTtm.incomeStatementTtm.revenue, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        double grossProfit = DataLoader.convertFx(financialsTtm.incomeStatementTtm.grossProfit, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
+                        double opEarnings = DataLoader.convertFx(financialsTtm.incomeStatementTtm.operatingIncome, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
 
                         double dividendPaid = DataLoader.convertFx(atGlance.dividendPaid, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
 
@@ -370,8 +383,17 @@ public class PortfolioController {
                         result.totalAltman += orZero(() -> ownedValue * atGlance.altman);
                         result.totalOpMargin += orZero(() -> ownedValue * atGlance.opMargin);
                         result.totalRoic += orZero(() -> ownedValue * atGlance.roic);
+                        result.totalFcfRoic += orZero(() -> ownedValue * atGlance.fiveYrRoic);
+                        result.totalRoe += orZero(() -> ownedValue * atGlance.roe);
+                        result.totalGrossMargin += orZero(() -> ownedValue * atGlance.grMargin);
                         result.totalShareChange += orZero(() -> ownedValue * atGlance.shareCountGrowth);
-                        result.totalDebtToEquity += orZero(() -> ownedValue * atGlance.dtoe);
+                        totalDebt += orZero(() -> ownedValue * debt);
+                        totalEquity += orZero(() -> ownedValue * equity);
+                        totalEarnings += (ownedValue * netIncome);
+                        totalRevenue += (ownedValue * revenue);
+                        totalGrossProfit += (ownedValue * grossProfit);
+                        totalOpIncome += (ownedValue * opEarnings);
+                        //                        result.totalDebtToEquity += orZero(() -> ownedValue * atGlance.dtoe);
                         result.investmentScore += orZero(() -> ownedValue * atGlance.investmentScore);
 
                         if (Double.isFinite(oneYearReturn)) {
@@ -419,10 +441,15 @@ public class PortfolioController {
             result.totalRevGrowth /= result.totalPrice;
             result.totalAltman /= result.totalPrice;
             result.totalRoic /= result.totalPrice;
-            result.totalOpMargin /= result.totalPrice;
+            result.totalFcfRoic /= result.totalPrice;
             result.totalShareChange /= result.totalPrice;
-            result.totalDebtToEquity /= result.totalPrice;
             result.investmentScore /= result.totalPrice;
+
+            result.totalDebtToEquity = (totalDebt / totalEquity);
+            result.totalRoe = (totalEarnings / totalEquity) * 100.0;
+            result.totalNetMargin = (totalEarnings / totalRevenue) * 100.0;
+            result.totalGrossMargin = (totalGrossProfit / totalRevenue) * 100.0;
+            result.totalOpMargin = (totalOpIncome / totalRevenue) * 100.0;
         }
         if (oneYearReturnTotal > 0.0) {
             result.oneYearReturn /= oneYearReturnTotal;
@@ -729,6 +756,28 @@ public class PortfolioController {
     public GenericResponseAccountResult handlePermissionDenied(WatchlistPermissionDeniedException exception) {
         LOGGER.warn("Unauthorized exception", exception);
         return new GenericResponseAccountResult(exception.getMessage());
+    }
+
+    public GeneralCompanyMetrics calculateGeneralMetrics(HttpServletRequest httpRequest) {
+        Portfolio portfolio = getPortfolio(httpRequest, true);
+
+        GeneralCompanyMetrics result = new GeneralCompanyMetrics();
+        result.altman = portfolio.totalAltman;
+        result.roic = portfolio.totalRoic;
+        result.fcfRoic = portfolio.totalFcfRoic;
+        result.roe = portfolio.totalRoe;
+        result.d2e = portfolio.totalDebtToEquity;
+        result.epsGrowth = portfolio.totalEpsGrowth;
+        result.shareCountGrowth = portfolio.totalShareChange;
+        result.revGrowth = portfolio.totalRevGrowth;
+        result.opMargin = portfolio.totalOpMargin;
+        result.grossMargin = portfolio.totalGrossMargin;
+        result.netMargin = portfolio.totalNetMargin;
+        result.investScore = portfolio.investmentScore;
+        result.pe = portfolio.totalPrice / portfolio.totalEarnings;
+        result.pfcf = portfolio.totalPrice / portfolio.totalFcf;
+
+        return result;
     }
 
 }
