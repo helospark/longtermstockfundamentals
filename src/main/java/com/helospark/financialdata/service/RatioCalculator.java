@@ -51,6 +51,37 @@ public class RatioCalculator {
         return result;
     }
 
+    public static Double calculateEpsExRnd(FinancialsTtm financialsTtm) {
+        return ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses)
+                / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+    }
+
+    public static Double calculatePriceToEarningsRatioExRnd(FinancialsTtm financialsTtm) {
+        double eps = calculateEpsExRnd(financialsTtm);
+        double result = financialsTtm.price / eps;
+
+        if (!Double.isFinite(result)) {
+            return null;
+        }
+
+        return result;
+    }
+
+    public static double calculateEpsExMns(FinancialsTtm financialsTtm) {
+        return ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses) / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+    }
+
+    public static Double calculatePriceToEarningsRatioExMns(FinancialsTtm financialsTtm) {
+        double eps = calculateEpsExMns(financialsTtm);
+        double result = financialsTtm.price / eps;
+
+        if (!Double.isFinite(result)) {
+            return null;
+        }
+
+        return result;
+    }
+
     public static Double calculatePriceToEarningsRatio(double price, FinancialsTtm financialsTtm) {
         double result = price / (financialsTtm.incomeStatementTtm.eps);
         if (!Double.isFinite(result)) {

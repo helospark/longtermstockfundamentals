@@ -1,5 +1,6 @@
 package com.helospark.financialdata.util.analyzer;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,10 +29,11 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
 public class ParameterFinderBacktest {
-    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE", "TSX", "STO");
+    //    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE", "TSX", "STO");
+    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2000, 2003), new YearRange(2015, 2016));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2004, 2006), new YearRange(2013, 2014));
 
     private static final double MINIMUM_BEAT_PERCENT = 95.0;
     private static final double MINIMUM_INVEST_COUNT_PERCENT = 80.0;
@@ -44,8 +46,11 @@ public class ParameterFinderBacktest {
 
     private static final int RESULT_QUEUE_SIZE = 60;
 
+    // Test what if this program was run on date, or null for latest date
+    private static final LocalDate TEST_RUN_ON_DATE = null; // LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1); // or null
+
     private static final List<String> EXCLUDED_STOCKS = List.of();
-    private static final List<RandomParam> PARAMS = getAllParams();
+    private static final List<RandomParam> PARAMS = getBestParams();
     ScreenerController screenerController;
     Set<TestResult> resultSet = Collections.synchronizedSet(new TreeSet<>());
 
@@ -97,6 +102,12 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("cape", 3.0, 80.0));
         params.add(new RandomParam("fYrPe", 0.0, 50.0));
         params.add(new RandomParam("fYrPFcf", 0.0, 50));
+
+        params.add(new RandomParam("pe", 0.0, 50));
+        params.add(new RandomParam("peExRnd", 0.0, 50));
+        params.add(new RandomParam("peExMnS", 0.0, 50));
+        params.add(new RandomParam("epsGrExRnd", 0.0, 50));
+        params.add(new RandomParam("epsGrExMnS", 0.0, 50));
 
         params.add(new RandomParam("epsGrowth", -10, 100));
         params.add(new RandomParam("fcfGrowth", -10, 100));
@@ -257,6 +268,7 @@ public class ParameterFinderBacktest {
                 request.exchanges = EXCHANGES;
                 request.operations = entry.screenerOperations;
                 request.lastItem = lastItem;
+                request.onDate = TEST_RUN_ON_DATE;
 
                 ScreenerResult result = screenerController.screenStockInternal(request);
 

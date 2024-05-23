@@ -44,7 +44,11 @@
       <div id="conditions">
         <div class="condition-row">
           <select class="metric-dropdown"  style="float:left">
-            <option th:value="${field.key}" th:text="${field.value.readableName}" th:each="field : ${screenerFields}"></option>
+            <option th:value="${field.key}" 
+                    th:text="${field.value.readableName == 'SEPARATOR' ? '&nbsp' : field.value.readableName}"
+                    th:style="${field.value.readableName == 'SEPARATOR' ? 'font-size: 1pt; background-color: #000000;' : ''}"
+                    th:each="field : ${screenerFields}"
+                    th:disabled="${field.value.readableName == 'SEPARATOR'}"></option>
           </select>
     
           <select class="operator-dropdown"  style="float:left">

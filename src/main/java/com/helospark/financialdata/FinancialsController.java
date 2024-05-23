@@ -64,15 +64,14 @@ public class FinancialsController {
 
     @GetMapping("/eps_excl_rnd")
     public List<SimpleDataElement> getEpsExcludingRnd(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses)
-                / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+        return getIncomeData(stock, quarterly, financialsTtm -> RatioCalculator.calculateEpsExRnd(financialsTtm));
     }
 
     @GetMapping("/eps_excl_marketing")
     public List<SimpleDataElement> getEpsExcludingMarketing(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> {
             if (financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses < financialsTtm.incomeStatementTtm.costAndExpenses) {
-                return ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses) / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+                return RatioCalculator.calculateEpsExMns(financialsTtm);
             } else {
                 return null;
             }
@@ -180,6 +179,20 @@ public class FinancialsController {
     @GetMapping("/pe_ratio")
     public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> RatioCalculator.calculatePriceToEarningsRatio(price, financialsTtm));
+    }
+
+    @GetMapping("/pe_excl_rnd_ratio")
+    public List<SimpleDataElement> getPeExcludingRndRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> {
+            return RatioCalculator.calculatePriceToEarningsRatioExRnd(financialsTtm);
+        });
+    }
+
+    @GetMapping("/pe_excl_marketing_ratio")
+    public List<SimpleDataElement> getPeExcludingMarketingRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> {
+            return RatioCalculator.calculatePriceToEarningsRatioExMns(financialsTtm);
+        });
     }
 
     @GetMapping("/pfcf_ratio")

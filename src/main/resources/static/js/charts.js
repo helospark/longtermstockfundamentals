@@ -344,8 +344,18 @@ createChartInternal("/financials/marketing_per_operating_expense", "Operating ex
 
 createSeparatorInternal("Price ratios")
 createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
-createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false});
+createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false}, defaultEnabled=false);
 createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
+  suggestedMin: -5,
+  suggestedMax: 50,
+  quarterlyEnabled: false,
+  label: 'PE ratio excluding R&D', additionalCharts: [
+    {
+      "url": "/financials/pe_excl_marketing_ratio",
+      "label": "PE excluding marketing&sales ratio"
+    }
+  ]});
 createChartInternal("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false}, defaultEnabled=false);
 createChartInternal("/financials/price_to_sales", "Price to sales ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 createChartInternal("/financials/accrual_ratio", "Accrual ratio", {

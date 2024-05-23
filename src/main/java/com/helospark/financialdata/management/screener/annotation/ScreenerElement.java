@@ -14,5 +14,7 @@ public @interface ScreenerElement {
 
     String name();
 
+    boolean separatorBelow() default false;
+
     AtGlanceFormat format() default AtGlanceFormat.SIMPLE_NUMBER;
 }

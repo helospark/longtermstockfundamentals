@@ -253,6 +253,14 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("BABA")) {
+            for (var element : incomeStatement) {
+                if (element.weightedAverageShsOut > 5_000_000_000L) {
+                    element.weightedAverageShsOut /= 8;
+                    element.weightedAverageShsOutDil /= 8;
+                }
+            }
+        }
         if (symbol.equals("EPAM")) {
             if (cashFlow.size() > 1 && cashFlow.get(0).freeCashFlow == 0) {
                 cashFlow.get(0).freeCashFlow = cashFlow.get(1).freeCashFlow;

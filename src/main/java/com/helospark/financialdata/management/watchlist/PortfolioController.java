@@ -288,7 +288,7 @@ public class PortfolioController {
                 portfolioElement.put(ROIC, formatStringWithThresholdsPercentAsc(atGlance.roic, ROIC_RANGES));
                 portfolioElement.put(FIVE_YR_ROIC, formatStringWithThresholdsPercentAsc(atGlance.fiveYrRoic, FCF_ROIC_RANGES));
                 portfolioElement.put(ROE, formatStringWithThresholdsPercentAsc(atGlance.roe, ROE_RANGES));
-                portfolioElement.put(SHARE_CHANGE, formatStringWithThresholdsPercentDesc(atGlance.shareCountGrowth, SHARE_CHANGE_RANGES));
+                portfolioElement.put(SHARE_CHANGE, formatStringWithThresholdsPercentDesc(atGlance.shareCountGrowth2yr, SHARE_CHANGE_RANGES));
                 portfolioElement.put(DEBT_TO_EQUITY, formatStringWithThresholdsDescNonNegative(atGlance.dtoe, 1.5, 1.0, 0.8, 0.5, 0.1));
                 portfolioElement.put(ALTMAN, formatStringWithThresholdsAsc(atGlance.altman, ALTMAN_RANGES));
                 portfolioElement.put(PIETROSKY, formatStringWithThresholdsAsc(atGlance.pietrosky, PIOTROSKY_RANGES));
@@ -353,7 +353,7 @@ public class PortfolioController {
                     createPieChart(icrToInvestment, data, ownedValue, calculateRanges(atGlance.icr, false, ICR_RANGES));
                     createPieChart(grossMToInvestment, data, ownedValue, calculateRanges(atGlance.grMargin, true, GROSS_MARGIN_RANGES));
                     createPieChart(piotroskyToInvestment, data, ownedValue, calculateRanges(atGlance.pietrosky, false, PIOTROSKY_RANGES));
-                    createPieChart(shareChangeToInvestment, data, ownedValue, calculateRangesDesc(atGlance.shareCountGrowth, true, SHARE_CHANGE_RANGES));
+                    createPieChart(shareChangeToInvestment, data, ownedValue, calculateRangesDesc(atGlance.shareCountGrowth2yr, true, SHARE_CHANGE_RANGES));
                     createPieChart(investmentScoreToInvestment, data, ownedValue, calculateRanges(atGlance.investmentScore, false, INVESTMENT_SCORE_RANGES));
 
                     if (data.financials.size() > 0) {
@@ -392,7 +392,7 @@ public class PortfolioController {
                         result.totalFcfRoic += orZero(() -> ownedValue * atGlance.fiveYrRoic);
                         result.totalRoe += orZero(() -> ownedValue * atGlance.roe);
                         result.totalGrossMargin += orZero(() -> ownedValue * atGlance.grMargin);
-                        result.totalShareChange += orZero(() -> ownedValue * atGlance.shareCountGrowth);
+                        result.totalShareChange += orZero(() -> ownedValue * atGlance.shareCountGrowth2yr);
                         totalDebt += orZero(() -> ownedValue * debt);
                         totalEquity += orZero(() -> ownedValue * equity);
                         totalEarnings += (ownedValue * netIncome);

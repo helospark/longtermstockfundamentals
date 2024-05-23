@@ -1,5 +1,6 @@
 package com.helospark.financialdata.management.screener;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.validation.constraints.NotNull;
@@ -13,9 +14,11 @@ public class ScreenerRequest {
     public String lastItem;
     public String prevItem;
 
+    public LocalDate onDate;
+
     @Override
     public String toString() {
-        return "ScreenerRequest [operations=" + operations + ", exchanges=" + exchanges + ", lastItem=" + lastItem + ", prevItem=" + prevItem + "]";
+        return "ScreenerRequest [operations=" + operations + ", exchanges=" + exchanges + ", lastItem=" + lastItem + ", prevItem=" + prevItem + ", onDate=" + onDate + "]";
     }
 
 }

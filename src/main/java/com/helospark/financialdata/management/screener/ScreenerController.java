@@ -35,6 +35,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
+import com.helospark.financialdata.management.screener.annotation.AtGlanceFormat;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
 import com.helospark.financialdata.management.screener.domain.BacktestResult;
@@ -68,6 +69,7 @@ public class ScreenerController {
             "CHSCP", // incorrect dividend information
             "WFC-PL" // incorrect data
     );
+    private static final ScreenerDescription SEPARATOR = new ScreenerDescription();
 
     private SymbolAtGlanceProvider symbolAtGlanceProvider;
     private List<ScreenerStrategy> screenerStrategies;
@@ -87,6 +89,11 @@ public class ScreenerController {
         this.screenerStrategies = screenerStrategies;
         this.loginController = loginController;
 
+        SEPARATOR.readableName = "SEPARATOR";
+        SEPARATOR.format = AtGlanceFormat.SIMPLE_NUMBER;
+        SEPARATOR.data = null;
+        SEPARATOR.source = Source.FIELD;
+
         for (var field : AtGlanceData.class.getDeclaredFields()) {
             ScreenerElement screenerElement = field.getAnnotation(ScreenerElement.class);
             if (screenerElement != null) {
@@ -101,6 +108,10 @@ public class ScreenerController {
                 String id = screenerElement.id().equals("") ? field.getName() : screenerElement.id();
 
                 idToDescription.put(id, description);
+
+                if (screenerElement.separatorBelow()) {
+                    idToDescription.put("SEPARATOR_" + name, SEPARATOR);
+                }
             }
         }
         for (var method : AtGlanceData.class.getDeclaredMethods()) {
@@ -127,6 +138,9 @@ public class ScreenerController {
         for (var entry : idToDescription.entrySet()) {
             ScreenerOperation sampleOp = new ScreenerOperation();
             sampleOp.id = entry.getKey();
+            if (entry.getValue().readableName.equals("SEPARATOR")) {
+                continue;
+            }
             unreflectGetValue(sampleData, sampleOp, entry.getValue());
         }
     }
@@ -167,8 +181,13 @@ public class ScreenerController {
         boolean nextPageRequested = request.lastItem != null;
         boolean previousPageRequested = request.prevItem != null;
 
-        LinkedHashMap<String, AtGlanceData> data = symbolAtGlanceProvider.getSymbolCompanyNameCache();
+        LinkedHashMap<String, AtGlanceData> data;
 
+        if (request.onDate == null) {
+            data = symbolAtGlanceProvider.getSymbolCompanyNameCache();
+        } else {
+            data = new LinkedHashMap<>(symbolAtGlanceProvider.loadAtGlanceDataAtYear(request.onDate.getYear(), 1).orElse(Map.of()));
+        }
         if (nextPageRequested) {
             LinkedHashMap<String, AtGlanceData> filteredData = new LinkedHashMap<>();
             boolean foundElement = false;
@@ -638,6 +657,9 @@ public class ScreenerController {
             if (!idToDescription.containsKey(element.id)) {
                 throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
             }
+            if (element.id.startsWith("SEPARATOR_")) {
+                throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
+            }
             ScreenerStrategy screenerStrategy = findScreenerStrategy(element.operation);
             if (screenerStrategies.stream().noneMatch(a -> a.getSymbol().equals(element.operation))) {
                 throw new ScreenerClientSideException(element.operation + " is not a valid operation");
@@ -824,6 +846,14 @@ public class ScreenerController {
                 return glance.equityGrowth;
             case "investmentScore":
                 return glance.investmentScore;
+            case "peExRnd":
+                return glance.peExRnd;
+            case "peExMnS":
+                return glance.peExMnS;
+            case "epsGrExRnd":
+                return glance.epsGrExRnd;
+            case "epsGrExMnS":
+                return glance.epsGrExMnS;
             default:
                 throw new RuntimeException("Unexpected type " + id);
         }

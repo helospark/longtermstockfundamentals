@@ -124,8 +124,8 @@ public class StockDataDownloader {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        boolean downloadNewData = true;
-        boolean downloadFx = true;
+        boolean downloadNewData = false;
+        boolean downloadFx = false;
         boolean downloadJustSp = false;
         statusMessage = "Downloading symbol list";
         progress = 0.0;
@@ -225,7 +225,7 @@ public class StockDataDownloader {
             DataLoader.clearCache(symbol);
             DownloadDateData newDownloaded = symbolToDates.get(symbol);
 
-            if (!lastDownloaded.equals(newDownloaded) || forceRenew) {
+            if (lastDownloaded == null || !lastDownloaded.equals(newDownloaded) || forceRenew) {
                 int currentMonth = LocalDate.now().getMonthValue();
                 Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
 
@@ -378,7 +378,7 @@ public class StockDataDownloader {
                         }
                         progress = (companies.size() / (double) symbols.size()) * 100.0;
                         if (companies.size() % 1000 == 0) {
-                            System.out.println("Symbolcache progress: " + progress + "%");
+                            System.out.printf("Symbolcache progress: %.2f %%", progress);
                         }
                     } catch (Exception e) {
                         System.out.println("Unable to load " + symbol);
@@ -415,7 +415,7 @@ public class StockDataDownloader {
                     int queueSize = allSymbolsSet.size() - queue.size();
                     if (queueSize % 1000 == 0) {
                         LOGGER.info("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
-                        System.out.println("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
+                        System.out.printf("Progress: %.2f%%", (((double) queueSize / allSymbolsSet.size())) * 100.0);
                         progress = (((double) (allSymbolsSet.size() - queueSize) / allSymbolsSet.size())) * 100.0;
                     }
 
@@ -555,6 +555,9 @@ public class StockDataDownloader {
 
         data.eps = financial.incomeStatementTtm.eps;
         data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial)).orElse(Double.NaN).floatValue();
+        data.peExRnd = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExRnd(financial)).orElse(Double.NaN).floatValue();
+        data.peExMnS = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExMns(financial)).orElse(Double.NaN).floatValue();
+
         data.evToEbitda = (float) (EnterpriseValueCalculator.calculateEv(financial, latestPrice) / financial.incomeStatementTtm.ebitda);
         data.ptb = (float) RatioCalculator.calculatePriceToBookRatio(financial, latestPrice);
         data.priceToGrossProfit = (float) ((latestPrice * financial.incomeStatementTtm.weightedAverageShsOut) / financial.incomeStatementTtm.grossProfit);
@@ -579,6 +582,8 @@ public class StockDataDownloader {
         data.equityGrowth = GrowthCalculator.getEquityPerShareGrowthInInterval(company.financials, offsetYear + 5, offsetYear + 0).orElse(Double.NaN).floatValue();
 
         data.epsGrowth2yr = GrowthCalculator.getEpsGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.epsGrExRnd = GrowthCalculator.getEpsGrowthInIntervalExRnd(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
+        data.epsGrExMnS = GrowthCalculator.getEpsGrowthInIntervalExMns(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.fcfGrowth2yr = GrowthCalculator.getFcfGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.revenueGrowth2yr = GrowthCalculator.getRevenueGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();
         data.shareCountGrowth2yr = GrowthCalculator.getShareCountGrowthInInterval(company.financials, offsetYear + 2, offsetYear + 0).orElse(Double.NaN).floatValue();

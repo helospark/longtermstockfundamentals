@@ -23,7 +23,7 @@ public class AtGlanceData {
     public float roic;
     @ScreenerElement(name = "AltmanZ score")
     public float altman;
-    @ScreenerElement(name = "Piotrosky score")
+    @ScreenerElement(name = "Piotrosky score", separatorBelow = true)
     public float pietrosky;
 
     public double eps;
@@ -39,8 +39,9 @@ public class AtGlanceData {
     public float ptb;
     @ScreenerElement(name = "Price to sales ratio")
     public float pts;
-    @ScreenerElement(name = "Price to gross profit ratio")
+    @ScreenerElement(name = "Price to gross profit ratio", separatorBelow = true)
     public float priceToGrossProfit;
+
     @ScreenerElement(name = "Interest coverage ratio")
     public float icr;
     @ScreenerElement(name = "Current ratio")
@@ -49,14 +50,14 @@ public class AtGlanceData {
     public float quickRatio;
     @ScreenerElement(name = "Debt to equity ratio")
     public float dtoe;
-    @ScreenerElement(name = "Asset turnover ratio")
+    @ScreenerElement(name = "Asset turnover ratio", separatorBelow = true)
     public float assetTurnoverRatio;
 
     @ScreenerElement(name = "Return on equity", format = AtGlanceFormat.PERCENT)
     public float roe;
     @ScreenerElement(name = "Return on assets", format = AtGlanceFormat.PERCENT)
     public float roa;
-    @ScreenerElement(name = "Return on tangible assets", format = AtGlanceFormat.PERCENT)
+    @ScreenerElement(name = "Return on tangible assets", format = AtGlanceFormat.PERCENT, separatorBelow = true)
     public float rota;
 
     @ScreenerElement(name = "5 year annual EPS growth", format = AtGlanceFormat.PERCENT)
@@ -73,7 +74,7 @@ public class AtGlanceData {
     public float shareCountGrowth;
     @ScreenerElement(name = "5 year annual net margin growth", format = AtGlanceFormat.PERCENT)
     public float netMarginGrowth;
-    @ScreenerElement(name = "5 year equity per share growth", format = AtGlanceFormat.PERCENT)
+    @ScreenerElement(name = "5 year equity per share growth", format = AtGlanceFormat.PERCENT, separatorBelow = true)
     public float equityGrowth;
 
     @ScreenerElement(name = "2 year annual EPS growth", format = AtGlanceFormat.PERCENT)
@@ -84,7 +85,7 @@ public class AtGlanceData {
     public float revenueGrowth2yr;
     @ScreenerElement(name = "2 year annual share count growth", format = AtGlanceFormat.PERCENT)
     public float shareCountGrowth2yr;
-    @ScreenerElement(name = "2 year equity per share growth", format = AtGlanceFormat.PERCENT)
+    @ScreenerElement(name = "2 year equity per share growth", format = AtGlanceFormat.PERCENT, separatorBelow = true)
     public float equityGrowth2yr;
 
     @ScreenerElement(name = "EPS standard deviation")
@@ -93,7 +94,7 @@ public class AtGlanceData {
     public float revSD;
     @ScreenerElement(name = "FCF standard deviation")
     public float fcfSD;
-    @ScreenerElement(name = "EPS FCF correlation")
+    @ScreenerElement(name = "EPS FCF correlation", separatorBelow = true)
     public float epsFcfCorrelation;
 
     @ScreenerElement(name = "Dividend yield", format = AtGlanceFormat.PERCENT)
@@ -102,8 +103,7 @@ public class AtGlanceData {
     public float dividendPayoutRatio;
     @ScreenerElement(name = "Dividend FCF payout ratio", format = AtGlanceFormat.PERCENT)
     public float dividendFcfPayoutRatio;
-
-    @ScreenerElement(name = "Total payout ratio", format = AtGlanceFormat.SIMPLE_NUMBER)
+    @ScreenerElement(name = "Total payout ratio", format = AtGlanceFormat.SIMPLE_NUMBER, separatorBelow = true)
     public float tpr;
 
     @ScreenerElement(name = "Profitable year count")
@@ -114,14 +114,14 @@ public class AtGlanceData {
     public float stockCompensationPerMkt;
     @ScreenerElement(name = "CAPEX to revenue percent", format = AtGlanceFormat.PERCENT)
     public float cpxToRev;
-    @ScreenerElement(name = "Sloan ratio")
+    @ScreenerElement(name = "Sloan ratio", separatorBelow = true)
     public float sloan;
 
     @ScreenerElement(name = "Ideal 10yr revenue growth correlation")
     public float ideal10yrRevCorrelation;
     @ScreenerElement(name = "Ideal 10yr EPS growth correlation")
     public float ideal10yrEpsCorrelation;
-    @ScreenerElement(name = "Ideal 10yr FCF growth correlation")
+    @ScreenerElement(name = "Ideal 10yr FCF growth correlation", separatorBelow = true)
     public float ideal10yrFcfCorrelation;
 
     /*
@@ -144,7 +144,7 @@ public class AtGlanceData {
     public byte redFlags;
     @ScreenerElement(name = "Flag count (yellow)")
     public byte yellowFlags;
-    @ScreenerElement(name = "Flag count (green)")
+    @ScreenerElement(name = "Flag count (green)", separatorBelow = true)
     public byte greenFlags;
 
     public int dataQualityIssue;
@@ -156,16 +156,18 @@ public class AtGlanceData {
     public float fYrPFcf;
     @ScreenerElement(name = "5 year ROIC", format = AtGlanceFormat.PERCENT)
     public float fiveYrRoic;
-    @ScreenerElement(name = "LTL / 5 yr FCF")
+    @ScreenerElement(name = "LTL / 5 yr FCF", separatorBelow = true)
     public float ltl5Fcf;
+
     @ScreenerElement(name = "5 years annual returns", format = AtGlanceFormat.PERCENT)
     public float price5Gr;
     @ScreenerElement(name = "10 years annual returns", format = AtGlanceFormat.PERCENT)
     public float price10Gr;
     @ScreenerElement(name = "15 years annual returns", format = AtGlanceFormat.PERCENT)
     public float price15Gr;
-    @ScreenerElement(name = "20 years annual returns", format = AtGlanceFormat.PERCENT)
+    @ScreenerElement(name = "20 years annual returns", format = AtGlanceFormat.PERCENT, separatorBelow = true)
     public float price20Gr;
+
     @ScreenerElement(name = "Gross margin", format = AtGlanceFormat.PERCENT)
     public float grMargin;
     @ScreenerElement(name = "Operating margin", format = AtGlanceFormat.PERCENT)
@@ -174,11 +176,20 @@ public class AtGlanceData {
     public float opCMargin;
     @ScreenerElement(name = "FCF margin", format = AtGlanceFormat.PERCENT)
     public float fcfMargin;
-    @ScreenerElement(name = "EBITDA margin", format = AtGlanceFormat.PERCENT)
+    @ScreenerElement(name = "EBITDA margin", format = AtGlanceFormat.PERCENT, separatorBelow = true)
     public float ebitdaMargin;
 
-    @ScreenerElement(name = "Investment score")
+    @ScreenerElement(name = "Investment score", separatorBelow = true)
     public float investmentScore;
+
+    @ScreenerElement(name = "PE ratio excluding R&D expense")
+    public float peExRnd;
+    @ScreenerElement(name = "PE ratio excluding marketing&Sale expense")
+    public float peExMnS;
+    @ScreenerElement(name = "2yr EPS growth excluding R&D expense")
+    public float epsGrExRnd;
+    @ScreenerElement(name = "2yr EPS growth excluding Marketing&Sale expense", separatorBelow = true)
+    public float epsGrExMnS;
 
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield", format = AtGlanceFormat.PERCENT)
     public double getFreeCashFlowYield() {

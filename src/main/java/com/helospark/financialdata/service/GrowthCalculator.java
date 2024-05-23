@@ -82,6 +82,58 @@ public class GrowthCalculator {
         return Optional.of(resultPercent);
     }
 
+    public static Optional<Double> getEpsGrowthInIntervalExRnd(List<FinancialsTtm> financials, double year, double offsetYear) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (offsetYear * 12.0)));
+
+        if (oldIndex >= financials.size() || oldIndex < 0 ||
+                newIndex > financials.size() || newIndex == -1) {
+            return Optional.empty();
+        }
+
+        Double now = RatioCalculator.calculateEpsExRnd(financials.get(newIndex));
+        Double then = RatioCalculator.calculateEpsExRnd(financials.get(oldIndex));
+
+        if (now == null || then == null || isNegativeTransition(now, then)) {
+            return Optional.empty();
+        }
+
+        double distance = year - offsetYear;
+        double resultPercent = calculatePercentChange(now, then, distance);
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(resultPercent);
+    }
+
+    public static Optional<Double> getEpsGrowthInIntervalExMns(List<FinancialsTtm> financials, double year, double offsetYear) {
+        int oldIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (year * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(financials, CommonConfig.NOW.minusMonths((int) (offsetYear * 12.0)));
+
+        if (oldIndex >= financials.size() || oldIndex < 0 ||
+                newIndex > financials.size() || newIndex == -1) {
+            return Optional.empty();
+        }
+
+        Double now = RatioCalculator.calculateEpsExMns(financials.get(newIndex));
+        Double then = RatioCalculator.calculateEpsExMns(financials.get(oldIndex));
+
+        if (now == null || then == null || isNegativeTransition(now, then)) {
+            return Optional.empty();
+        }
+
+        double distance = year - offsetYear;
+        double resultPercent = calculatePercentChange(now, then, distance);
+
+        if (!Double.isFinite(resultPercent)) {
+            return Optional.empty();
+        }
+
+        return Optional.of(resultPercent);
+    }
+
     private static double maxEpsOf(List<FinancialsTtm> financials, int start, int end) {
         double max = (double) financials.get(start).incomeStatementTtm.netIncome / financials.get(start).incomeStatementTtm.weightedAverageShsOut;
         for (int i = start + 1; i < end; ++i) {
