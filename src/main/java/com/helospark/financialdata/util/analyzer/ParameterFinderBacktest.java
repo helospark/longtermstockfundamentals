@@ -33,7 +33,7 @@ public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2004, 2006), new YearRange(2013, 2014));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2008, 2011), new YearRange(2017, 2019));
 
     private static final double MINIMUM_BEAT_PERCENT = 95.0;
     private static final double MINIMUM_INVEST_COUNT_PERCENT = 80.0;

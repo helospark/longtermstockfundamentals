@@ -757,6 +757,11 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.incomeStatementTtm.revenue) * -1.0);
     }
 
+    @GetMapping("/rnd_to_revenue")
+    public List<SimpleDataElement> getRndToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) -financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.incomeStatementTtm.revenue) * -1.0);
+    }
+
     @GetMapping("/cash_per_share")
     public List<SimpleDataElement> getCashPerShare(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly,

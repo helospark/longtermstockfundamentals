@@ -510,7 +510,12 @@ createChartInternal("/financials/stock_compensation", "Stock compensation", {qua
 createChartInternal("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
 createChartInternal("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
 createChartInternal("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
-createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%'});
+createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%', label: "CAPEX to revenue",  additionalCharts: [
+  {
+    "url": "/financials/rnd_to_revenue",
+    "label": "R&D to revenue"
+  }]
+});
 createChartInternal("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
 createChartInternal("/financials/asset_turnover_ratio", "Asset turnover ratio", {quarterlyEnabled: true}, defaultEnabled=false);
 createChartInternal("/financials/pietrosky_score", "Piotrosky score", {quarterlyEnabled: false});

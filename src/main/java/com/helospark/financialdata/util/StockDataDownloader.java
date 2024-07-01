@@ -124,9 +124,9 @@ public class StockDataDownloader {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        boolean downloadNewData = false;
+        boolean downloadNewData = true;
         boolean downloadFx = false;
-        boolean downloadJustSp = false;
+        boolean downloadJustSp = true;
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;
@@ -378,7 +378,7 @@ public class StockDataDownloader {
                         }
                         progress = (companies.size() / (double) symbols.size()) * 100.0;
                         if (companies.size() % 1000 == 0) {
-                            System.out.printf("Symbolcache progress: %.2f %%", progress);
+                            System.out.printf("Symbolcache progress: %.2f %%\n", progress);
                         }
                     } catch (Exception e) {
                         System.out.println("Unable to load " + symbol);
@@ -415,7 +415,7 @@ public class StockDataDownloader {
                     int queueSize = allSymbolsSet.size() - queue.size();
                     if (queueSize % 1000 == 0) {
                         LOGGER.info("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
-                        System.out.printf("Progress: %.2f%%", (((double) queueSize / allSymbolsSet.size())) * 100.0);
+                        System.out.printf("Progress: %.2f%%\n", (((double) queueSize / allSymbolsSet.size())) * 100.0);
                         progress = (((double) (allSymbolsSet.size() - queueSize) / allSymbolsSet.size())) * 100.0;
                     }
 

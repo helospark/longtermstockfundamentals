@@ -262,7 +262,7 @@ select, #start-date-dropdown, #end-date-dropdown {
   margin-top: 20px;
 }
 
-#add-to-watchlist-header {
+#add-to-watchlist-header, #added-watchlist-header {
   margin-left: 20px;
   position: relative;
   top: 5px;
