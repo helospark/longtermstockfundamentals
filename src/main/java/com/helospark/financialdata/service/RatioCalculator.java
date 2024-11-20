@@ -56,9 +56,9 @@ public class RatioCalculator {
                 / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
     }
 
-    public static Double calculatePriceToEarningsRatioExRnd(FinancialsTtm financialsTtm) {
+    public static Double calculatePriceToEarningsRatioExRnd(FinancialsTtm financialsTtm, Double price) {
         double eps = calculateEpsExRnd(financialsTtm);
-        double result = financialsTtm.price / eps;
+        double result = price / eps;
 
         if (!Double.isFinite(result)) {
             return null;
@@ -71,9 +71,9 @@ public class RatioCalculator {
         return ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses) / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
     }
 
-    public static Double calculatePriceToEarningsRatioExMns(FinancialsTtm financialsTtm) {
+    public static Double calculatePriceToEarningsRatioExMns(FinancialsTtm financialsTtm, Double price) {
         double eps = calculateEpsExMns(financialsTtm);
-        double result = financialsTtm.price / eps;
+        double result = price / eps;
 
         if (!Double.isFinite(result)) {
             return null;

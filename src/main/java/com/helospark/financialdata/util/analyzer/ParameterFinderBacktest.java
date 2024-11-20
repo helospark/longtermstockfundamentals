@@ -33,15 +33,15 @@ public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2008, 2011), new YearRange(2017, 2019));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2008, 2011), new YearRange(2020, 2021));
 
     private static final double MINIMUM_BEAT_PERCENT = 95.0;
-    private static final double MINIMUM_INVEST_COUNT_PERCENT = 80.0;
+    private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
 
     private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
     private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
 
-    private static final int MIN_PARAMS = 5;
+    private static final int MIN_PARAMS = 4;
     private static final int MAX_PARAMS = 10;
 
     private static final int RESULT_QUEUE_SIZE = 60;
@@ -290,7 +290,7 @@ public class ParameterFinderBacktest {
         Collections.sort(stockToCountList, (a, b) -> b.getValue().compareTo(a.getValue()));
 
         System.out.print("[ ");
-        for (int i = 0; i < 350 && i < stockToCountList.size(); ++i) {
+        for (int i = 0; i < 400 && i < stockToCountList.size(); ++i) {
             var entry = stockToCountList.get(i);
             System.out.print(entry.getKey() + "(" + entry.getValue() + "), ");
         }

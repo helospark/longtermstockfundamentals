@@ -62,6 +62,7 @@ public class DataLoader {
     static ObjectMapper objectMapper = new ObjectMapper();
 
     static Cache<String, CompanyFinancials> cache;
+    static Cache<String, List<HistoricalPriceElement>> priceHistoryCache;
 
     static Cache<String, FxRatesResponse> fxCache;
     static Cache<Exchanges, Set<String>> exchangeSymbolCache;
@@ -83,6 +84,10 @@ public class DataLoader {
         cache = Caffeine.newBuilder()
                 .expireAfterWrite(1, TimeUnit.DAYS)
                 .maximumSize(cacheSize)
+                .build();
+        priceHistoryCache = Caffeine.newBuilder()
+                .expireAfterWrite(20, TimeUnit.MINUTES)
+                .maximumSize(100)
                 .build();
 
         fxCache = Caffeine.newBuilder()
@@ -189,7 +194,7 @@ public class DataLoader {
         List<IncomeStatement> incomeStatement = readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
         List<CashFlow> cashFlow = readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
         List<AuxilaryInformation> auxilaryInformation = readFinancialFile(symbol, "auxilary.json", AuxilaryInformation.class);
-        List<HistoricalPriceElement> historicalPrice = readHistoricalFile(symbol, "historical-price.json");
+        List<HistoricalPriceElement> historicalPrice = readHistoricalPriceNoCache(symbol);
         List<Profile> profiles = readFinancialFile(symbol, "profile.json", Profile.class);
 
         Profile profile;
@@ -236,8 +241,13 @@ public class DataLoader {
                     element.weightedAverageShsOutDil /= 1000;
                 }
             }
-        }
-        if (symbol.equals("IBP")) {
+            for (var element : cashFlow) {
+                if (element.getDate().equals(LocalDate.of(2024, 9, 30)) && element.freeCashFlow < 0) {
+                    element.netCashProvidedByOperatingActivities = 101_400_000L;
+                    element.freeCashFlow = 77_900_000L;
+                    element.operatingCashFlow = 101_400_000L;
+                }
+            }
             for (var element : incomeStatement) {
                 if (element.weightedAverageShsOut > 2807567800L) {
                     element.weightedAverageShsOut /= 1000;
@@ -281,18 +291,28 @@ public class DataLoader {
             }
         }
         if (symbol.equals("UNH")) {
-            if (balanceSheet.size() > 1 && balanceSheet.get(0).totalStockholdersEquity == 0) {
-                balanceSheet.get(0).totalStockholdersEquity = balanceSheet.get(1).totalStockholdersEquity;
-                balanceSheet.get(0).totalEquity = balanceSheet.get(1).totalEquity;
-                balanceSheet.get(0).goodwill = balanceSheet.get(1).goodwill;
-                balanceSheet.get(0).goodwillAndIntangibleAssets = balanceSheet.get(1).goodwillAndIntangibleAssets;
-            }
-            if (cashFlow.size() > 1 && cashFlow.get(0).stockBasedCompensation == 0) {
-                cashFlow.get(0).stockBasedCompensation = cashFlow.get(1).stockBasedCompensation;
+            for (var element : incomeStatement) {
+                if (element.getDate().equals(LocalDate.of(2024, 9, 30)) && element.netIncome > 7_000_000_000L) {
+                    element.netIncome = 6_258_000_000L;
+                    element.interestExpense = 1_074_000_000L;
+                    //                    element.grossProfit = 8_708_000_000L;
+                    break;
+                }
             }
             for (var element : balanceSheet) {
-                if (element.getDate().equals(LocalDate.of(2023, 12, 31))) {
-                    element.totalLiabilities = 179299000000L;
+                if (element.getDate().equals(LocalDate.of(2024, 9, 30))) {
+                    element.totalStockholdersEquity = 99_881_000_000L;
+                    element.totalEquity = 99_881_000_000L;
+                    break;
+                }
+            }
+        }
+        if (symbol.equals("ELV")) {
+            for (var element : incomeStatement) {
+                if (element.getDate().equals(LocalDate.of(2024, 9, 30)) && element.netIncome < 0L) {
+                    element.netIncome = 1_008_000_000L;
+                    element.revenue = 45_106_000_000L;
+                    //                    element.grossProfit = 8_708_000_000L;
                     break;
                 }
             }
@@ -302,6 +322,33 @@ public class DataLoader {
                 if (incomeStatement.get(i).weightedAverageShsOut < 103454250L) {
                     incomeStatement.get(i).weightedAverageShsOut = incomeStatement.get(i - 1).weightedAverageShsOut;
                     incomeStatement.get(i).weightedAverageShsOutDil = incomeStatement.get(i - 1).weightedAverageShsOutDil;
+                }
+            }
+        }
+        if (symbol.equals("V")) {
+            for (int i = 0; i < incomeStatement.size(); ++i) {
+                if (incomeStatement.get(i).date.equals(LocalDate.of(2024, 6, 30)) && incomeStatement.get(i).weightedAverageShsOut < 1_700_000_000L) {
+                    incomeStatement.get(i).weightedAverageShsOut = 2_030_000_000L;
+                }
+            }
+        }
+        if (symbol.equals("NU")) {
+            for (int i = 0; i < incomeStatement.size(); ++i) {
+                if (incomeStatement.get(i).date.equals(LocalDate.of(2024, 9, 30))) {
+                    incomeStatement.get(i).revenue = 2_943_188_000L;
+                }
+                if (incomeStatement.get(i).date.equals(LocalDate.of(2024, 6, 30))) {
+                    incomeStatement.get(i).revenue = 2_848_700_000L;
+                }
+            }
+        }
+        if (symbol.equals("MEDP")) {
+            for (int i = 0; i < incomeStatement.size(); ++i) {
+                if (incomeStatement.get(i).date.equals(LocalDate.of(2024, 9, 30))) {
+                    incomeStatement.get(i).ebitda = 118_800_000L;
+                    incomeStatement.get(i).depreciationAndAmortization = 8_400_000L;
+                    incomeStatement.get(i).grossProfit = 169_008_000L;
+                    incomeStatement.get(i).grossProfitRatio = (double) incomeStatement.get(i).grossProfit / incomeStatement.get(i).revenue;
                 }
             }
         }
@@ -367,6 +414,11 @@ public class DataLoader {
             }
             for (int i = 0; i < incomeStatement.size() && i < cashFlow.size(); ++i) {
                 incomeStatement.get(i).depreciationAndAmortization = cashFlow.get(i).depreciationAndAmortization;
+            }
+            for (int i = 0; i < cashFlow.size() - 1; ++i) {
+                if (cashFlow.get(i).freeCashFlow == 0) {
+                    cashFlow.get(i).freeCashFlow = cashFlow.get(i + 1).freeCashFlow;
+                }
             }
         }
         if (symbol.equals("CPRT")) {
@@ -470,6 +522,33 @@ public class DataLoader {
         }
 
         return result;
+    }
+
+    public static List<HistoricalPriceElement> readHistoricalPrice(String symbol, int detail) {
+        List<HistoricalPriceElement> cachedResult = priceHistoryCache.getIfPresent(symbol + "_" + detail);
+        if (cachedResult != null) {
+            return cachedResult;
+        }
+
+        List<HistoricalPriceElement> prices = readHistoricalPriceNoCache(symbol);
+        List<HistoricalPriceElement> result = new ArrayList<>(detail);
+        int step = prices.size() / detail;
+
+        if (step < 1) {
+            step = 1;
+        }
+
+        for (int i = 0; i < prices.size(); i += step) {
+            result.add(prices.get(i));
+        }
+
+        priceHistoryCache.put(symbol + "_" + detail, result);
+
+        return result;
+    }
+
+    public static List<HistoricalPriceElement> readHistoricalPriceNoCache(String symbol) {
+        return readHistoricalFile(symbol, "historical-price.json");
     }
 
     public static boolean isLikelyMillionxShareCountReported(Profile profile, FinancialsTtm elemen, double mktCap) {

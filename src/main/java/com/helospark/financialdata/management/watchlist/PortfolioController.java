@@ -144,6 +144,7 @@ public class PortfolioController {
                 element.targetPrice = ownedElement.map(a -> a.targetPrice).orElse(atGlance.latestStockPrice * (atGlance.fvCalculatorMoS / 100.0 + 1.0));
                 element.ownedShares = (int) (100000.0 / atGlance.latestStockPrice);
                 element.calculatorParameters = ownedElement.map(a -> a.calculatorParameters).orElse(null);
+                element.moats = ownedElement.isPresent() ? ownedElement.get().moats : null;
                 summaryElements.add(element);
             }
         }
@@ -271,6 +272,9 @@ public class PortfolioController {
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent() && (onlyOwned == false || currentElement.ownedShares > 0)) {
                 var atGlance = optionalAtGlance.get();
                 CompanyFinancials data = DataLoader.readFinancials(currentElement.symbol);
+                if (data.profile == null) {
+                    continue;
+                }
                 double latestPriceInTradingCurrency = watchlistService.getPrice(prices, ticker);
                 double latestPriceInUsd = DataLoader.convertFx(latestPriceInTradingCurrency, data.profile.currency, "USD", now, false).orElse(atGlance.latestStockPriceUsd);
                 double latestPriceInReportingCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, data.profile.currency, data.profile.reportedCurrency, now, false)
@@ -278,6 +282,8 @@ public class PortfolioController {
                 double ownedValue = latestPriceInUsd * currentElement.ownedShares;
                 Map<String, String> portfolioElement = new HashMap<>();
                 Optional<Double> moat = MoatScoreCalculator.calculate(currentElement.moats);
+
+                double fcfYield = (DataLoader.convertFx(atGlance.fcfPerShare, data.profile.reportedCurrency, "USD", now, false).orElse(atGlance.fcfPerShare) / atGlance.latestStockPriceUsd) * 100.0;
 
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
@@ -299,7 +305,7 @@ public class PortfolioController {
                 portfolioElement.put(OPERATING_MARGIN, formatStringWithThresholdsPercentAsc(atGlance.opMargin, OP_MARGIN_RANGES));
                 portfolioElement.put(REVENUE_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.revenueGrowth, REVENUE_RANGES));
                 portfolioElement.put(EPS_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.epsGrowth, GROWTH_RANGES));
-                portfolioElement.put(FCF_YIELD, formatStringWithThresholdsPercentAsc(atGlance.getFreeCashFlowYield(), 0, 3, 5, 8, 12));
+                portfolioElement.put(FCF_YIELD, formatStringWithThresholdsPercentAsc(fcfYield, 0, 3, 5, 8, 12));
                 portfolioElement.put(INVESTMENT_SCORE, formatStringWithThresholdsAsc(atGlance.investmentScore, INVESTMENT_SCORE_RANGES));
                 portfolioElement.put(MOAT_SCORE, moat.isEmpty() ? "?" : formatStringWithThresholdsAsc(moat.get(), MOAT_SCORE_RANGES));
                 portfolioElement.put(SYMBOL_RAW, ticker);
