@@ -293,8 +293,8 @@ public class WatchlistService {
 
         WatchlistElement elementToUpdate;
         if (index == -1) {
-            if (elements.size() > 250) {
-                throw new WatchlistBadRequestException("Maximum of 250 watchlist element supported");
+            if (elements.size() > 500) {
+                throw new WatchlistBadRequestException("Maximum of 500 watchlist element supported");
             }
             if (elements.size() > 30 && accountType.equals(AccountType.FREE)) {
                 throw new WatchlistBadRequestException("Maximum of 30 watchlist element supported for free subscription");

@@ -684,6 +684,7 @@ createChartInternal("/financials/price_growth_rate_xyr_moving_avg", "Returns x y
     default: 7
   }
 });
+createChartInternal("/financials/detailed_price", "Stock price", {quarterlyEnabled: false});
 
 
 var currentlySavedCharts = getCurrentlySavedCustomizedCharts();

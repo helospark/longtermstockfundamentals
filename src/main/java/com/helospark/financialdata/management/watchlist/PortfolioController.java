@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
+import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.repository.AccountType;
@@ -144,6 +145,7 @@ public class PortfolioController {
                 element.targetPrice = ownedElement.map(a -> a.targetPrice).orElse(atGlance.latestStockPrice * (atGlance.fvCalculatorMoS / 100.0 + 1.0));
                 element.ownedShares = (int) (100000.0 / atGlance.latestStockPrice);
                 element.calculatorParameters = ownedElement.map(a -> a.calculatorParameters).orElse(null);
+                element.moats = ownedElement.isPresent() ? ownedElement.get().moats : null;
                 summaryElements.add(element);
             }
         }
@@ -248,7 +250,7 @@ public class PortfolioController {
         Map<String, CompletableFuture<Double>> prices = new HashMap<>();
         for (int i = 0; i < watchlistElements.size(); ++i) {
             String symbol = watchlistElements.get(i).symbol;
-            if (onlyOwned == false || watchlistElements.get(i).ownedShares > 0) {
+            if ((onlyOwned == false || watchlistElements.get(i).ownedShares > 0) && !symbol.contains("CASH.")) {
                 prices.put(symbol, latestPriceProvider.provideLatestPriceAsync(symbol));
             }
         }
@@ -267,11 +269,23 @@ public class PortfolioController {
         for (int i = 0; i < watchlistElements.size(); ++i) {
             WatchlistElement currentElement = watchlistElements.get(i);
             String ticker = currentElement.symbol;
+
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent() && (onlyOwned == false || currentElement.ownedShares > 0)) {
                 var atGlance = optionalAtGlance.get();
-                CompanyFinancials data = DataLoader.readFinancials(currentElement.symbol);
-                double latestPriceInTradingCurrency = watchlistService.getPrice(prices, ticker);
+                CompanyFinancials data;
+                boolean isCurrency = false;
+                if (ticker.startsWith("CASH.")) {
+                    data = createCurrencyData(atGlance, ticker);
+                    isCurrency = true;
+                } else {
+                    data = DataLoader.readFinancials(currentElement.symbol);
+                }
+
+                if (data.profile == null) {
+                    continue;
+                }
+                double latestPriceInTradingCurrency = isCurrency ? 1.0 : watchlistService.getPrice(prices, ticker);
                 double latestPriceInUsd = DataLoader.convertFx(latestPriceInTradingCurrency, data.profile.currency, "USD", now, false).orElse(atGlance.latestStockPriceUsd);
                 double latestPriceInReportingCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, data.profile.currency, data.profile.reportedCurrency, now, false)
                         .orElse(atGlance.latestStockPrice);
@@ -279,11 +293,15 @@ public class PortfolioController {
                 Map<String, String> portfolioElement = new HashMap<>();
                 Optional<Double> moat = MoatScoreCalculator.calculate(currentElement.moats);
 
+                double fcfYield = isCurrency ? 0.0
+                        : (DataLoader.convertFx(atGlance.fcfPerShare, data.profile.reportedCurrency, "USD", now, false).orElse(atGlance.fcfPerShare) / atGlance.latestStockPriceUsd) * 100.0;
+                float revenueGrowth = Float.isFinite(atGlance.revenueGrowth) ? atGlance.revenueGrowth : calculateRevenueGrowth(data);
+
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
                 portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
                 portfolioElement.put(OWNED_SHARES, watchlistService.formatString(ownedValue));
-                portfolioElement.put(PE, watchlistService.formatString(latestPriceInReportingCurrency / atGlance.eps));
+                portfolioElement.put(PE, isCurrency ? "-" : watchlistService.formatString(latestPriceInReportingCurrency / atGlance.eps));
                 portfolioElement.put(PFCF, watchlistService.formatString(latestPriceInReportingCurrency / atGlance.fcfPerShare));
                 portfolioElement.put(ROIC, formatStringWithThresholdsPercentAsc(atGlance.roic, ROIC_RANGES));
                 portfolioElement.put(FIVE_YR_ROIC, formatStringWithThresholdsPercentAsc(atGlance.fiveYrRoic, FCF_ROIC_RANGES));
@@ -292,16 +310,17 @@ public class PortfolioController {
                 portfolioElement.put(DEBT_TO_EQUITY, formatStringWithThresholdsDescNonNegative(atGlance.dtoe, 1.5, 1.0, 0.8, 0.5, 0.1));
                 portfolioElement.put(ALTMAN, formatStringWithThresholdsAsc(atGlance.altman, ALTMAN_RANGES));
                 portfolioElement.put(PIETROSKY, formatStringWithThresholdsAsc(atGlance.pietrosky, PIOTROSKY_RANGES));
-                portfolioElement.put(RED_FLAGS, formatStringWithThresholdsDesc(atGlance.redFlags, 2, 1, 1, 1, 0));
+                portfolioElement.put(RED_FLAGS, isCurrency ? "-" : formatStringWithThresholdsDesc(atGlance.redFlags, 2, 1, 1, 1, 0));
                 portfolioElement.put(ICR, formatStringWithThresholdsAsc(atGlance.icr, ICR_RANGES));
                 portfolioElement.put(LTL5FCF, formatStringWithThresholdsDescNonNegative(atGlance.ltl5Fcf, 20, 10, 7, 4, 2));
                 portfolioElement.put(GROSS_MARGIN, formatStringWithThresholdsPercentAsc(atGlance.grMargin, GROSS_MARGIN_RANGES));
                 portfolioElement.put(OPERATING_MARGIN, formatStringWithThresholdsPercentAsc(atGlance.opMargin, OP_MARGIN_RANGES));
-                portfolioElement.put(REVENUE_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.revenueGrowth, REVENUE_RANGES));
+                portfolioElement.put(REVENUE_GROWTH, formatStringWithThresholdsPercentAsc(revenueGrowth, REVENUE_RANGES));
+
                 portfolioElement.put(EPS_GROWTH, formatStringWithThresholdsPercentAsc(atGlance.epsGrowth, GROWTH_RANGES));
-                portfolioElement.put(FCF_YIELD, formatStringWithThresholdsPercentAsc(atGlance.getFreeCashFlowYield(), 0, 3, 5, 8, 12));
+                portfolioElement.put(FCF_YIELD, isCurrency ? "-" : formatStringWithThresholdsPercentAsc(fcfYield, 0, 3, 5, 8, 12));
                 portfolioElement.put(INVESTMENT_SCORE, formatStringWithThresholdsAsc(atGlance.investmentScore, INVESTMENT_SCORE_RANGES));
-                portfolioElement.put(MOAT_SCORE, moat.isEmpty() ? "?" : formatStringWithThresholdsAsc(moat.get(), MOAT_SCORE_RANGES));
+                portfolioElement.put(MOAT_SCORE, isCurrency ? "-" : (moat.isEmpty() ? "?" : formatStringWithThresholdsAsc(moat.get(), MOAT_SCORE_RANGES)));
                 portfolioElement.put(SYMBOL_RAW, ticker);
 
                 if (currentElement.calculatorParameters != null) {
@@ -340,23 +359,31 @@ public class PortfolioController {
                 if (currentElement.ownedShares > 0) {
                     createPieChart(industryToInvestment, data, ownedValue, data.profile.industry);
                     createPieChart(sectorToInvestment, data, ownedValue, data.profile.sector);
-                    createPieChart(countryToInvestment, data, ownedValue, data.profile.country);
-                    createPieChart(capToInvestment, data, ownedValue, convertToCap(atGlance.marketCapUsd));
-                    createPieChart(profitableToInvestment, data, ownedValue, atGlance.eps > 0 ? "profitable" : "non-profitable");
                     createPieChart(investmentsToInvestment, data, ownedValue, ticker);
-                    createPieChart(peToInvestment, data, ownedValue, calculateRanges(atGlance.pe, false, PE_RANGES));
-                    createPieChart(pfcfToInvestment, data, ownedValue, calculateRanges(latestPriceInReportingCurrency / atGlance.fcfPerShare, false, PE_RANGES));
 
-                    createPieChart(roicToInvestment, data, ownedValue, calculateRanges(atGlance.roic, true, ROIC_RANGES));
-                    createPieChart(altmanToInvestment, data, ownedValue, calculateRanges(atGlance.altman, false, ALTMAN_RANGES));
-                    createPieChart(growthToInvestment, data, ownedValue, calculateRanges(atGlance.revenueGrowth, true, GROWTH_RANGES));
-                    createPieChart(icrToInvestment, data, ownedValue, calculateRanges(atGlance.icr, false, ICR_RANGES));
-                    createPieChart(grossMToInvestment, data, ownedValue, calculateRanges(atGlance.grMargin, true, GROSS_MARGIN_RANGES));
-                    createPieChart(piotroskyToInvestment, data, ownedValue, calculateRanges(atGlance.pietrosky, false, PIOTROSKY_RANGES));
-                    createPieChart(shareChangeToInvestment, data, ownedValue, calculateRangesDesc(atGlance.shareCountGrowth2yr, true, SHARE_CHANGE_RANGES));
-                    createPieChart(investmentScoreToInvestment, data, ownedValue, calculateRanges(atGlance.investmentScore, false, INVESTMENT_SCORE_RANGES));
+                    if (!isCurrency) {
+                        createPieChart(countryToInvestment, data, ownedValue, data.profile.country);
+                        createPieChart(capToInvestment, data, ownedValue, convertToCap(atGlance.marketCapUsd));
+                        createPieChart(profitableToInvestment, data, ownedValue, atGlance.eps > 0 ? "profitable" : "non-profitable");
+                        createPieChart(peToInvestment, data, ownedValue, calculateRanges(atGlance.pe, false, PE_RANGES));
+                        createPieChart(pfcfToInvestment, data, ownedValue, calculateRanges(latestPriceInReportingCurrency / atGlance.fcfPerShare, false, PE_RANGES));
 
-                    if (data.financials.size() > 0) {
+                        createPieChart(roicToInvestment, data, ownedValue, calculateRanges(atGlance.roic, true, ROIC_RANGES));
+                        createPieChart(altmanToInvestment, data, ownedValue, calculateRanges(atGlance.altman, false, ALTMAN_RANGES));
+                        createPieChart(growthToInvestment, data, ownedValue, calculateRanges(revenueGrowth, true, GROWTH_RANGES));
+                        createPieChart(icrToInvestment, data, ownedValue, calculateRanges(atGlance.icr, false, ICR_RANGES));
+                        createPieChart(grossMToInvestment, data, ownedValue, calculateRanges(atGlance.grMargin, true, GROSS_MARGIN_RANGES));
+                        createPieChart(piotroskyToInvestment, data, ownedValue, calculateRanges(atGlance.pietrosky, false, PIOTROSKY_RANGES));
+                        createPieChart(shareChangeToInvestment, data, ownedValue, calculateRangesDesc(atGlance.shareCountGrowth2yr, true, SHARE_CHANGE_RANGES));
+                        createPieChart(investmentScoreToInvestment, data, ownedValue, calculateRanges(atGlance.investmentScore, false, INVESTMENT_SCORE_RANGES));
+                    }
+
+                    result.totalPrice += orZero(() -> ownedValue);
+                    if (isCurrency) {
+                        totalEquity += orZero(() -> ownedValue);
+                    }
+
+                    if (data.financials.size() > 0 && !isCurrency) {
                         FinancialsTtm financialsTtm = data.financials.get(0);
 
                         double eps = (double) financialsTtm.incomeStatementTtm.netIncome / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
@@ -377,7 +404,8 @@ public class PortfolioController {
 
                         double dividendPaid = DataLoader.convertFx(atGlance.dividendPaid, data.profile.reportedCurrency, "USD", now, false).orElse(0.0);
 
-                        result.totalPrice += orZero(() -> ownedValue);
+                        totalEquity += orZero(() -> ownedValue * equity);
+                        result.totalPriceExCash += orZero(() -> ownedValue);
                         result.totalEarnings += currentElement.ownedShares * eps;
                         result.totalFcf += currentElement.ownedShares * fcf;
                         result.totalNetAssets += orZero(() -> netAssets);
@@ -385,7 +413,7 @@ public class PortfolioController {
                         result.numberOfStocks += 1;
 
                         result.totalEpsGrowth += orZero(() -> ownedValue * atGlance.epsGrowth);
-                        result.totalRevGrowth += orZero(() -> ownedValue * atGlance.revenueGrowth);
+                        result.totalRevGrowth += orZero(() -> ownedValue * revenueGrowth);
                         result.totalAltman += orZero(() -> ownedValue * atGlance.altman);
                         result.totalOpMargin += orZero(() -> ownedValue * atGlance.opMargin);
                         result.totalRoic += orZero(() -> ownedValue * atGlance.roic);
@@ -394,12 +422,10 @@ public class PortfolioController {
                         result.totalGrossMargin += orZero(() -> ownedValue * atGlance.grMargin);
                         result.totalShareChange += orZero(() -> ownedValue * atGlance.shareCountGrowth2yr);
                         totalDebt += orZero(() -> ownedValue * debt);
-                        totalEquity += orZero(() -> ownedValue * equity);
                         totalEarnings += (ownedValue * netIncome);
                         totalRevenue += (ownedValue * revenue);
                         totalGrossProfit += (ownedValue * grossProfit);
                         totalOpIncome += (ownedValue * opEarnings);
-                        //                        result.totalDebtToEquity += orZero(() -> ownedValue * atGlance.dtoe);
                         result.investmentScore += orZero(() -> ownedValue * atGlance.investmentScore);
 
                         if (Double.isFinite(oneYearReturn)) {
@@ -442,14 +468,14 @@ public class PortfolioController {
             }
         }
 
-        if (result.totalPrice > 0.0) {
-            result.totalEpsGrowth /= result.totalPrice;
-            result.totalRevGrowth /= result.totalPrice;
-            result.totalAltman /= result.totalPrice;
-            result.totalRoic /= result.totalPrice;
-            result.totalFcfRoic /= result.totalPrice;
-            result.totalShareChange /= result.totalPrice;
-            result.investmentScore /= result.totalPrice;
+        if (result.totalPriceExCash > 0.0) {
+            result.totalEpsGrowth /= result.totalPriceExCash;
+            result.totalRevGrowth /= result.totalPriceExCash;
+            result.totalAltman /= result.totalPriceExCash;
+            result.totalRoic /= result.totalPriceExCash;
+            result.totalFcfRoic /= result.totalPriceExCash;
+            result.totalShareChange /= result.totalPriceExCash;
+            result.investmentScore /= result.totalPriceExCash;
 
             result.totalDebtToEquity = (totalDebt / totalEquity);
             result.totalRoe = (totalEarnings / totalEquity) * 100.0;
@@ -501,6 +527,30 @@ public class PortfolioController {
         result.investmentScoreChart = convertToPieChartWithoutSorting(investmentScoreToInvestment);
 
         return result;
+    }
+
+    private CompanyFinancials createCurrencyData(AtGlanceData atGlance, String ticker) {
+        Profile profile = new Profile();
+        String currency = ticker.replace("CASH.", "");
+        profile.currency = currency;
+        profile.reportedCurrency = currency;
+        profile.industry = "cash";
+        profile.sector = "cash";
+        profile.companyName = currency;
+        return new CompanyFinancials(1.0, atGlance.latestStockPriceUsd, atGlance.latestStockPriceTradingCur, LocalDate.now(), List.of(), profile, 0);
+    }
+
+    private float calculateRevenueGrowth(CompanyFinancials data) {
+        for (int i = 5; i >= 3; --i) {
+            int thenIndex = Helpers.findIndexWithOrBeforeDate(data.financials, LocalDate.now().minusYears(i));
+            if (thenIndex != -1) {
+                double growth = GrowthCalculator.calculateGrowth(data.financials.get(0).incomeStatementTtm.revenue, data.financials.get(thenIndex).incomeStatementTtm.revenue, i);
+                if (growth != Double.NaN) {
+                    return (float) growth;
+                }
+            }
+        }
+        return Float.NaN;
     }
 
     private double orZero(Supplier<Double> supplier) {

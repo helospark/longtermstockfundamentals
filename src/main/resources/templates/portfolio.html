@@ -24,6 +24,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/autonumeric/4.10.7/autoNumeric.min.js"></script>
   <script src="/js/common.js" ></script>
   <script src="/js/charts-common.js"></script>
   <script src="/js/portfolio.js" ></script>
@@ -36,10 +37,12 @@
 <div class="clearFloat"></div>
 
 <span style="display:none" id="onlyOwned" th:text="${onlyOwned}"></span>
+<span style="display:none" id="supportedCurrencies" th:text="${supportedCurrencies}"></span>
 
 <div id="content">
 
   <h1>Portfolio</h1>
+
 
   <div id="watchlist-table"></div>
   

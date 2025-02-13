@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -126,7 +127,7 @@ public class StockDataDownloader {
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
         boolean downloadNewData = true;
         boolean downloadFx = false;
-        boolean downloadJustSp = true;
+        boolean downloadJustUs = false;
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;
@@ -149,8 +150,12 @@ public class StockDataDownloader {
 
             List<String> symbols;
 
-            if (downloadJustSp) {
-                symbols = sp500Symbols;
+            if (downloadJustUs) {
+                Set<String> usSymbols = new HashSet<>();
+                usSymbols.addAll(dowjones_constituent);
+                usSymbols.addAll(nasdaqSymbols);
+                usSymbols.addAll(sp500Symbols);
+                symbols = new ArrayList<>(usSymbols);
             } else {
                 symbols = Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class));
             }
@@ -190,6 +195,7 @@ public class StockDataDownloader {
                         }
                         if (threadIndex == 0 && k % 100 == 0) {
                             progress = (((double) (symbols.size() - symbolsQueue.size()) / symbols.size()) * 100.0);
+                            System.out.printf("Download progress: %.2f", progress);
                         }
                     }
                 }, executor));
@@ -555,8 +561,8 @@ public class StockDataDownloader {
 
         data.eps = financial.incomeStatementTtm.eps;
         data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial)).orElse(Double.NaN).floatValue();
-        data.peExRnd = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExRnd(financial)).orElse(Double.NaN).floatValue();
-        data.peExMnS = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExMns(financial)).orElse(Double.NaN).floatValue();
+        data.peExRnd = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExRnd(financial, financial.price)).orElse(Double.NaN).floatValue();
+        data.peExMnS = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExMns(financial, financial.price)).orElse(Double.NaN).floatValue();
 
         data.evToEbitda = (float) (EnterpriseValueCalculator.calculateEv(financial, latestPrice) / financial.incomeStatementTtm.ebitda);
         data.ptb = (float) RatioCalculator.calculatePriceToBookRatio(financial, latestPrice);

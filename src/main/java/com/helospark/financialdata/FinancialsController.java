@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
+import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.SimpleDataElement;
 import com.helospark.financialdata.domain.SimpleDateDataElement;
@@ -184,14 +185,14 @@ public class FinancialsController {
     @GetMapping("/pe_excl_rnd_ratio")
     public List<SimpleDataElement> getPeExcludingRndRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> {
-            return RatioCalculator.calculatePriceToEarningsRatioExRnd(financialsTtm);
+            return RatioCalculator.calculatePriceToEarningsRatioExRnd(financialsTtm, price);
         });
     }
 
     @GetMapping("/pe_excl_marketing_ratio")
     public List<SimpleDataElement> getPeExcludingMarketingRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> {
-            return RatioCalculator.calculatePriceToEarningsRatioExMns(financialsTtm);
+            return RatioCalculator.calculatePriceToEarningsRatioExMns(financialsTtm, price);
         });
     }
 
@@ -292,7 +293,7 @@ public class FinancialsController {
 
     @GetMapping("/p2b_ratio")
     public List<SimpleDataElement> getP2BValue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> RatioCalculator.calculatePriceToBookRatio(financialsTtm));
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> RatioCalculator.calculatePriceToBookRatio(financialsTtm, price));
     }
 
     @GetMapping("/p2tb_ratio")
@@ -700,6 +701,15 @@ public class FinancialsController {
             result.add(0, new SimpleDataElement(company.latestPriceDate.toString(), company.latestPrice));
         }
         return result;
+    }
+
+    @GetMapping("/detailed_price")
+    public List<SimpleDataElement> getDetailedPrice(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        List<HistoricalPriceElement> prices = DataLoader.readHistoricalPrice(stock, 500);
+
+        return prices.stream()
+                .map(a -> new SimpleDataElement(a.date.toString(), a.close))
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/return_with_reinvested_dividend")

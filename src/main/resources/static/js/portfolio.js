@@ -148,7 +148,11 @@ createdCharts = new Map();
               fixedHeader: false
            });
            
+           
+           
            if (document.getElementById("charts") !== null) {
+             $( '<button id="change_cash_button" type="button" class="main_bt btn btn-primary" onclick="changeCash()" style="float:right;margin-right:20px;">+ Cash</button>' ).insertAfter( $( "#DataTables_Table_0_filter" ) );
+
             createChart("/historical-performance/eps", "Earnings", {
                  quarterlyEnabled: false,
                  addStockPrefix: false,

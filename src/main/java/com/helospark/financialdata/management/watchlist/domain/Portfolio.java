@@ -29,6 +29,7 @@ public class Portfolio {
     public PieChart investmentScoreChart;
 
     public double totalPrice = 0.0;
+    public double totalPriceExCash = 0.0;
     public double totalNetAssets = 0.0;
     public double totalEarnings = 0.0;
     public double totalFcf = 0.0;

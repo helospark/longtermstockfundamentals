@@ -103,7 +103,11 @@
            var value = rows[i][columns[j]];
            if (columns[j] === "Symbol") {
               symbol = rows[i][columns[j]];
-              value = '<a href="/stock/' + symbol + '">' + symbol + '</a>';
+              if (!symbol.includes("CASH.")) {
+                value = '<a href="/stock/' + symbol + '">' + symbol + '</a>';
+              } else {
+                value = symbol;
+              }
            }
            resultHtml += "<td>" + value + "</td>";
         }
@@ -112,10 +116,17 @@
         if (calculatorLink != null) {
            resultHtml += `<a href="` + calculatorLink + `" class="fa-solid fa-calculator"></a>`;
         }
-        resultHtml += `
-           <i class="fa-solid fa-pen-to-square" onclick="addToWatchlistWithStock('` + symbol + `')"></i>
-           <i class="fa-solid fa-trash" onclick="removeFromWatchlist('` + symbol + `')"></i>
-        </td>`;
+        if (!symbol.includes("CASH.")) {
+          resultHtml += `
+             <i class="fa-solid fa-pen-to-square" onclick="addToWatchlistWithStock('` + symbol + `')"></i>
+             <i class="fa-solid fa-trash" onclick="removeFromWatchlist('` + symbol + `')"></i>
+          </td>`;
+        } else {
+          resultHtml += `
+             <i class="fa-solid fa-pen-to-square" onclick="changeCash('` + symbol + `')"></i>
+             <i class="fa-solid fa-trash" onclick="removeFromWatchlist('` + symbol + `')"></i>
+          </td>`;
+        }
         resultHtml += "</tr>";
       }
       resultHtml += `
@@ -341,3 +352,93 @@
      }
      return expiry;
 }
+
+
+ function changeCash(symbol="CASH.USD") {
+    fetch('/watchlist/' + symbol, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(data => data.json())
+    .then(data => {
+           var currencies = $("#supportedCurrencies").text().split(",");
+           ownedShares = 0;
+           if (data.ownedShares != null) {
+             ownedShares = data.ownedShares;
+           }
+           formHtml = "";
+           formHtml = `
+              <div class="modal-header">
+                  <h5 class="modal-title">Change cash</h5>
+              </div>
+              <div class="modal-body" id="modal-body">
+                  <div id="watchlist-error-message" style="color:red;text-weight:600;"></div>
+                  <div class="row">
+                    <div class="col-md-8">
+                      <label for="watchlist-cash" class="col-form-label">Cash</label>
+                      <input class="form-control" id="watchlist-cash" data-a-sign="" data-a-dec="," data-a-sep=" " value="` + ownedShares + `">
+                    </div>
+                    <div class="col-md-4">
+                      <label for="watchlist-currency" class="col-form-label">Currency</label>
+                  `;
+
+            formHtml += '<select id="watchlist-currency" class="form-control">';
+            
+            currencies.forEach(currency => {
+              const selected = currency === symbol ? ' selected' : ''; // Add 'selected' attribute if it's the default
+              formHtml += `<option value="${currency}"${selected}>${currency.replace("CASH.", "")}</option>`;
+            });
+            
+            formHtml += '</select>';
+
+
+
+           formHtml += `
+              </div>
+              </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="changeCashExec()">Save</button>
+              </div>`;
+
+
+
+
+          $("#generic-modal .modal-content").html(formHtml);
+          
+          new AutoNumeric('#watchlist-cash', {
+              allowDecimalPadding: false,
+              decimalPlacesShownOnFocus: 0
+          });
+              
+          modal = new bootstrap.Modal(document.getElementById("generic-modal"));
+          modal.show();
+    });
+ }
+ 
+ function changeCashExec() {
+     ownedShares = AutoNumeric.getNumber('#watchlist-cash'); // $("#watchlist-cash").val();
+     currency = $("#watchlist-currency").val()
+     fetch('/watchlist', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({symbol: currency, priceTarget: 1.0, ownedShares: ownedShares})
+    }).then(async data => {
+        if (data.status != 200) {
+          data = await data.json();
+          $("#watchlist-error-message").text(data.errorMessage);
+        } else {
+          $("#generic-large-modal").modal("hide");
+          if ($("#watchlist-table").length > 0) {
+            location.reload();
+          }
+        }
+    });
+ }

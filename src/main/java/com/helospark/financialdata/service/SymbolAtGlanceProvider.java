@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.helospark.financialdata.domain.FxRatesResponse;
 import com.helospark.financialdata.domain.SearchElement;
 import com.helospark.financialdata.util.StockDataDownloader;
 import com.helospark.financialdata.util.StockDataDownloader.YearMonthPair;
@@ -135,7 +136,42 @@ public class SymbolAtGlanceProvider {
     }
 
     public Optional<AtGlanceData> getAtGlanceData(String stock) {
+        if (stock.startsWith("CASH.")) {
+            String currency = stock.replace("CASH.", "");
+            Optional<FxRatesResponse> fxFile = DataLoader.loadFxFile(currency, LocalDate.now());
+            if (fxFile.isPresent()) {
+                return Optional.of(null);
+            } else {
+                return createCurrencyAtGlance(currency);
+            }
+
+        }
         return Optional.ofNullable(symbolCompanyNameCache.get(stock));
+    }
+
+    private Optional<AtGlanceData> createCurrencyAtGlance(String currency) {
+        AtGlanceData data = new AtGlanceData();
+
+        for (var field : data.getClass().getDeclaredFields()) {
+            if (field.getType().equals(float.class)) {
+                try {
+                    field.set(data, Float.NaN);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        data.companyName = currency;
+        data.symbol = currency;
+        data.latestStockPrice = 1.0;
+        data.latestStockPriceTradingCur = 1.0;
+        data.latestStockPriceUsd = DataLoader.convertFx(1.0, currency, "USD", LocalDate.now(), false).orElse(0.0);
+        data.price5Gr = 0.0f;
+        data.price10Gr = 0.0f;
+        data.price15Gr = 0.0f;
+        data.price20Gr = 0.0f;
+        return Optional.of(data);
     }
 
     public LinkedHashMap<String, AtGlanceData> getSymbolCompanyNameCache() {
@@ -147,6 +183,10 @@ public class SymbolAtGlanceProvider {
     }
 
     public boolean doesCompanyExists(String stock) {
+        if (stock.startsWith("CASH.")) {
+            String currency = stock.replace("CASH.", "");
+            return DataLoader.isValidCurrency(currency);
+        }
         for (int i = 0; i < symbols.size(); ++i) {
             if (symbols.get(i).equalsIgnoreCase(stock)) {
                 return true;
