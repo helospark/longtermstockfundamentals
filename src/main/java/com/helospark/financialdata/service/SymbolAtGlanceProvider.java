@@ -183,6 +183,9 @@ public class SymbolAtGlanceProvider {
     }
 
     public boolean doesCompanyExists(String stock) {
+        if (stock == null) {
+            return false;
+        }
         if (stock.startsWith("CASH.")) {
             String currency = stock.replace("CASH.", "");
             return DataLoader.isValidCurrency(currency);

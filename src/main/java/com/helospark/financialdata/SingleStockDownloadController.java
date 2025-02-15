@@ -92,6 +92,7 @@ public class SingleStockDownloadController {
         List<String> symbols = watchlistElements.stream()
                 .filter(a -> a.ownedShares > 0)
                 .map(a -> a.symbol)
+                .filter(a -> !a.contains("CASH."))
                 .collect(Collectors.toList());
         return symbols;
     }

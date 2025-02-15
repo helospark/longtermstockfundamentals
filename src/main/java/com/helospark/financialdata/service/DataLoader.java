@@ -696,6 +696,10 @@ public class DataLoader {
                 currentTtm.auxilaryInfo = auxilaryInformation.get(auxilaryInfoIndex);
             }
 
+            if (profile.currency.equals("GBp")) {
+                price /= 100.0;
+            }
+
             currentTtm.priceTradingCurrency = price;
             currentTtm.price = convertCurrencyIfNeeded(price, currentTtm, profile);
             currentTtm.priceUsd = convertFx(price, profile.currency, "USD", currentTtm.incomeStatement.getDate(), true).orElse(price);
@@ -713,6 +717,11 @@ public class DataLoader {
             // return new CompanyFinancials();
         }
         double priceOrigCurrency = prices.isEmpty() ? 0 : prices.get(0).close;
+
+        if (profile.currency.equals("GBp")) {
+            priceOrigCurrency /= 100.0;
+        }
+
         LocalDate latestPriceDate = prices.isEmpty() ? LocalDate.now() : prices.get(0).getDate();
         double price = result.isEmpty() ? 0 : convertCurrencyIfNeeded(priceOrigCurrency, result.get(0), profile);
         double priceUsd = convertFx(priceOrigCurrency, profile.currency, "USD", latestPriceDate, true).orElse(price);

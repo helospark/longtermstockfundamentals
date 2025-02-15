@@ -145,6 +145,9 @@ public class LatestPriceProvider {
     }
 
     private double provideApiBasedPrice(String symbol) {
+        if (symbol.contains("CASH.")) {
+            return 1.0;
+        }
         try {
             double result = StockDataDownloader.loadLatestPrice(symbol);
             if (result == 0.0) {
@@ -160,6 +163,9 @@ public class LatestPriceProvider {
     }
 
     private Double provideFileBasedPrice(String ticker2) {
+        if (ticker2.contains("CASH.")) {
+            return 1.0;
+        }
         List<HistoricalPriceElement> historicalPrice = DataLoader.readHistoricalFile(ticker2, "historical-price.json");
 
         return historicalPrice.get(0).close;

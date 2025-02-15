@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.DeleteFromWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
@@ -30,6 +31,7 @@ import com.helospark.financialdata.management.watchlist.domain.CalculatorParamet
 import com.helospark.financialdata.management.watchlist.domain.PaginatedWatchListResponse;
 import com.helospark.financialdata.management.watchlist.domain.datatables.DataTableRequest;
 import com.helospark.financialdata.management.watchlist.domain.datatables.Order;
+import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
@@ -115,7 +117,8 @@ public class WatchlistService {
             Optional<AtGlanceData> optionalAtGlance = symbolIndexProvider.getAtGlanceData(ticker);
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
-                double latestPriceInTradingCurrency = getPrice(prices, ticker);
+                CompanyFinancials company = DataLoader.readFinancials(ticker);
+                double latestPriceInTradingCurrency = getPrice(prices, ticker, company.profile.currency);
                 List<String> portfolioElement = new ArrayList<>();
                 portfolioElement.add(ticker);
                 portfolioElement.add(Optional.ofNullable(atGlance.companyName).orElse(""));
@@ -141,7 +144,7 @@ public class WatchlistService {
     private boolean matchesSearch(WatchlistElement a, String value) {
         value = value.toUpperCase();
 
-        if (a.notes.toUpperCase().contains(value)) {
+        if (a.notes != null && a.notes.toUpperCase().contains(value)) {
             return true;
         }
         if (a.tags != null) {
@@ -212,12 +215,19 @@ public class WatchlistService {
         return new ArrayList<>(watchlistElements);
     }
 
-    public Double getPrice(Map<String, CompletableFuture<Double>> prices, String ticker) {
+    public double getPrice(Map<String, CompletableFuture<Double>> prices, String ticker, String currency) {
+        double result;
         try {
-            return prices.get(ticker).get();
+            result = prices.get(ticker).get();
         } catch (Exception e) {
-            return latestPriceProvider.provideLatestPrice(ticker);
+            result = latestPriceProvider.provideLatestPrice(ticker);
         }
+
+        if (currency.equals("GBp")) {
+            result /= 100.0;
+        }
+
+        return result;
     }
 
     public @PolyNull Optional<Watchlist> loadWatchlist(String email) {

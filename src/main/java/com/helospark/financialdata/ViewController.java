@@ -317,6 +317,11 @@ public class ViewController {
                 }
 
                 double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
+
+                if (company.profile.currency.equals("GBp")) {
+                    latestPriceInTradingCurrency /= 100.0;
+                }
+
                 Optional<Double> priceInReportCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, company.profile.currency, company.profile.reportedCurrency, LocalDate.now(), false);
                 model.addAttribute("latestPrice", priceInReportCurrency.orElse(company.latestPrice));
                 model.addAttribute("latestPriceTradingCurrency", latestPriceInTradingCurrency);

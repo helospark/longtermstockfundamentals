@@ -95,6 +95,7 @@ import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.StockBasedCompensationCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
+import com.helospark.financialdata.service.exchanges.Exchanges;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
 public class StockDataDownloader {
@@ -127,7 +128,7 @@ public class StockDataDownloader {
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
         boolean downloadNewData = true;
         boolean downloadFx = false;
-        boolean downloadJustUs = false;
+        Set<Exchanges> downloadOnlyExchanges = Set.of(Exchanges.LSE); // Exchanges.getExchangesByRegion(ExchangeRegion.US) // or empty set
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;
@@ -148,16 +149,12 @@ public class StockDataDownloader {
             int threads = 10;
             var executor = Executors.newFixedThreadPool(threads);
 
-            List<String> symbols;
+            Set<String> symbols = new HashSet<>();
 
-            if (downloadJustUs) {
-                Set<String> usSymbols = new HashSet<>();
-                usSymbols.addAll(dowjones_constituent);
-                usSymbols.addAll(nasdaqSymbols);
-                usSymbols.addAll(sp500Symbols);
-                symbols = new ArrayList<>(usSymbols);
+            if (!downloadOnlyExchanges.isEmpty()) {
+                symbols.addAll(DataLoader.provideSymbolsIn(downloadOnlyExchanges));
             } else {
-                symbols = Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class));
+                symbols.addAll(Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class)));
             }
 
             List<String> newSymbols = new ArrayList<>(symbols);
@@ -255,6 +252,9 @@ public class StockDataDownloader {
         int currentMonth = LocalDate.now().getMonthValue();
         try {
             for (var symbol : symbols) {
+                if (symbol.contains("CASH.")) {
+                    continue;
+                }
                 File downloadDates = new File(DOWNLOAD_DATES);
                 Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
                 var lastDownloaded = symbolToDates.remove(symbol);
