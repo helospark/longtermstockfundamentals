@@ -58,6 +58,11 @@
               Customize
             </a>
           </div>
+          <div style="float:right; margin-right:10px;">
+            <a th:if="${loginAccountType == 'ADMIN'}" class="btn btn-dark" href="#" onclick="downloadNewData()" role="button">
+              Download data
+            </a>
+          </div>
         </div>
       </div>
    </div>
@@ -89,6 +94,10 @@
   <div id="charts">
   
   </div>
+  
+  <button onclick="scrollToTop()" id="scrollTopBtn" title="Go to top">
+    <i class="fa-solid fa-angle-up"></i>
+  </button>
   
   <h2>Checks</h2>
   <div id="flags">

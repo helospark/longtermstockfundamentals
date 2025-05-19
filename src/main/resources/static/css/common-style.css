@@ -400,3 +400,31 @@ select, #start-date-dropdown, #end-date-dropdown {
   font-weight: 500;
   color: red;
 }
+
+#scrollTopBtn {
+  display: none; /* Hidden by default */
+  position: fixed; /* Fixed/sticky position */
+  bottom: 20px; /* Place the button 20px from the bottom */
+  right: 30px; /* Place the button 30px from the right */
+  z-index: 99; /* Make sure it does not overlap other items */
+  border: none; /* Remove borders */
+  outline: none; /* Remove outline */
+  background-color: #555; /* Set a background color */
+  color: white; /* Text color */
+  cursor: pointer; /* Add a mouse pointer on hover */
+  opacity: 0.7; /* Add transparency */
+  border-radius: 50%; /* Make it a circle */
+
+  /* --- New/Modified for perfect circle --- */
+  width: 60px;         /* Set a fixed width */
+  height: 60px;        /* Set a fixed height (same as width) */
+  padding: 0;          /* Remove padding if using fixed width/height */
+  font-size: 32px;     /* Adjust font size for the arrow icon */
+  line-height: 50px;   /* Vertically center the arrow (should be same as height) */
+  text-align: center;  /* Horizontally center the arrow */
+}
+
+#scrollTopBtn:hover {
+  background-color: #333; /* Add a darker background on hover */
+  opacity: 1; /* Remove transparency on hover */
+}

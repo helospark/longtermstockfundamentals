@@ -43,6 +43,26 @@ const autoCompleteJS = new autoComplete({
 
 
 
+// scroll to top
+let mybutton = document.getElementById("scrollTopBtn");
+
+// When the user scrolls down 20px from the top of the document, show the button
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    mybutton.style.display = "block";
+  } else {
+    mybutton.style.display = "none";
+  }
+}
+
+// When the user clicks on the button, scroll to the top of the document
+function scrollToTop() {
+  document.body.scrollTop = 0; // For Safari
+  document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+}
+// scroll to top
 
 
 
@@ -207,6 +227,9 @@ function customizeCharts() {
   
   for (let i = 0; i < currentCharts.length; i++) {
     var currentChart = findInArrayById(allCharts, currentCharts[i].id);
+    if (currentChart == null) {
+      console.log(currentCharts[i].id);
+    }
     var currentSetting = currentCharts[i];
     if (currentSetting !== null) {
       var isChecked = currentSetting.enabled;
@@ -354,6 +377,10 @@ createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
     {
       "url": "/financials/pe_excl_marketing_ratio",
       "label": "PE excluding marketing&sales ratio"
+    },
+    {
+      "url": "/financials/pe_excl_amortization",
+      "label": "PE excluding amortization and depreciation"
     }
   ]});
 createChartInternal("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false}, defaultEnabled=false);
@@ -395,6 +422,7 @@ createChartInternal("/financials/p2b_ratio", "Price to Book ratio", {
 
 
 createSeparatorInternal("Debt information")
+
 
 createChartInternal("/financials/cash_flow_to_debt", "Operating cash flow debt coverage", {unit: '%', quarterlyEnabled: false});
 createChartInternal("/financials/short_term_coverage_ratio", "Operating cash flow short term debt coverage", {unit: '%', quarterlyEnabled: false});
@@ -447,7 +475,14 @@ createChartInternal("/financials/intangible_assets_percent", "Intangible assets"
 createChartInternal("/financials/cash", "Cash and cash equivalents", {quarterlyEnabled: false});
 
 createChartInternal("/financials/non_current_assets", "Non current assets", {quarterlyEnabled: false}, defaultEnabled=false);
-createChartInternal("/financials/long_term_debt", "Long term debt", {quarterlyEnabled: false}, defaultEnabled=false);
+createChartInternal("/financials/long_term_debt", "Debt", {
+  quarterlyEnabled: false, label: "Long term debt",
+  additionalCharts: [
+  {
+    "url": "/financials/short_term_debt",
+    "label": "Short term debt"
+  }
+]});
 
 
 

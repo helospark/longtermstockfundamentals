@@ -214,6 +214,8 @@ public class DcfCalculator {
 
             double discountedEps = (eps / Math.pow(1.0 + discount, i + 1));
             value += discountedEps;
+
+            //            System.out.println(eps + " " + discountedEps);
         }
 
         value += ((eps * endMultiple) / Math.pow(1.0 + discount, years));

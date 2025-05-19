@@ -146,9 +146,6 @@
             discountedEps = (eps / Math.pow(1.0 + discount, i + 1));
             value += discountedEps;
             
-            
-            
-            
             $(revInputs[i]).val((previousRevenue / 1000000).toFixed(2));
             $(epsInputs[i]).val(eps.toFixed(2));
             $(dEpsInputs[i]).val(discountedEps.toFixed(2));

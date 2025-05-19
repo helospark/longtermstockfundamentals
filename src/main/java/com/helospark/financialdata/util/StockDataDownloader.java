@@ -95,6 +95,7 @@ import com.helospark.financialdata.service.RoicCalculator;
 import com.helospark.financialdata.service.StockBasedCompensationCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
+import com.helospark.financialdata.service.exchanges.ExchangeRegion;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
@@ -128,7 +129,8 @@ public class StockDataDownloader {
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
         boolean downloadNewData = true;
         boolean downloadFx = false;
-        Set<Exchanges> downloadOnlyExchanges = Set.of(Exchanges.LSE); // Exchanges.getExchangesByRegion(ExchangeRegion.US) // or empty set
+        //Set<Exchanges> downloadOnlyExchanges = Set.of(); // Set.of(Exchanges.HKSE); // Exchanges.getExchangesByRegion(ExchangeRegion.US) // or empty set
+        Set<Exchanges> downloadOnlyExchanges = Exchanges.getExchangesByRegion(ExchangeRegion.US);
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;

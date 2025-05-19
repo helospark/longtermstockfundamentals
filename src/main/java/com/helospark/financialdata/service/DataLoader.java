@@ -380,6 +380,11 @@ public class DataLoader {
         }
         if (symbol.equals("NU")) {
             for (int i = 0; i < incomeStatement.size(); ++i) {
+                if (incomeStatement.get(i).date.equals(LocalDate.of(2024, 12, 31))) {
+                    incomeStatement.get(i).revenue = 2_989_300_000L;
+                    incomeStatement.get(i).netIncome = 552_600_000L;
+                    incomeStatement.get(i).grossProfit = 1_363_300_000L;
+                }
                 if (incomeStatement.get(i).date.equals(LocalDate.of(2024, 9, 30))) {
                     incomeStatement.get(i).revenue = 2_943_188_000L;
                 }
@@ -696,7 +701,7 @@ public class DataLoader {
                 currentTtm.auxilaryInfo = auxilaryInformation.get(auxilaryInfoIndex);
             }
 
-            if (profile.currency.equals("GBp")) {
+            if (isInGBPence(symbol, profile)) {
                 price /= 100.0;
             }
 
@@ -718,7 +723,7 @@ public class DataLoader {
         }
         double priceOrigCurrency = prices.isEmpty() ? 0 : prices.get(0).close;
 
-        if (profile.currency.equals("GBp")) {
+        if (isInGBPence(symbol, profile)) {
             priceOrigCurrency /= 100.0;
         }
 
@@ -730,6 +735,10 @@ public class DataLoader {
         }
 
         return new CompanyFinancials(price, priceUsd, priceOrigCurrency, latestDate, result, profile, dataQualityIssue);
+    }
+
+    public static boolean isInGBPence(String symbol, Profile profile) {
+        return (profile.currency == null && symbol.endsWith(".L")) || (profile.currency != null && profile.currency.equals("GBp"));
     }
 
     private static int calculateEndTtmIndex(int cashFlowIndex, List<? extends DateAware> cashFlows, String symbol) {

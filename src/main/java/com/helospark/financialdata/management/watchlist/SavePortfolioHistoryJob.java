@@ -117,6 +117,7 @@ public class SavePortfolioHistoryJob {
 
     private List<SimpleHolding> convertHoldings(List<WatchlistElement> watchlistElements) {
         return watchlistElements.stream()
+                .filter(a -> !a.symbol.contains("CASH."))
                 .map(a -> new SimpleHolding(a.symbol, a.ownedShares))
                 .collect(Collectors.toList());
     }

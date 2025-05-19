@@ -7,6 +7,10 @@ body {
   overflow: hidden;
 }
 
+.waiting *{
+    cursor: progress !important;
+}
+
 .chartDiv {
   width:98%;
   display:grid;

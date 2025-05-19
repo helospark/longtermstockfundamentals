@@ -12,7 +12,7 @@ public class Profile {
     public String range; //58.01-138.7,
     public Double changes; //0.48,
     public String companyName; //Alibaba Group Holding Limited,
-    public String currency; //USD,
+    public String currency = ""; //USD,
     public String cik; //0001577552,
     public String isin; //US01609W1027,
     public String cusip; //01609W102,

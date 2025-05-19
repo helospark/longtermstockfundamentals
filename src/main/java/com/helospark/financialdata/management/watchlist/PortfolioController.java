@@ -285,7 +285,7 @@ public class PortfolioController {
                 if (data.profile == null) {
                     continue;
                 }
-                double latestPriceInTradingCurrency = isCurrency ? 1.0 : watchlistService.getPrice(prices, ticker);
+                double latestPriceInTradingCurrency = isCurrency ? 1.0 : watchlistService.getPrice(prices, ticker, data.profile.currency);
                 double latestPriceInUsd = DataLoader.convertFx(latestPriceInTradingCurrency, data.profile.currency, "USD", now, false).orElse(atGlance.latestStockPriceUsd);
                 double latestPriceInReportingCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, data.profile.currency, data.profile.reportedCurrency, now, false)
                         .orElse(atGlance.latestStockPrice);
@@ -381,6 +381,7 @@ public class PortfolioController {
                     result.totalPrice += orZero(() -> ownedValue);
                     if (isCurrency) {
                         totalEquity += orZero(() -> ownedValue);
+                        result.totalNetAssets += orZero(() -> ownedValue);
                     }
 
                     if (data.financials.size() > 0 && !isCurrency) {

@@ -99,7 +99,7 @@
       chart.update();
   }
   
-  function forwardDcf(request) {
+  function forwardDcf(request, reverse=false) {
       var revenue = request.revenue;
       var startGrowth = request.startGrowth;
       var endGrowth = request.endGrowth;
@@ -113,8 +113,6 @@
       var currentPrice = request.currentPrice;
       var startPayoutRatio = request.startPayoutRatio;
       var endPayoutRatio = request.endPayoutRatio;
-      
-      console.log("Payout ratio= " + startPayoutRatio);
       
       var years = request.years;
   
@@ -155,11 +153,13 @@
             value += discountedEps;
             
             
+            //console.log(i + " " + (1.0 + discount) + " " + discount + " " + request.discount);
             
-            
-            $(revInputs[i]).val((previousRevenue / 1000000).toFixed(2));
-            $(epsInputs[i]).val(eps.toFixed(2));
-            $(dEpsInputs[i]).val(discountedEps.toFixed(2));
+            if (!reverse) {
+              $(revInputs[i]).val((previousRevenue / 1000000).toFixed(2));
+              $(epsInputs[i]).val(eps.toFixed(2));
+              $(dEpsInputs[i]).val(discountedEps.toFixed(2));
+            }
          }
          }
          
@@ -188,7 +188,7 @@
     while (lowerBound < upperBound && i < 10) {
       currentBound = (upperBound + lowerBound) / 2.0;
       newRequest = {...request, discount: currentBound};
-      const [value, marginOfSafety] = forwardDcf(newRequest);
+      const [value, marginOfSafety] = forwardDcf(newRequest, true);
       
       if (marginOfSafety < 0) {
         upperBound = currentBound;

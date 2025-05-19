@@ -196,6 +196,13 @@ public class FinancialsController {
         });
     }
 
+    @GetMapping("/pe_excl_amortization")
+    public List<SimpleDataElement> getPeExcludingAmortization(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> {
+            return RatioCalculator.calculatePriceToEarningsRatioExAmortization(financialsTtm, price);
+        });
+    }
+
     @GetMapping("/pfcf_ratio")
     public List<SimpleDataElement> getPFcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
@@ -336,6 +343,13 @@ public class FinancialsController {
         return getIncomeData(stock,
                 quarterly,
                 financialsTtm -> toPercent(financialsTtm.balanceSheet.shortTermDebt > 0.0 ? (double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.balanceSheet.shortTermDebt : null));
+    }
+
+    @GetMapping("/short_term_debt")
+    public List<SimpleDataElement> getShortTermDebt(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock,
+                quarterly,
+                financialsTtm -> financialsTtm.balanceSheet.shortTermDebt);
     }
 
     @GetMapping("/short_term_assets_to_total_debt")

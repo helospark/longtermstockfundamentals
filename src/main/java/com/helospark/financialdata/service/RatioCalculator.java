@@ -56,8 +56,24 @@ public class RatioCalculator {
                 / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
     }
 
+    public static Double calculateEpsExAmortization(FinancialsTtm financialsTtm) {
+        return ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.depreciationAndAmortization)
+                / financialsTtm.incomeStatementTtm.weightedAverageShsOut;
+    }
+
     public static Double calculatePriceToEarningsRatioExRnd(FinancialsTtm financialsTtm, Double price) {
         double eps = calculateEpsExRnd(financialsTtm);
+        double result = price / eps;
+
+        if (!Double.isFinite(result)) {
+            return null;
+        }
+
+        return result;
+    }
+
+    public static Number calculatePriceToEarningsRatioExAmortization(FinancialsTtm financialsTtm, Double price) {
+        double eps = calculateEpsExAmortization(financialsTtm);
         double result = price / eps;
 
         if (!Double.isFinite(result)) {

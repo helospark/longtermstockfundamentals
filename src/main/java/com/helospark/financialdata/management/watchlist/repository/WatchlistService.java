@@ -118,7 +118,7 @@ public class WatchlistService {
             if (symbolIndexProvider.doesCompanyExists(ticker) && optionalAtGlance.isPresent()) {
                 var atGlance = optionalAtGlance.get();
                 CompanyFinancials company = DataLoader.readFinancials(ticker);
-                double latestPriceInTradingCurrency = getPrice(prices, ticker, company.profile.currency);
+                double latestPriceInTradingCurrency = ticker.startsWith("CASH.") ? 1.0 : getPrice(prices, ticker, company.profile.currency);
                 List<String> portfolioElement = new ArrayList<>();
                 portfolioElement.add(ticker);
                 portfolioElement.add(Optional.ofNullable(atGlance.companyName).orElse(""));

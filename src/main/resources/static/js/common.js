@@ -141,6 +141,23 @@
       
       addToWatchlistWithStock(stock);
   }
+  
+  
+  function downloadNewData() {
+      var stock = document.getElementById("stock").innerText;
+      $('html').addClass('waiting');
+
+      fetch('/download?stock=' + stock + '&forced=true', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }).then(data => {
+        $("html").removeClass("waiting");
+        location.reload();
+      });
+  }
 
   function addToWatchlistWithStock(stock) {
     fetch('/watchlist/' + stock, {
