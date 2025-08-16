@@ -29,6 +29,7 @@ import com.helospark.financialdata.management.user.repository.ViewedStocks;
 import com.helospark.financialdata.management.watchlist.repository.JobLastRunData;
 import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistory;
 import com.helospark.financialdata.management.watchlist.repository.Watchlist;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistExpectationHistory;
 
 import jakarta.annotation.PostConstruct;
 
@@ -56,6 +57,7 @@ public class DynamoDbInitializer {
         createTable("JobLastRunData", JobLastRunData.class);
         createTable("PortfolioPerformanceHistory", PortfolioPerformanceHistory.class);
         createTableWithProvisioning("Watchlist", Watchlist.class, 5L, 5L);
+        createTable("WatchlistExpectationHistory", WatchlistExpectationHistory.class);
         createTable("Screener", Screener.class);
 
         if (wasUserTableCreated || userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
@@ -126,6 +128,25 @@ public class DynamoDbInitializer {
         } else {
             return false;
         }
+    }
+
+    public boolean forceRecreateTable(String tableName, Class<?> class1) {
+        if (doesTableExist(tableName)) {
+            amazonDynamoDB.deleteTable(tableName);
+        }
+        CreateTableRequest tableRequest = mapper.generateCreateTableRequest(class1);
+        tableRequest.setBillingMode("PAY_PER_REQUEST");
+        amazonDynamoDB.createTable(tableRequest);
+
+        for (int i = 0; i < 10; ++i) {
+            if (doesTableExist(tableName)) {
+                break;
+            } else {
+                System.out.println("Waiting for " + tableName + " table to be created");
+                exceptionlessSleep(1);
+            }
+        }
+        return true;
     }
 
     public boolean createTableWithProvisioning(String tableName, Class<?> class1, Long provisionedRead, Long provisionedWrite) {

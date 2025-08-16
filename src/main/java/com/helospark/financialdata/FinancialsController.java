@@ -178,8 +178,13 @@ public class FinancialsController {
     }
 
     @GetMapping("/pe_ratio")
-    public List<SimpleDataElement> getPeMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+    public List<SimpleDataElement> getPeRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> RatioCalculator.calculatePriceToEarningsRatio(price, financialsTtm));
+    }
+
+    @GetMapping("/price_to_op_cash_ratio")
+    public List<SimpleDataElement> getPriceToOpCashflow(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> RatioCalculator.calculatePriceToOpCashflowRatio(price, financialsTtm));
     }
 
     @GetMapping("/pe_excl_rnd_ratio")
@@ -1059,6 +1064,47 @@ public class FinancialsController {
 
             if (oldIndex == -1 || newIndex == -1) {
                 break;
+            } else {
+                double oldPrice = company.get(oldIndex).value;
+                double newPrice = company.get(newIndex).value;
+
+                double yearsDiff = calculateYearsDiff(company.get(oldIndex).date, company.get(newIndex).date);
+
+                Double growth = GrowthCalculator.calculateGrowth(newPrice, oldPrice, yearsDiff);
+
+                if (!Double.isFinite(growth)) {
+                    growth = null;
+                }
+
+                result.add(new SimpleDataElement(element.getDate().toString(), growth));
+            }
+        }
+
+        if (result.size() == 0) {
+            LocalDate now = LocalDate.now();
+            result.add(new SimpleDataElement(now.minusMonths(1).toString(), null));
+            result.add(new SimpleDataElement(now.toString(), null));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/price_growth_rate_xyr_moving_avg_trailing")
+    public List<SimpleDataElement> getXyrPriceGrowthRateMovingAvgTrailing(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "7") int yearInterval) {
+        List<SimpleDateDataElement> company = ReturnWithDividendCalculator.getPriceWithDividendsReinvested(DataLoader.readFinancials(stock));
+        if (company.size() <= 2) {
+            return List.of();
+        }
+        company.remove(0);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (int i = 0; i < company.size(); ++i) {
+            SimpleDateDataElement element = company.get(i);
+            int newIndex = findIndexWithOrBeforeDate(company, element.getDate().plusMonths((int) (yearInterval * 12.0)));
+            int oldIndex = findIndexWithOrBeforeDate(company, element.getDate());
+
+            if (oldIndex == -1 || newIndex == -1 || newIndex == 0) {
+                result.add(new SimpleDataElement(element.getDate().toString(), null));
             } else {
                 double oldPrice = company.get(oldIndex).value;
                 double newPrice = company.get(newIndex).value;

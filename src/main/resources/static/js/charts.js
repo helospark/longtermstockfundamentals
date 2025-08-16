@@ -367,6 +367,7 @@ createChartInternal("/financials/marketing_per_operating_expense", "Operating ex
 
 createSeparatorInternal("Price ratios")
 createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+createChartInternal("/financials/price_to_op_cash_ratio", "Price to operating cash flow ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false}, defaultEnabled=false);
 createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
 createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
@@ -719,8 +720,28 @@ createChartInternal("/financials/price_growth_rate_xyr_moving_avg", "Returns x y
     default: 7
   }
 });
-createChartInternal("/financials/detailed_price", "Stock price", {quarterlyEnabled: false});
 
+
+createChartInternal("/financials/price_growth_rate_xyr_moving_avg_trailing", "PE vs growth", {
+  quarterlyEnabled: false,
+  tooltip: 'Compares PE with return',
+  label: "CAGR",
+  suggestedMin: -5,
+  suggestedMax: 60,
+  slider: {
+    id: "eps_growth_year_slider",
+    parameterName: "year",
+    min: 1,
+    max: 25,
+    default: 10
+  },
+  additionalCharts: [{
+    "url": "/financials/pe_ratio",
+    "label": "pe ratio"
+  }]
+});
+
+createChartInternal("/financials/detailed_price", "Stock price", {quarterlyEnabled: false});
 
 var currentlySavedCharts = getCurrentlySavedCustomizedCharts();
 for (var k=0; k<currentlySavedCharts.length; ++k) {

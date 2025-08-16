@@ -221,7 +221,18 @@
          $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + convertFx(value, exchangeRate).toFixed(2) + "</span>");
          $("#current_price").html("Current price: " + currencySymbol + currentPriceInTradingCurrency.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
                + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>, expected return: <b>" + (expectedGrowth*100.0).toFixed(2) + "%</b>)");
-            
+      
+      calculatorExpectationHistory = {}
+      calculatorExpectationHistory.symbol = document.getElementById("stockToLoad").innerText;
+      calculatorExpectationHistory.dates = epses.map(point => point.x);
+      calculatorExpectationHistory.revenue = revenues.map(point => point.y);
+      calculatorExpectationHistory.eps  = epses.map(point => point.y);
+      calculatorExpectationHistory.margin  = margins.map(point => point.y);
+      calculatorExpectationHistory.shareCount  = shareCounts.map(point => point.y);
+      
+      
+      $("#calculatorResult").html(JSON.stringify(calculatorExpectationHistory));
+      
       if (chart !== undefined) {
         updateChart(chart, epses);
       }

@@ -56,12 +56,25 @@
     dateObj.setFullYear(dateObj.getFullYear() + 1);
   }
 
-
-  function updateChart(chart, epses) {
+  function updateListWithCurrentElement(chart, epses) {
       currentLabels = chart.data.labels;
       currentData = chart.data.datasets[0].data;
       
+      var clonedList = [...epses];
+      
       if (currentLabels.length > years && currentData.length > 0) {
+        clonedList.unshift({x: currentLabels[currentLabels.length - 1 - years], y: currentData[currentData.length - 1]});
+      }
+      
+      return clonedList;
+  }
+
+
+  function updateChart(chart, epses, connectToPrevious = true) {
+      currentLabels = chart.data.labels;
+      currentData = chart.data.datasets[0].data;
+      
+      if (currentLabels.length > years && currentData.length > 0 && connectToPrevious) {
         epses.unshift({x: currentLabels[currentLabels.length - 1 - years], y: currentData[currentData.length - 1]});
       }
   
@@ -235,7 +248,19 @@
          $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + convertFx(value, exchangeRate).toFixed(2) + "</span>");
          $("#current_price").html("Current price: " + currencySymbol + currentPriceInTradingCurrency.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
                + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>, expected return: <b>" + (expectedGrowth*100.0).toFixed(2) + "%</b>)");
-            
+
+      calculatorExpectationHistory = {}
+      calculatorExpectationHistory.symbol = document.getElementById("stockToLoad").innerText;
+      calculatorExpectationHistory.dates = updateListWithCurrentElement(chart, epses).map(point => point.x);
+      calculatorExpectationHistory.revenue = updateListWithCurrentElement(revChart, revenues).map(point => point.y);
+      calculatorExpectationHistory.eps  = updateListWithCurrentElement(chart, epses).map(point => point.y);
+      calculatorExpectationHistory.margin  = updateListWithCurrentElement(marginChart, margins).map(point => point.y);
+      calculatorExpectationHistory.shareCount  = updateListWithCurrentElement(shareCountChart, shareCounts).map(point => point.y);
+      
+      
+      $("#calculatorResult").html(JSON.stringify(calculatorExpectationHistory));
+
+
       if (chart !== undefined) {
         updateChart(chart, epses);
       }
@@ -269,6 +294,115 @@
   var stock = document.getElementById("stock").innerText;
   var stockToLoad = document.getElementById("stockToLoad").innerText;
   var calculatorType = document.getElementById("calculatorType").innerText;
+
+
+
+    function createPairedObjects(dates, numbers) {
+      if (dates.length !== numbers.length) {
+        console.error("The two lists must have the same size.");
+        return []; // Return an empty array or handle the error as needed.
+      }
+    
+      const resultList = [];
+      
+      for (let i = 0; i < dates.length; i++) {
+        const pairedObject = {
+          x: dates[i],
+          y: numbers[i]
+        };
+        
+        resultList.push(pairedObject);
+      }
+      
+      return resultList;
+    }
+
+
+   function updateHistoricalExpectation(data) {
+        updateChart(chart, createPairedObjects(data.dates, data.eps), connectToPrevious=false);
+        updateChart(revChart, createPairedObjects(data.dates, data.revenue), connectToPrevious=false);
+        updateChart(marginChart, createPairedObjects(data.dates, data.margin), connectToPrevious=false);
+        updateChart(shareCountChart, createPairedObjects(data.dates, data.shareCount), connectToPrevious=false);
+   }
+
+   fetch('/watchlist-expectation-history/' + stock, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
+    .then(data => data.json())
+    .then(async dataList => {
+          const dropdownMenu = $('#expectation-dropdown-menu');
+          dropdownMenu.empty();
+          dataList.forEach(item => {
+                  const newListItem = $('<li>');
+                  const dropdownItemLink = $('<a>')
+                    .addClass('dropdown-item d-flex justify-content-between align-items-center') // Flexbox for alignment
+                    .attr('href', '#')
+                    .attr('data-json', JSON.stringify(item));
+                
+                  // Create a span for the text (date)
+                  const dateText = $('<span>').text(item.saveDate);
+                  dropdownItemLink.append(dateText);
+                
+                  // Create the delete button
+                  const deleteButton = $('<button>')
+                    .addClass('btn btn-sm btn-outline-danger p-1 ms-auto delete-button border-0') // Adjusted padding and spacing
+                    .html('&times;');
+                
+                  dropdownItemLink.append(deleteButton);
+                  newListItem.append(dropdownItemLink);
+                  dropdownMenu.append(newListItem);
+          });
+          
+          $('#expectation-dropdown-menu').on('click', '.dropdown-item', function(event) {
+            event.preventDefault();
+            const jsonData = JSON.parse($(this).attr('data-json'));
+            updateHistoricalExpectation(jsonData);
+          });
+
+          $('.dropdown-menu').on('click', '.delete-button', function(event) {
+            event.preventDefault(); // Prevents the link from navigating
+            event.stopPropagation(); // Prevents the click from bubbling up to the link handler
+          
+            // Get the parent link element to access its data-json attribute
+            const linkElement = $(this).closest('.dropdown-item');
+            const jsonData = linkElement.attr('data-json');
+            const itemData = JSON.parse(jsonData);
+          
+            // Extract the required fields from the parsed object
+            const { symbol, saveDate } = itemData;
+          
+            // Construct the URL for the DELETE request
+            const url = `/watchlist-expectation-history/${symbol}/${encodeURIComponent(saveDate)}`;
+          
+            // Make the fetch call to the backend
+            fetch(url, {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            })
+            .then(response => {
+              if (response.ok) {
+                console.log(`Successfully deleted history for ${symbol} on ${saveDate}`);
+                // Optional: Remove the list item from the DOM
+                linkElement.parent().remove();
+              } else {
+                console.error('Failed to delete history:', response.statusText);
+              }
+            })
+            .catch(error => {
+              console.error('Network error during delete:', error);
+            });
+          });
+    });
+
+
+
+
+
 
   if (calculatorType === 'eps') {
     chart=createChart("/financials/eps", "EPS", {

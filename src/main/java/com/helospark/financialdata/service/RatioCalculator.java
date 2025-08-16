@@ -51,6 +51,15 @@ public class RatioCalculator {
         return result;
     }
 
+    public static Double calculatePriceToOpCashflowRatio(Double price, FinancialsTtm data) {
+        double opcashFlowPerShare = (double) data.cashFlowTtm.operatingCashFlow / data.incomeStatementTtm.weightedAverageShsOut;
+        double result = price / opcashFlowPerShare;
+        if (!Double.isFinite(result)) {
+            return null;
+        }
+        return result;
+    }
+
     public static Double calculateEpsExRnd(FinancialsTtm financialsTtm) {
         return ((double) financialsTtm.incomeStatementTtm.netIncome + financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses)
                 / financialsTtm.incomeStatementTtm.weightedAverageShsOut;

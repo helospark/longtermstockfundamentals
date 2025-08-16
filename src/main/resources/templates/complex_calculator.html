@@ -34,9 +34,22 @@
 <div id="content">
   <span id="stock" th:text="${stock}" style="display:none"></span>
   <span id="stockToLoad" th:text="${stockToLoad}" style="display:none"></span>
+  <span id="calculatorResult" style="display:none"></span>
   <h2 style="float:left"><span id="stock-name" th:text="${companyName} + ' complex DCF calculator'"></span></h2>
   <h5 id="add-to-watchlist-header" style="float:left" th:if="${isLoggedIn}"><span class="badge bg-primary" onclick="addToWatchlist()">Watchlist</span></h5>
   <h5 id="added-watchlist-header" style="float:left" th:if="${isLoggedIn} and ${calculatorPrice}"><a th:href="${calculatorUri}"><span class="badge bg-secondary" th:text="'Saved target: ' + ${tradingCurrencySymbol} + ${calculatorPrice}"></span></a></h5>
+  <h5 id="historical-expectation-watchlist-header" style="float:left; margin-left: 20px; margin-top: 4px;" th:if="${isLoggedIn} and ${calculatorPrice}">
+  
+    <div class="expectation-dropdown">
+      <button class="btn btn-sm btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        Historical expectation
+      </button>
+      <ul class="dropdown-menu" id="expectation-dropdown-menu">
+        <li><a class="dropdown-item" href="#">Action</a></li>
+        <li><a class="dropdown-item" href="#">Another action</a></li>
+      </ul>
+    </div>
+  </h5>
 
   
   <script>

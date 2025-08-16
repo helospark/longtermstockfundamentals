@@ -339,13 +339,32 @@
           data = await data.json();
           $("#watchlist-error-message").text(data.errorMessage);
         } else {
-          $("#generic-large-modal").modal("hide");
-          if ($("#watchlist-table").length > 0) {
-            location.reload();
+          calculatorResult = $("#calculatorResult").html();
+          
+          console.log("asd: " + calculatorResult);
+          
+          if (calculatorResult) {
+            fetch('/watchlist-expectation-history', {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              body: calculatorResult
+            }).then(async data2 => {
+                $("#generic-large-modal").modal("hide");
+                if ($("#watchlist-table").length > 0) {
+                  location.reload();
+                }
+            })
+          } else {
+            $("#generic-large-modal").modal("hide");
+            if ($("#watchlist-table").length > 0) {
+              location.reload();
+            }
           }
         }
     });
-    
   }
   
   

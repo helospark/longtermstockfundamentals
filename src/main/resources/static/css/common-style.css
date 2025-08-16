@@ -428,3 +428,14 @@ select, #start-date-dropdown, #end-date-dropdown {
   background-color: #333; /* Add a darker background on hover */
   opacity: 1; /* Remove transparency on hover */
 }
+
+#historical-expectation-watchlist-header .delete-button {
+  padding-left: 5px !important;
+  padding-right: 5px !important;
+  padding-bottom: 2px !important;
+  padding-top: 2px !important;
+}
+
+#historical-expectation-watchlist-header .dropdown-item {
+  padding-right: 5px !important;
+}

@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.checkerframework.checker.nullness.qual.PolyNull;
+import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.DeleteFromWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
+import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistExpectationHistoryRequest;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.domain.CalculatorParameters;
 import com.helospark.financialdata.management.watchlist.domain.PaginatedWatchListResponse;
@@ -34,6 +36,8 @@ import com.helospark.financialdata.management.watchlist.domain.datatables.Order;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
+
+import jakarta.validation.Valid;
 
 @Service
 public class WatchlistService {
@@ -52,6 +56,8 @@ public class WatchlistService {
 
     @Autowired
     private WatchlistRepository watchlistRepository;
+    @Autowired
+    private WatchlistExpectationHistoryRepository watchlistExpectationHistoryRepository;
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
@@ -408,6 +414,98 @@ public class WatchlistService {
         } else {
             return Optional.empty();
         }
+    }
+
+    public void saveToWatchlistExpectationHistory(String email, @Valid AddToWatchlistExpectationHistoryRequest request, AccountType accountType) {
+        Optional<WatchlistExpectationHistory> optionalWatchlist = watchlistExpectationHistoryRepository.readWatchlistByEmailAndSymbol(email, request.symbol);
+
+        LocalDate today = LocalDate.now();
+
+        List<WatchlistExpectationHistoryElement> elements;
+
+        if (!optionalWatchlist.isPresent()) {
+            elements = new ArrayList<>();
+        } else {
+            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistExpectationListRaw(), WatchlistExpectationHistoryElement.class);
+        }
+
+        int index = findExpectationElementIndexByDay(elements, today.toString());
+
+        if (index != -1) {
+            elements.remove(index);
+        }
+
+        WatchlistExpectationHistoryElement elementToUpdate = new WatchlistExpectationHistoryElement();
+
+        elementToUpdate.saveDate = today.toString();
+        elementToUpdate.symbol = request.symbol;
+        elementToUpdate.dates = request.dates;
+        elementToUpdate.eps = request.eps;
+        elementToUpdate.revenue = request.revenue;
+        elementToUpdate.margin = request.margin;
+        elementToUpdate.shareCount = request.shareCount;
+
+        elements.add(elementToUpdate);
+
+        WatchlistExpectationHistory toInsert = new WatchlistExpectationHistory();
+        toInsert.setEmailSymbol(email + WatchlistExpectationHistoryRepository.EMAIL_SYMBOL_SEPARATOR + request.symbol);
+        toInsert.setWatchlistExpectationListRaw(messageCompresser.createCompressedValue(elements));
+
+        LOGGER.info("Inserting into watchlistExpectationRepository, size of compressed elements={}", toInsert.getWatchlistExpectationListRaw().capacity());
+
+        watchlistExpectationHistoryRepository.save(toInsert);
+    }
+
+    private int findExpectationElementIndexByDay(List<WatchlistExpectationHistoryElement> elements, String today) {
+        for (int i = 0; i < elements.size(); ++i) {
+            if (elements.get(i).saveDate.equals(today)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public List<WatchlistExpectationHistoryElement> getWatchlistExpectationHistory(String email, String stock) {
+        Optional<WatchlistExpectationHistory> optionalWatchlist = watchlistExpectationHistoryRepository.readWatchlistByEmailAndSymbol(email, stock);
+
+        List<WatchlistExpectationHistoryElement> elements;
+
+        if (!optionalWatchlist.isPresent()) {
+            elements = new ArrayList<>();
+        } else {
+            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistExpectationListRaw(), WatchlistExpectationHistoryElement.class);
+        }
+
+        Collections.sort(elements, (a, b) -> LocalDate.parse(a.saveDate).compareTo(LocalDate.parse(b.saveDate)));
+
+        return elements;
+    }
+
+    public void deleteWatchlistExpectationHistory(String email, String stock, String date) {
+        Optional<WatchlistExpectationHistory> optionalWatchlist = watchlistExpectationHistoryRepository.readWatchlistByEmailAndSymbol(email, stock);
+
+        List<WatchlistExpectationHistoryElement> elements;
+
+        if (!optionalWatchlist.isPresent()) {
+            elements = new ArrayList<>();
+        } else {
+            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistExpectationListRaw(), WatchlistExpectationHistoryElement.class);
+        }
+
+        int index = findExpectationElementIndexByDay(elements, date);
+
+        if (index != -1) {
+            elements.remove(index);
+
+            WatchlistExpectationHistory toInsert = new WatchlistExpectationHistory();
+            toInsert.setEmailSymbol(email + WatchlistExpectationHistoryRepository.EMAIL_SYMBOL_SEPARATOR + stock);
+            toInsert.setWatchlistExpectationListRaw(messageCompresser.createCompressedValue(elements));
+
+            LOGGER.info("Inserting into watchlistExpectationRepository, size of compressed elements={}", toInsert.getWatchlistExpectationListRaw().capacity());
+
+            watchlistExpectationHistoryRepository.save(toInsert);
+        }
+
     }
 
 }

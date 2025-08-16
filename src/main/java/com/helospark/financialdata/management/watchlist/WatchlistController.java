@@ -1,5 +1,8 @@
 package com.helospark.financialdata.management.watchlist;
 
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
@@ -19,10 +22,12 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
 import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
+import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistExpectationHistoryRequest;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.domain.PaginatedWatchListResponse;
 import com.helospark.financialdata.management.watchlist.domain.datatables.DataTableRequest;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistExpectationHistoryElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 
@@ -124,6 +129,68 @@ public class WatchlistController {
         }
 
         watchlistService.deleteFromWatchlist(jwt.get().getSubject(), request);
+    }
+
+    @PostMapping("/watchlist-expectation-history")
+    @RateLimit(requestPerMinute = 30)
+    public void addToWatchlistExpectationHistory(@RequestBody @Valid AddToWatchlistExpectationHistoryRequest request, HttpServletRequest httpRequest) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (jwt.isEmpty()) {
+            throw new WatchlistPermissionDeniedException("Not logged in");
+        }
+        if (!symbolAtGlanceProvider.doesCompanyExists(request.symbol)) {
+            throw new WatchlistBadRequestException("Symbol does not exist");
+        }
+        if (request.revenue.size() > 11) {
+            throw new WatchlistBadRequestException("Maximum of 10 element supported");
+        }
+        if (request.eps.size() > 11) {
+            throw new WatchlistBadRequestException("Maximum of 10 element supported");
+        }
+        if (request.margin.size() > 11) {
+            throw new WatchlistBadRequestException("Maximum of 10 element supported");
+        }
+        if (request.shareCount.size() > 11) {
+            throw new WatchlistBadRequestException("Maximum of 10 element supported");
+        }
+        if (request.dates.size() > 11) {
+            throw new WatchlistBadRequestException("Maximum of 10 element supported");
+        }
+        for (var element : request.dates) {
+            try {
+                LocalDate.parse(element);
+            } catch (DateTimeException e) {
+                throw new WatchlistBadRequestException("Date cannot be parsed " + e.getMessage());
+            }
+        }
+
+        watchlistService.saveToWatchlistExpectationHistory(jwt.get().getSubject(), request, loginController.getAccountType(jwt.get()));
+    }
+
+    @GetMapping("/watchlist-expectation-history/{stock}")
+    public List<WatchlistExpectationHistoryElement> getWatchlistExpectationHistory(@PathVariable("stock") String stock, HttpServletRequest httpRequest) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (jwt.isEmpty()) {
+            throw new WatchlistPermissionDeniedException("Not logged in");
+        }
+        if (!symbolAtGlanceProvider.doesCompanyExists(stock)) {
+            throw new WatchlistBadRequestException("Symbol does not exist");
+        }
+
+        return watchlistService.getWatchlistExpectationHistory(jwt.get().getSubject(), stock);
+    }
+
+    @DeleteMapping("/watchlist-expectation-history/{stock}/{date}")
+    public void deleteWatchlistExpectationHistory(@PathVariable("stock") String stock, @PathVariable("date") String date, HttpServletRequest httpRequest) {
+        Optional<DecodedJWT> jwt = loginController.getJwt(httpRequest);
+        if (jwt.isEmpty()) {
+            throw new WatchlistPermissionDeniedException("Not logged in");
+        }
+        if (!symbolAtGlanceProvider.doesCompanyExists(stock)) {
+            throw new WatchlistBadRequestException("Symbol does not exist");
+        }
+
+        watchlistService.deleteWatchlistExpectationHistory(jwt.get().getSubject(), stock, date);
     }
 
     @ExceptionHandler(WatchlistPermissionDeniedException.class)
