@@ -20,4 +20,9 @@ public class SimpleDateDataElement implements DateAware {
         return date;
     }
 
+    @Override
+    public String toString() {
+        return "SimpleDateDataElement [date=" + date + ", value=" + value + "]";
+    }
+
 }

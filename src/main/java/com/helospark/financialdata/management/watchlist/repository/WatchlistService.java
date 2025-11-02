@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,7 +235,7 @@ public class WatchlistService {
         return result;
     }
 
-    public @PolyNull Optional<Watchlist> loadWatchlist(String email) {
+    public Optional<Watchlist> loadWatchlist(String email) {
         return watchlistCache.get(email, email2 -> watchlistRepository.readWatchlistByEmail(email2));
     }
 

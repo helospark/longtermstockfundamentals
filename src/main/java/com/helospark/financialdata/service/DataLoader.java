@@ -41,6 +41,7 @@ import com.helospark.financialdata.domain.AuxilaryInformation;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
+import com.helospark.financialdata.domain.CompanyListElement;
 import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.EconomicPriceElement;
 import com.helospark.financialdata.domain.FinancialsTtm;
@@ -265,6 +266,13 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("MAIN")) {
+            for (var element : cashFlow) {
+                if (element.freeCashFlow > 1_000_000_000_000L) {
+                    element.freeCashFlow /= 5_000_000L;
+                }
+            }
+        }
         if (symbol.equals("BABA")) {
             for (var element : incomeStatement) {
                 if (element.weightedAverageShsOut > 5_000_000_000L) {
@@ -347,6 +355,13 @@ public class DataLoader {
             for (int i = 0; i < incomeStatement.size(); ++i) {
                 if (incomeStatement.get(i).date.equals(LocalDate.of(2024, 6, 30)) && incomeStatement.get(i).weightedAverageShsOut < 1_700_000_000L) {
                     incomeStatement.get(i).weightedAverageShsOut = 2_030_000_000L;
+                }
+            }
+        }
+        if (symbol.equals("ROOT")) {
+            for (int i = 0; i < incomeStatement.size(); ++i) {
+                if (incomeStatement.get(i).date.equals(LocalDate.of(2025, 3, 31))) {
+                    incomeStatement.get(i).revenue = 349_000_000L;
                 }
             }
         }
@@ -899,6 +914,19 @@ public class DataLoader {
         return provideSymbolsIn(Set.of(Exchanges.NASDAQ, Exchanges.NYSE));
     }
 
+    public static Set<String> provideSp500Symbols() {
+        File file = new File(BASE_FOLDER, "/info/sp500_constituent.json");
+        try (FileInputStream fis = new FileInputStream(file)) {
+            CompanyListElement[] elements = objectMapper.readValue(fis.readAllBytes(), CompanyListElement[].class);
+
+            return Arrays.stream(elements)
+                    .map(e -> e.getSymbol())
+                    .collect(Collectors.toSet());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static Set<String> provideUsSymbols() {
         return provideAllSymbols()
                 .stream()
@@ -946,6 +974,9 @@ public class DataLoader {
     }
 
     public static Optional<FxRatesResponse> loadFxFile(String fromCurrency, LocalDate date) {
+        if (fromCurrency.equals("GBp")) {
+            fromCurrency = "GBP";
+        }
         String fileName = fromCurrency + "_" + date.getYear() + ".json";
         try {
             if (fxCache.getIfPresent(fileName) != null) {

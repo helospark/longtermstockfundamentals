@@ -74,9 +74,13 @@
       currentLabels = chart.data.labels;
       currentData = chart.data.datasets[0].data;
       
+      console.log(epses);
+      
       if (currentLabels.length > years && currentData.length > 0 && connectToPrevious) {
         epses.unshift({x: currentLabels[currentLabels.length - 1 - years], y: currentData[currentData.length - 1]});
       }
+      
+      console.log(epses);
   
       if (chart.data.datasets.length < 2) {
        chart.data.datasets[1] = {
