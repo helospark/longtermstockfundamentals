@@ -1,5 +1,6 @@
 package com.helospark.financialdata.util;
 
+import static com.helospark.financialdata.CommonConfig.BASE_FOLDER;
 import static java.time.temporal.ChronoUnit.YEARS;
 
 import java.io.File;
@@ -14,8 +15,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -29,10 +32,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
-import com.helospark.financialdata.domain.CompanyFinancials;
-import com.helospark.financialdata.domain.FinancialsTtm;
+import com.helospark.financialdata.domain.DateAware;
+import com.helospark.financialdata.domain.HistoricalPrice;
+import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.IncomeStatement;
-import com.helospark.financialdata.domain.SimpleDateDataElement;
 import com.helospark.financialdata.service.DataLoader;
 
 public class YahooStockDataDownloader {
@@ -150,6 +153,10 @@ public class YahooStockDataDownloader {
     public static void main(String[] args) throws Exception {
         String symbol = "UNH";
 
+        downloadDataFromYahoo(symbol);
+    }
+
+    public static void downloadDataFromYahoo(String symbol) throws Exception {
         StatementMetadata metadata = readStatementMetadata(symbol);
         List<IncomeStatement> incomeStatements = new ArrayList<>();
         List<BalanceSheet> balanceSheets = new ArrayList<>();
@@ -167,9 +174,12 @@ public class YahooStockDataDownloader {
         BalanceSheet balanceSheet = balanceSheets.get(balanceSheets.size() - 1);
         CashFlow cashFlowStatement = cashFlows.get(cashFlows.size() - 1);
 
-        CompanyFinancials company = DataLoader.readFinancials(symbol);
-        FinancialsTtm financialsTtm = company.financials.get(1);
-        IncomeStatement realIncomeStatement = financialsTtm.incomeStatement;
+        List<BalanceSheet> originalBalanceSheet = DataLoader.readFinancialFile(symbol, "balance-sheet.json", BalanceSheet.class);
+        List<IncomeStatement> originalIncomeStatement = DataLoader.readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
+        List<CashFlow> originalCashFlow = DataLoader.readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
+        List<HistoricalPriceElement> originalHistoricalPrices = DataLoader.readHistoricalPriceNoCache(symbol);
+
+        IncomeStatement realIncomeStatement = originalIncomeStatement.get(1);
 
         for (var field : IncomeStatement.class.getFields()) {
             Object val1 = field.get(incomeStatement);
@@ -181,7 +191,7 @@ public class YahooStockDataDownloader {
         System.out.println("--------------------");
         System.out.println();
 
-        BalanceSheet realBalanceSheet = financialsTtm.balanceSheet;
+        BalanceSheet realBalanceSheet = originalBalanceSheet.get(1);
 
         for (var field : BalanceSheet.class.getFields()) {
             Object val1 = field.get(balanceSheet);
@@ -193,7 +203,7 @@ public class YahooStockDataDownloader {
         System.out.println("--------------------");
         System.out.println();
 
-        CashFlow realCashFlow = financialsTtm.cashFlow;
+        CashFlow realCashFlow = originalCashFlow.get(1);
 
         for (var field : CashFlow.class.getFields()) {
             Object val1 = field.get(cashFlowStatement);
@@ -203,10 +213,48 @@ public class YahooStockDataDownloader {
 
         var prices = downloadPrices(symbol);
 
-        System.out.println(prices.currency);
-        for (var price : prices.prices) {
-            //    System.out.println(price.date + " " + price.value);
+        List<IncomeStatement> resultIncomeStatements = merge(incomeStatements, originalIncomeStatement);
+        List<CashFlow> resultCashFlowStatements = merge(cashFlows, originalCashFlow);
+        List<BalanceSheet> resultBalanceSheetstatements = merge(balanceSheets, originalBalanceSheet);
+        List<HistoricalPriceElement> resultPrices = merge(prices.prices.historical, originalHistoricalPrices);
+        HistoricalPrice resultHistoricalPrices = new HistoricalPrice();
+        resultHistoricalPrices.historical = resultPrices;
+
+        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/income-statement-2.json"), resultIncomeStatements);
+        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/cash-flow-2.json"), resultCashFlowStatements);
+        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/balance-sheet-2.json"), resultBalanceSheetstatements);
+        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/historical-price-2.json"), resultHistoricalPrices);
+    }
+
+    //    private static <T extends DateAware> List<T> merge(List<T> incomeStatements, List<T> originalIncomeStatement) {
+    //        List<T> result = new ArrayList<>();
+    //
+    //        result.addAll(originalIncomeStatement);
+    //
+    //        if (originalIncomeStatement.isEmpty()) {
+    //            result.addAll(incomeStatements);
+    //            return result;
+    //        }
+    //
+    //        LocalDate latestReportDate = originalIncomeStatement.get(0).getDate();
+    //
+    //
+    //
+    //        return null;
+    //    }
+
+    private static <T extends DateAware> List<T> merge(List<T> elementsToAdd, List<T> originalList) {
+        TreeMap<LocalDate, T> sortedMap = new TreeMap<>(Comparator.reverseOrder());
+
+        for (T element : originalList) {
+            sortedMap.put(element.getDate(), element);
         }
+
+        for (T element : elementsToAdd) {
+            sortedMap.put(element.getDate(), element);
+        }
+
+        return new ArrayList<>(sortedMap.values());
     }
 
     private static PriceToCurrencyPair downloadPrices(String symbol) throws JsonMappingException, JsonProcessingException, FileNotFoundException, IOException {
@@ -231,16 +279,22 @@ public class YahooStockDataDownloader {
             pricesList.add(element.asDouble());
         }
 
-        List<SimpleDateDataElement> prices = new ArrayList<>();
+        List<HistoricalPriceElement> prices = new ArrayList<>();
         for (int i = 0; i < timestampList.size(); ++i) {
             LocalDate timestamp = LocalDate.ofInstant(Instant.ofEpochSecond(timestampList.get(i)), ZoneId.of("UTC"));
             double price = pricesList.get(i);
-            prices.add(new SimpleDateDataElement(timestamp, price));
+            HistoricalPriceElement element = new HistoricalPriceElement();
+            element.close = price;
+            element.date = timestamp;
+            prices.add(element);
         }
 
         String currency = data.get("meta").get("currency").asText();
 
-        return new PriceToCurrencyPair(currency, prices);
+        HistoricalPrice historicalPrice = new HistoricalPrice();
+        historicalPrice.historical = prices;
+
+        return new PriceToCurrencyPair(currency, historicalPrice);
     }
 
     private static String getPricesUrl(String symbol) {
@@ -682,9 +736,9 @@ public class YahooStockDataDownloader {
 
     static class PriceToCurrencyPair {
         String currency;
-        List<SimpleDateDataElement> prices;
+        HistoricalPrice prices;
 
-        public PriceToCurrencyPair(String currency, List<SimpleDateDataElement> prices) {
+        public PriceToCurrencyPair(String currency, HistoricalPrice prices) {
             this.currency = currency;
             this.prices = prices;
         }

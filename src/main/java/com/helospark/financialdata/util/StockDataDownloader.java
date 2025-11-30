@@ -104,7 +104,7 @@ public class StockDataDownloader {
     public static final String SYMBOL_CACHE_FILE = BASE_FOLDER + "/info/symbols/atGlance.kryo.bin";
     public static final String DOWNLOAD_DATES = BASE_FOLDER + "/info/download-dates.json";
     public static final String SYMBOL_CACHE_HISTORY_FILE = BASE_FOLDER + "/info/symbols/";
-    static final ObjectMapper objectMapper = new ObjectMapper();
+    public static final ObjectMapper objectMapper = new ObjectMapper();
     static final Kryo kryo = new Kryo();
     static final String API_KEY = System.getProperty("API_KEY");
     static final Integer NUM_YEARS = 100;
