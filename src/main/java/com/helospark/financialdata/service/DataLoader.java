@@ -500,6 +500,22 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("QFIN")) {
+            int index = Helpers.findIndexWithOrBeforeDate(incomeStatement, LocalDate.of(2025, 9, 30));
+            if (index != -1) {
+                if (incomeStatement.get(index).weightedAverageShsOut < 100_000_000) {
+                    incomeStatement.get(index).weightedAverageShsOut = 130_971_275;
+                    incomeStatement.get(index).weightedAverageShsOutDil = 130_971_275;
+                }
+            }
+            index = Helpers.findIndexWithOrBeforeDate(incomeStatement, LocalDate.of(2025, 6, 30));
+            if (index != -1) {
+                if (incomeStatement.get(index).weightedAverageShsOut < 100_000_000) {
+                    incomeStatement.get(index).weightedAverageShsOut = 130_971_275;
+                    incomeStatement.get(index).weightedAverageShsOutDil = 130_971_275;
+                }
+            }
+        }
         if (symbol.equals("AFX.DE")) {
             for (int index = 0; index < balanceSheet.size(); ++index) { // fix split adjustment
                 if (balanceSheet.get(index).totalAssets == 0) {

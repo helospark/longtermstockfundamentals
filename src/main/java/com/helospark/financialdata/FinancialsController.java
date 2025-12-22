@@ -294,8 +294,8 @@ public class FinancialsController {
 
     @GetMapping("/fcf_yield")
     public List<SimpleDataElement> getFreeCashFlowYield(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly,
-                financialsTtm -> toPercent(((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut) / financialsTtm.price));
+        return getPriceIncomeData(stock, quarterly,
+                (price, financialsTtm) -> toPercent(((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut) / price));
     }
 
     @GetMapping("/eps_yield")
@@ -786,6 +786,43 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.incomeStatementTtm.revenue) * -1.0);
     }
 
+    // stacked chart start ---
+    @GetMapping("/capex_per_ocf")
+    public List<SimpleDataElement> getCapexPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+    }
+
+    @GetMapping("/rnd_per_ocf")
+    public List<SimpleDataElement> getRndPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+    }
+
+    @GetMapping("/mna_per_ocf")
+    public List<SimpleDataElement> getMnAPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.acquisitionsNet / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+    }
+
+    @GetMapping("/dividend_per_ocf")
+    public List<SimpleDataElement> getDividendPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+    }
+
+    @GetMapping("/buyback_per_ocf")
+    public List<SimpleDataElement> getBuybackPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.commonStockRepurchased / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+    }
+
+    @GetMapping("/debt_repayment_per_ocf")
+    public List<SimpleDataElement> getDebtRepaymentPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.debtRepayment / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+    }
+
+    // stacked chart end ---
+
     @GetMapping("/rnd_to_revenue")
     public List<SimpleDataElement> getRndToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) -financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.incomeStatementTtm.revenue) * -1.0);
@@ -852,6 +889,22 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> calculateDividendPaidPerShare(financialsTtm));
     }
 
+    @GetMapping("/total_dividend_per_share_since")
+    public List<SimpleDataElement> getTotalDividendPerShareSince(@PathVariable("stock") String stock) {
+        var dividends = getDividendPaid(stock, true);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        double value = 0.0;
+
+        for (var element : dividends) {
+            value += element.value != null ? element.value : 0.0;
+            result.add(new SimpleDataElement(element.date, value));
+        }
+
+        return result;
+    }
+
     public double calculateDividendPaidPerShare(FinancialsTtm financialsTtm) {
         return (double) -financialsTtm.cashFlow.dividendsPaid / financialsTtm.incomeStatement.weightedAverageShsOut;
     }
@@ -859,7 +912,8 @@ public class FinancialsController {
     @GetMapping("/dividend_yield_per_current_price")
     public List<SimpleDataElement> getDividendPerCurrentPrice(@PathVariable("stock") String stock) {
         return getIncomeDataCompany(stock,
-                (financialsTtm, company) -> toPercent((double) -company.financials.get(0).cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut / financialsTtm.price));
+                (financialsTtm, company) -> toPercent(
+                        ((double) -company.financials.get(0).cashFlowTtm.dividendsPaid / company.financials.get(0).incomeStatementTtm.weightedAverageShsOut) / financialsTtm.price));
     }
 
     @GetMapping("/altmanz")
@@ -1288,6 +1342,21 @@ public class FinancialsController {
         CompanyFinancials company = DataLoader.readFinancials(stock);
 
         return getIncomeData(company, quarterly, dataSupplier);
+    }
+
+    private List<SimpleDataElement> getIncomeDataOnlyPositiveNonNull(String stock, boolean quarterly, Function<FinancialsTtm, ? extends Number> dataSupplier) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+
+        return getIncomeData(company, quarterly, financialsTtm -> {
+            var result = dataSupplier.apply(financialsTtm);
+            if (result == null || !Double.isFinite(result.doubleValue())) {
+                return 0.0;
+            }
+            if (result.doubleValue() < 0) {
+                return 0.0;
+            }
+            return result;
+        });
     }
 
     private List<SimpleDataElement> getPriceIncomeData(String stock, boolean quarterly, BiFunction<Double, FinancialsTtm, ? extends Number> dataSupplier) {

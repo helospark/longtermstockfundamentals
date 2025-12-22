@@ -566,6 +566,7 @@ createChartInternal("/financials/dividend_payout_ratio", "Dividend payout ratio"
 createChartInternal("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150});
 createChartInternal("/financials/dividend_paid", "Dividend paid", {quarterlyEnabled: false});
 createChartInternal("/financials/dividend_yield_per_current_price", "Dividend yield on cost", {unit: '%', suggestedMin: -2, suggestedMax: 200}, defaultEnabled=false);
+createChartInternal("/financials/total_dividend_per_share_since", "Cumulative dividends payed per share since", {suggestedMin: -2, suggestedMax: 200}, defaultEnabled=false);
 createChartInternal("/financials/share_buyback_per_net_income", "Net share buyback / net income", {
   unit: '%',
   tooltip: 'Positive means shares were bought back, negative means, shares were issued',
@@ -579,6 +580,36 @@ createChartInternal("/financials/total_payout_ratio", "Total payout / net income
   tooltip: 'Total payout (dividend + buyback)',
 });
 
+
+createChartInternal("/financials/rnd_per_ocf", "Usage of operating cash flow", {
+  unit: '%',
+  label: 'Dividend / OCF',
+  tooltip: 'Usage of OCF, when the total < 100% extra cash remains, otherwise extra cash used during that quarter',
+  stacked: true,
+  suggestedMin: 0,
+  suggestedMax: 250,
+  additionalCharts: [
+   {
+    "url": "/financials/dividend_per_ocf",
+    "label": "Dividend / OCF"
+   },
+   {
+    "url": "/financials/buyback_per_ocf",
+    "label": "Buyback / OCF"
+   },
+   {
+    "url": "/financials/debt_repayment_per_ocf",
+    "label": "Debt repayment / OCF"
+   },
+   {
+    "url": "/financials/capex_per_ocf",
+    "label": "CAPEX / OCF"
+   },
+   {
+    "url": "/financials/mna_per_ocf",
+    "label": "M&A / OCF"
+   }
+ ]});
 
 
 createSeparatorInternal("Growth")

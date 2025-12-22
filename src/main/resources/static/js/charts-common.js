@@ -2,11 +2,17 @@ var constColorPalette = [
   "rgba(0,0,255,0.3)",
   "rgba(255,0,0,0.3)",
   "rgba(75,200,32,0.3)",
+  "rgba(200,200,0,0.8)",
+  "rgba(0,200,200,0.8)",
+  "rgba(100,100,100,0.8)",
 ];
 var constColorPaletteLine = [
   "rgba(0,0,255,0.8)",
   "rgba(255,0,0,0.8)",
   "rgba(75,200,32,0.8)",
+  "rgba(200,200,0,0.8)",
+  "rgba(0,200,200,0.8)",
+  "rgba(100,100,100,0.8)",
 ];
 
 function createCheckbox(label) {
@@ -186,6 +192,7 @@ function createChart(urlPath, title, chartOptions) {
   var isSecondYAxisNeeded = chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts[0].secondYAxis === true ? true : false;
   var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
   var continousTooltipCagr = chartOptions.continousTooltipCagr !== undefined ? chartOptions.continousTooltipCagr : false;
+  var stacked = chartOptions.stacked !== undefined ? chartOptions.stacked : false;
   
   if (!addStockPrefix) {
     stockToLoad = "";
@@ -231,6 +238,22 @@ function createChart(urlPath, title, chartOptions) {
         },
         tooltip: {
             callbacks: {
+                beforeBody: (items, t) => {
+                    item = items[0]
+                    var resultArray = [];
+
+                    if (stacked) {
+                      var total = 0.0;
+                      
+                      for (index = 0; index < chart.data.datasets.length; index++) {
+                        total += chart.data.datasets[index].data[item.dataIndex];
+                      }
+                    
+                      resultArray.push("Total: " + total.toFixed(2) + "" + unit);
+                    }
+                    
+                    return resultArray;
+                },
                 label: (item, t) => {
                     var resultArray = [];
                     plugin.lastElement = {label: item.label, data: item.raw, dataset: item.dataset.label, canvas: item.chart.canvas}
@@ -245,6 +268,7 @@ function createChart(urlPath, title, chartOptions) {
                        resultArray.push( "Change: " + plugin.cagr.change.toFixed(2) + "%" + multipleXString);
                        resultArray.push( "CAGR: " + plugin.cagr.cagr.toFixed(2) + "%");
                     }
+                    
                     
                     return resultArray;
                 }
@@ -290,6 +314,10 @@ function createChart(urlPath, title, chartOptions) {
           drawOnChartArea: false
         },
      }
+  }
+  if (stacked) {
+    chartConfig.options.scales.y.stacked = true;
+    chartConfig.data.datasets[0].fill = '-1';
   }
   
   var chart;
@@ -450,11 +478,17 @@ function createChart(urlPath, title, chartOptions) {
         xValues.length = 0;
         yValues.length = 0;
         
+        /*
         if (chart.data.datasets.length > 2) {
           while (chart.data.datasets.length > 1) {
             chart.data.datasets.shift();
           }
+        }*/
+        numberOfAdditionalCharts = chartOptions.additionalCharts !== undefined ? chartOptions.additionalCharts.length + 1 : 1;
+        while (chart.data.datasets.length < numberOfAdditionalCharts) {
+          chart.data.datasets.unshift({});
         }
+        
         
         let url = (addStockPrefix ? '/' + stockToLoad : "") + urlPath;
         var parameters = new Map();
@@ -544,8 +578,8 @@ function createChart(urlPath, title, chartOptions) {
                    if (chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts.length > 0) {
                      for (elementIndex in chartOptions.additionalCharts) {
                         var element = chartOptions.additionalCharts[elementIndex];
-                        chartToUpdate = (chartOptions.additionalCharts.length == 1 && chart.data.datasets.length == 2) ? 0 : -1;
-                        addAdditionalChart(element, parameterString, chartToUpdate);
+                        chartToUpdate = (chartOptions.additionalCharts.length == 1 && chart.data.datasets[0].label !== undefined) ? 0 : -1;
+                        addAdditionalChart(element, parameterString, chartToUpdate, parseInt(elementIndex));
                      }
                    
                    }
@@ -558,7 +592,7 @@ function createChart(urlPath, title, chartOptions) {
           .catch(err => { throw err });
     
     
-    function addAdditionalChart(element, parameterString, chartToUpdate) {
+    function addAdditionalChart(element, parameterString, chartToUpdate, elementIndex) {
           localUri  = (addStockPrefix ? '/' + stockToLoad : "") + element.url;
           
           if (parameterString.length > 0) {
@@ -569,11 +603,12 @@ function createChart(urlPath, title, chartOptions) {
             .then(out => {
                         var newXValues = [];
                         var newYValues = [];
-                        var updateSecondAxis = isSecondYAxisNeeded && chart.data.datasets.length == 1;
+                        var updateSecondAxis = isSecondYAxisNeeded && elementIndex == 1;
                         if (chartToUpdate != -1) {
                           newYValues = chart.data.datasets[chartToUpdate].data;
                           newXValues = chart.data.datasets[chartToUpdate].label;
                         }
+                        console.log(newXValues);
                         for (index = 0; index < out.length; index++) {
                             newXValues[out.length - index - 1] = out[index].date;
                             newYValues[out.length - index - 1] = out[index].value;
@@ -582,7 +617,7 @@ function createChart(urlPath, title, chartOptions) {
                           max = Math.max.apply(Math, newYValues);
                           min = Math.min.apply(Math, newYValues);
                       
-                          for (i = 0; i < chart.data.datasets.length; ++i) {
+                          for (i = 0; i < elementIndex; ++i) {
                             max2 = Math.max.apply(Math, chart.data.datasets[i].data);
                             min2 = Math.min.apply(Math, chart.data.datasets[i].data);
                         
@@ -629,15 +664,31 @@ function createChart(urlPath, title, chartOptions) {
                            yAxisID='y1';
                         }
                         if (chartToUpdate == -1) {
-                          chart.data.datasets.unshift({
+                          console.log(elementIndex + " " + colorPalette.length);
+                          shouldFill = chartConfig.options.scales.y.stacked === true;
+                          var newChart = {
                             pointRadius: 2,
-                            borderColor: colorPaletteLine[chart.data.datasets.length % colorPalette.length],
-                            backgroundColor: colorPalette[chart.data.datasets.length % colorPalette.length],
+                            borderColor: colorPaletteLine[(elementIndex + 1) % colorPalette.length],
+                            backgroundColor: colorPalette[(elementIndex + 1) % colorPalette.length],
                             data: newYValues,
                             pointHitRadius: 300,
                             label: element.label,
-                            yAxisID: yAxisID
-                          });
+                            yAxisID: yAxisID,
+                            fill: false
+                          };
+                          
+                          console.log(newChart.backgroundColor + " " + (elementIndex + 1) + " % " + colorPalette.length + " = " + ((elementIndex + 1) % colorPalette.length) + " " + typeof(elementIndex));
+                          
+                          isLast = elementIndex == 0;
+
+                          if (shouldFill) {
+                            newChart.fill = '-1';
+                          }
+                          if (isLast && shouldFill) {
+                            newChart.fill = true;
+                          }
+                          
+                          chart.data.datasets[elementIndex] = newChart;
                         }
 
                         if (!isNaN(minValueToSet)) {
