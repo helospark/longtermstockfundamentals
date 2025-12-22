@@ -306,6 +306,10 @@ function createSeparatorInternal(name, defaultEnabled=true) {
 
 function createChartInternal(url, title, configs, defaultEnabled = true) {
   allCharts.push({title:title, id:url.replaceAll("/financials/", ""), func:() => createChart(url, title, configs), defaultEnabled: defaultEnabled, separator:false });
+}
+
+function createBubbleChartInternal(url, title, configs, defaultEnabled = true) {
+  allCharts.push({title:title, id:url.replaceAll("/financials/", ""), func:() => createBubbleChart(url, title, configs), defaultEnabled: defaultEnabled, separator:false });
 } 
 
 populateProfile();
@@ -366,10 +370,10 @@ createChartInternal("/financials/marketing_per_operating_expense", "Operating ex
 ]});
 
 createSeparatorInternal("Price ratios")
-createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
-createChartInternal("/financials/price_to_op_cash_ratio", "Price to operating cash flow ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
-createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false}, defaultEnabled=false);
-createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/price_to_op_cash_ratio", "Price to operating cash flow ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false, avgEnabled: true}, defaultEnabled=false);
+createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
 createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
   suggestedMin: -5,
   suggestedMax: 50,
@@ -384,8 +388,8 @@ createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
       "label": "PE excluding amortization and depreciation"
     }
   ]});
-createChartInternal("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false}, defaultEnabled=false);
-createChartInternal("/financials/price_to_sales", "Price to sales ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false});
+createChartInternal("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true}, defaultEnabled=false);
+createChartInternal("/financials/price_to_sales", "Price to sales ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
 createChartInternal("/financials/accrual_ratio", "Accrual ratio", {
   quarterlyEnabled: false,
   tooltip: 'Small or negative are better. Formula: (netIncome - FCF) / totalAssets',
@@ -411,13 +415,14 @@ createChartInternal("/financials/past_cape_to_growth_ratio", "Trailing PEG ratio
     "label": "trailing revenue PEG"
   }
 ]}, defaultEnabled=false);
-createChartInternal("/financials/ev_over_ebitda", "EV over ebitda", {});
+createChartInternal("/financials/ev_over_ebitda", "EV over ebitda", {quarterlyEnabled: false, avgEnabled: true});
 
 createChartInternal("/financials/p2b_ratio", "Price to Book ratio", {
   suggestedMin: 0,
   suggestedMax: 15,
   quarterlyEnabled: false,
-  label: "price / book value"
+  label: "price / book value",
+  avgEnabled: true
 });
 
 
@@ -429,7 +434,8 @@ createChartInternal("/financials/cash_flow_to_debt", "Operating cash flow debt c
 createChartInternal("/financials/short_term_coverage_ratio", "Operating cash flow short term debt coverage", {unit: '%', quarterlyEnabled: false});
 createChartInternal("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {quarterlyEnabled: false});
 createChartInternal("/financials/altmanz", "Altman Z score", {
-  quarterlyEnabled: false
+  quarterlyEnabled: false,
+  avgEnabled: true
 
 });
 createChartInternal("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
@@ -439,15 +445,16 @@ createChartInternal("/financials/sloan", "Sloan ratio", {
   unit: '%'
 }, defaultEnabled=false);
 createChartInternal("/financials/interest_expense", "Interest expense", {});
-createChartInternal("/financials/interest_rate", "Interest rate", {unit: '%', quarterlyEnabled: false});
+createChartInternal("/financials/interest_rate", "Interest rate", {unit: '%', quarterlyEnabled: false, avgEnabled: true});
 createChartInternal("/financials/debt_to_equity", "Debt to equity", {
   quarterlyEnabled: false,
   tooltip: 'Lower is better, generally below 1 is healthy, above 2 is risky',
   suggestedMin: -10,
-  suggestedMax: 10
+  suggestedMax: 10,
+  avgEnabled: true
 });
-createChartInternal("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5, quarterlyEnabled: false});
-createChartInternal("/financials/current_ratio", "Current ratio", {suggestedMin: 0, suggestedMax: 5, quarterlyEnabled: false}, defaultEnabled=false);
+createChartInternal("/financials/quick_ratio", "Quick ratio", {suggestedMin: 0, suggestedMax: 5, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/current_ratio", "Current ratio", {suggestedMin: 0, suggestedMax: 5, quarterlyEnabled: false, avgEnabled: true}, defaultEnabled=false);
 
 
 createSeparatorInternal("Assets")
@@ -492,22 +499,25 @@ createChartInternal("/financials/roic", "Return on invested capital", {
   unit: '%',
   quarterlyEnabled: false,
   suggestedMin: -10,
-  tooltip: 'Using formula: EBIT / (totalAssets - currentLiabilities)'
+  tooltip: 'Using formula: EBIT / (totalAssets - currentLiabilities)',
+  avgEnabled: true
 });
 createChartInternal("/financials/fcf_roic", "Return on invested capital using FCF", {
   unit: '%',
   quarterlyEnabled: false,
   suggestedMin: -10,
+  avgEnabled: true,
   tooltip: 'Using formula: (fcf * (1.0 - taxRate)) / (equity + totalDebt)'
 });
-createChartInternal("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
-createChartInternal("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChartInternal("/financials/return_on_assets", "Return on assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10, avgEnabled: true});
+createChartInternal("/financials/return_on_tangible_assets", "Return on tangible assets", {unit: '%', quarterlyEnabled: false, suggestedMin: -10, avgEnabled: true});
 createChartInternal("/financials/return_on_tangible_capital", "Return on tangible capital", {
   unit: '%',
   quarterlyEnabled: false,
   suggestedMin: -10,
+  avgEnabled: true,
   tooltip: 'Using formula: EBIT / (workingCapital + fixedAssets)'});
-createChartInternal("/financials/return_on_equity", "Return on equity", {unit: '%', quarterlyEnabled: false, suggestedMin: -10});
+createChartInternal("/financials/return_on_equity", "Return on equity", {unit: '%', quarterlyEnabled: false, suggestedMin: -10, avgEnabled: true});
 createChartInternal("/financials/roiic", "Return on incremental invested capital (ROIIC)", {
   unit: '%',
   quarterlyEnabled: false,
@@ -544,8 +554,8 @@ createChartInternal("/financials/market_cap_usd", "Market cap $", {quarterlyEnab
 createChartInternal("/financials/share_count", "Share count", {quarterlyEnabled: false});
 createChartInternal("/financials/stock_compensation", "Stock compensation", {quarterlyEnabled: true});
 createChartInternal("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
-createChartInternal("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%'});
-createChartInternal("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%'});
+createChartInternal("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%', avgEnabled: true});
+createChartInternal("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%', avgEnabled: true});
 createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%', label: "CAPEX to revenue",  additionalCharts: [
   {
     "url": "/financials/rnd_to_revenue",
@@ -554,16 +564,16 @@ createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '
 });
 createChartInternal("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
 createChartInternal("/financials/asset_turnover_ratio", "Asset turnover ratio", {quarterlyEnabled: true}, defaultEnabled=false);
-createChartInternal("/financials/pietrosky_score", "Piotrosky score", {quarterlyEnabled: false});
-createChartInternal("/financials/effective_tax_rate", "Effective tax rate", {quarterlyEnabled: true, unit: '%'}, defaultEnabled=false);
+createChartInternal("/financials/pietrosky_score", "Piotrosky score", {quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/effective_tax_rate", "Effective tax rate", {quarterlyEnabled: true, unit: '%', avgEnabled: true}, defaultEnabled=false);
 //createChartInternal("/financials/earnings_surprise", "Earnings surprise", {type: 'bar', unit: '%', quarterlyEnabled: false});
 
 
 
 createSeparatorInternal("Dividend")
-createChartInternal("/financials/dividend_yield", "Dividend yield", {unit: '%', suggestedMin: -2, suggestedMax: 50, quarterlyEnabled: false});
-createChartInternal("/financials/dividend_payout_ratio", "Dividend payout ratio", {unit: '%', suggestedMin: -2, suggestedMax: 150});
-createChartInternal("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150});
+createChartInternal("/financials/dividend_yield", "Dividend yield", {unit: '%', suggestedMin: -2, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/dividend_payout_ratio", "Dividend payout ratio", {unit: '%', suggestedMin: -2, suggestedMax: 150, avgEnabled: true});
+createChartInternal("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150, avgEnabled: true});
 createChartInternal("/financials/dividend_paid", "Dividend paid", {quarterlyEnabled: false});
 createChartInternal("/financials/dividend_yield_per_current_price", "Dividend yield on cost", {unit: '%', suggestedMin: -2, suggestedMax: 200}, defaultEnabled=false);
 createChartInternal("/financials/total_dividend_per_share_since", "Cumulative dividends payed per share since", {suggestedMin: -2, suggestedMax: 200}, defaultEnabled=false);
@@ -588,6 +598,11 @@ createChartInternal("/financials/rnd_per_ocf", "Usage of operating cash flow", {
   stacked: true,
   suggestedMin: 0,
   suggestedMax: 250,
+  guidanceHorizontalLine: {
+    yValue: 100,
+    lineWidth: 1,
+    color: 'red'
+  },
   additionalCharts: [
    {
     "url": "/financials/dividend_per_ocf",
@@ -712,7 +727,8 @@ createChartInternal("/financials/investment_score", "Investment score", {
   quarterlyEnabled: false,
   tooltip: 'Composite score of the most important fundamentals of the company, between 0.0 (worst) and 10.0 (best)',
   suggestedMin: 0,
-  suggestedMax: 10
+  suggestedMax: 10,
+  avgEnabled: true
 });
 
 
@@ -752,7 +768,7 @@ createChartInternal("/financials/price_growth_rate_xyr_moving_avg", "Returns x y
   }
 });
 
-
+/*
 createChartInternal("/financials/price_growth_rate_xyr_moving_avg_trailing", "PE vs growth", {
   quarterlyEnabled: false,
   tooltip: 'Compares PE with return',
@@ -770,6 +786,40 @@ createChartInternal("/financials/price_growth_rate_xyr_moving_avg_trailing", "PE
     "url": "/financials/pe_ratio",
     "label": "pe ratio"
   }]
+});*/
+
+createBubbleChartInternal("/financials/pe_vs_growth_bubble", "PE vs returns bubble", {
+  xAxisLabel: 'pe',
+  yAxisLabel: 'CAGR',
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 40,
+    default: 10
+  }
+});
+createBubbleChartInternal("/financials/pfcf_vs_growth_bubble", "Price to FCF vs returns", {
+  xAxisLabel: 'price to FCF',
+  yAxisLabel: 'CAGR',
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 40,
+    default: 10
+  }
+});
+createBubbleChartInternal("/financials/pocf_vs_growth_bubble", "Price to OCF vs growth", {
+  xAxisLabel: 'price to operating cash flow',
+  yAxisLabel: 'CAGR',
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 40,
+    default: 10
+  }
 });
 
 createChartInternal("/financials/detailed_price", "Stock price", {quarterlyEnabled: false});

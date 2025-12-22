@@ -24,6 +24,61 @@ function createCheckbox(label) {
   return label;
 }
 
+function drawHorizontalLine(chart, opts, yValue, color, lineWidth) {
+      const {ctx} = chart
+      const {top, bottom, left, right} = chart.chartArea
+      const {x, y} = chart.scales;
+      
+      ctx.save()
+      
+      ctx.beginPath()
+      ctx.lineWidth = lineWidth;
+      ctx.strokeStyle = color;
+      ctx.setLineDash(opts.dash)
+      
+      ctx.moveTo(left, y.getPixelForValue(yValue))
+      ctx.lineTo(right, y.getPixelForValue(yValue))
+      
+      ctx.stroke()
+    
+      ctx.restore()
+}
+
+function calculateAvg(labels, values, interval) {
+  if (!labels.length || !values.length) return 0;
+  
+  const lastDate = new Date(labels[labels.length - 1]);
+  const cutoffYear = lastDate.getFullYear() - interval;
+  
+  const cutoffDate = new Date(lastDate);
+  cutoffDate.setFullYear(cutoffYear);
+
+  let sum = 0;
+  let count = 0;
+
+  for (let i = labels.length - 1; i >= 0; i--) {
+    const currentDate = new Date(labels[i]);
+    
+    if (currentDate >= cutoffDate) {
+      sum += values[i];
+      count++;
+    } else {
+      break;
+    }
+  }
+  
+  var result = count > 0 ? sum / count : 0;
+
+  return result;
+}
+
+function calculateAverage(data, time) {
+  var labels = data.labels;
+  var data = data.datasets[0].data;
+  
+  return calculateAvg(labels, data, time);
+}
+
 const plugin = {
     id: 'corsair',
     lastElement: {},
@@ -138,9 +193,59 @@ const plugin = {
       
         ctx.restore()
       }
+    },
+    afterDatasetsDraw: (chart, args, opts) => {
+      const guidanceHorizontalLine = chart.config._config.guidanceHorizontalLine;
+      
+      if (guidanceHorizontalLine !== undefined) {
+        const color = guidanceHorizontalLine.color !== undefined ? guidanceHorizontalLine.color : 'red';
+        const lineWidth = guidanceHorizontalLine.lineWidth !== undefined ? guidanceHorizontalLine.lineWidth : 1;
+      
+        drawHorizontalLine(chart, opts, guidanceHorizontalLine.yValue, color, lineWidth);
+      }
+      if (chart.avgTime !== undefined && chart.avgTime > 0) {
+        const color = 'green'
+        const lineWidth = 1.0;
+        
+        const avg = calculateAverage(chart.config.data, chart.avgTime);
+      
+        drawHorizontalLine(chart, opts, avg, color, lineWidth);
+      }
     }
   }
 
+
+function createDropdown() {
+    // 1. Create the select element
+    const dropdown = document.createElement('select');
+    dropdown.name = 'year-interval-selector';
+    
+    // 2. Define the options data
+    // The first item is our default "placeholder"
+    const options = [
+      { label: 'Avg line', value: -1 },
+      { label: '2 years', value: 2 },
+      { label: '5 years', value: 5 },
+      { label: '10 years', value: 10 },
+      { label: 'all time', value: 100 },
+    ];
+    
+    // 3. Populate the dropdown
+    options.forEach(opt => {
+      const optionElement = document.createElement('option');
+      optionElement.value = opt.value;
+      optionElement.textContent = opt.label;
+      
+      // Set -1 as the default selected value
+      if (opt.value === -1) {
+        optionElement.selected = true;
+      }
+      
+      dropdown.appendChild(optionElement);
+    });
+    
+    return dropdown;
+}
 
 
 function createChart(urlPath, title, chartOptions) {
@@ -148,7 +253,13 @@ function createChart(urlPath, title, chartOptions) {
   canvas.style='width:100%;max-height:400px'
   
   var underChartBar = document.createElement("div");
+  underChartBar.className="under-chart-bar";
   underChartBar.style="width:100%";
+  
+  
+  var commonDiv = document.createElement("div");
+  
+  
   
   var chartDiv = document.createElement("div");
   chartDiv.className="chartDiv";
@@ -173,9 +284,10 @@ function createChart(urlPath, title, chartOptions) {
   
   
   var element = document.getElementById("charts");
-  element.appendChild(titleDiv);
-  element.appendChild(chartDiv);
-  element.appendChild(underChartBar);
+  commonDiv.appendChild(titleDiv);
+  commonDiv.appendChild(chartDiv);
+  commonDiv.appendChild(underChartBar);
+  element.appendChild(commonDiv);
 
   var xValues = [];
   var yValues = [];
@@ -188,6 +300,7 @@ function createChart(urlPath, title, chartOptions) {
   var isLazyLoading = chartOptions.lazyLoading === undefined ? true : chartOptions.lazyLoading;
   var dated = chartOptions.dated === undefined ? true : chartOptions.dated;
   var defaultQuarterlyEnabled = chartOptions.defaultQuarterlyEnabled === undefined ? false : chartOptions.defaultQuarterlyEnabled;
+  var avgEnabled = chartOptions.avgEnabled === undefined ? false : chartOptions.avgEnabled;
   var quaterlySupported = chartOptions.quarterlyEnabled === undefined ? true : chartOptions.quarterlyEnabled;
   var isSecondYAxisNeeded = chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts[0].secondYAxis === true ? true : false;
   var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
@@ -320,6 +433,10 @@ function createChart(urlPath, title, chartOptions) {
     chartConfig.data.datasets[0].fill = '-1';
   }
   
+  if (chartOptions.guidanceHorizontalLine !== undefined) {
+    chartConfig.guidanceHorizontalLine = chartOptions.guidanceHorizontalLine;
+  }
+  
   var chart;
   if (!isLazyLoading) {
     chart = new Chart(canvas, chartConfig);
@@ -375,6 +492,17 @@ function createChart(urlPath, title, chartOptions) {
         doUpdateChart();
     }
     underChartBar.appendChild(quarterlyButton);
+  }
+  if (avgEnabled) {
+    var dropDown = createDropdown();
+    
+    dropDown.className="floatleft";
+    dropDown.addEventListener('change', (event) => {
+        chart.avgTime = event.target.value;
+        chart.update();
+    });
+
+    underChartBar.appendChild(dropDown);
   }
 
   
@@ -478,17 +606,10 @@ function createChart(urlPath, title, chartOptions) {
         xValues.length = 0;
         yValues.length = 0;
         
-        /*
-        if (chart.data.datasets.length > 2) {
-          while (chart.data.datasets.length > 1) {
-            chart.data.datasets.shift();
-          }
-        }*/
         numberOfAdditionalCharts = chartOptions.additionalCharts !== undefined ? chartOptions.additionalCharts.length + 1 : 1;
         while (chart.data.datasets.length < numberOfAdditionalCharts) {
           chart.data.datasets.unshift({});
         }
-        
         
         let url = (addStockPrefix ? '/' + stockToLoad : "") + urlPath;
         var parameters = new Map();
@@ -737,9 +858,16 @@ function createBubbleChart(url, title, chartOptions) {
     canvas.style='width:100%;max-height:600px'
     
     var chart = undefined;
+    var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
+    
+    let urlToCall = (addStockPrefix ? '/' + stockToLoad : "") + url;
     
     var underChartBar = document.createElement("div");
     underChartBar.style="width:100%";
+    underChartBar.className="under-chart-bar";
+    
+    
+    var commonDiv = document.createElement("div");
     
     var chartDiv = document.createElement("div");
     chartDiv.className="chartDiv";
@@ -751,12 +879,12 @@ function createBubbleChart(url, title, chartOptions) {
     titleDiv.className="chart-title";
 
     var element = document.getElementById("charts");
-    element.appendChild(titleDiv);
-    element.appendChild(chartDiv);
-    element.appendChild(underChartBar);
+    commonDiv.appendChild(titleDiv);
+    commonDiv.appendChild(chartDiv);
+    commonDiv.appendChild(underChartBar);
+    element.appendChild(commonDiv);
 
-
-    fetch(url)
+    fetch(urlToCall)
       .then(res => res.json())
       .then(out => {
               const data = {
@@ -771,7 +899,14 @@ function createBubbleChart(url, title, chartOptions) {
                 type: 'bubble',
                 data: data,
                 options: {
+                  scales: {
+                    x: {},
+                    y: {}
+                  },
                   plugins: {
+                      legend: {
+                        display: false
+                      },
                       annotation: {
                         annotations: [{
                               drawTime: "beforeDraw",
@@ -792,6 +927,20 @@ function createBubbleChart(url, title, chartOptions) {
                   }
                 },
               };
+              
+              if (chartOptions.xAxisLabel !== undefined) {
+                bubbleConfig.options.scales.x.title = {
+                    display: true,
+                    text: chartOptions.xAxisLabel
+                };
+              }
+              if (chartOptions.yAxisLabel !== undefined) {
+                bubbleConfig.options.scales.y.title = {
+                    display: true,
+                    text: chartOptions.yAxisLabel
+                };
+              }
+              
               chart = new Chart(canvas, bubbleConfig);
               
               chart.update();
@@ -815,7 +964,7 @@ function createBubbleChart(url, title, chartOptions) {
         
         optionSlider.oninput = function() {
           valueSpan.innerText = (this.value + " " + chartOptions.slider.parameterName);
-          fetch(url + "?" + chartOptions.slider.parameterName + "=" + this.value)
+          fetch(urlToCall + "?" + chartOptions.slider.parameterName + "=" + this.value)
               .then(res => res.json())
               .then(out => {
                     chart.data.datasets[0].data = out;

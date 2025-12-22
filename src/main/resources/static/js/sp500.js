@@ -220,6 +220,7 @@ createChart("/data/price_for_indicator", "Price vs mortgage", {
 
 
 createBubbleChart("/sp500/data/xyr_shiller_return", "Shiller vs x year returns (inflation adjusted including dividends)", {
+  addStockPrefix: false,
   slider: {
     id: "asd1",
     parameterName: "year",
@@ -229,6 +230,7 @@ createBubbleChart("/sp500/data/xyr_shiller_return", "Shiller vs x year returns (
   }
 });
 createBubbleChart("/sp500/data/xyr_pe_return", "PE vs x year returns (inflation adjusted including dividends)", {
+  addStockPrefix: false,
   slider: {
       id: "asd2",
       parameterName: "year",
@@ -238,6 +240,7 @@ createBubbleChart("/sp500/data/xyr_pe_return", "PE vs x year returns (inflation 
   }
 });
 createBubbleChart("/sp500/data/spgdpratio_return", "S&P500 to GDP ratio vs x year returns (inflation adjusted including dividends)", {
+  addStockPrefix: false,
   slider: {
       id: "asd3",
       parameterName: "year",
@@ -247,6 +250,7 @@ createBubbleChart("/sp500/data/spgdpratio_return", "S&P500 to GDP ratio vs x yea
   }
 });
 createBubbleChart("/sp500/data/buffet_indicator_return", "Buffet indicator vs x year returns (inflation adjusted including dividends)", {
+  addStockPrefix: false,
   slider: {
       id: "asd3",
       parameterName: "year",
@@ -256,6 +260,7 @@ createBubbleChart("/sp500/data/buffet_indicator_return", "Buffet indicator vs x 
   }
 });
 createBubbleChart("/sp500/data/interestrate_return", "Fed funds rate vs x year returns (inflation adjusted including dividends)", {
+  addStockPrefix: false,
   slider: {
       id: "asd4",
       parameterName: "year",
@@ -265,6 +270,7 @@ createBubbleChart("/sp500/data/interestrate_return", "Fed funds rate vs x year r
   }
 });
 createBubbleChart("/sp500/data/inflatation_return", "Inflation rate vs x year returns (inflation adjusted including dividends)", {
+  addStockPrefix: false,
   slider: {
       id: "asd5",
       parameterName: "year",

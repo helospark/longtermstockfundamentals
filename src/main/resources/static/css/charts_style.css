@@ -41,6 +41,12 @@ body {
   float:left;
 }
 
+.under-chart-bar select {
+  height: 30px;
+  background: #efefef;
+  font-size: 14px;
+}
+
 #flags {
   margin-top: 20px;
 }

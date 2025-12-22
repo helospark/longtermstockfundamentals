@@ -2,6 +2,7 @@ package com.helospark.financialdata;
 
 import static com.helospark.financialdata.service.Helpers.findIndexWithOrBeforeDate;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -26,6 +27,7 @@ import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.SimpleDataElement;
 import com.helospark.financialdata.domain.SimpleDateDataElement;
+import com.helospark.financialdata.domain.ThreeDDataElement;
 import com.helospark.financialdata.flags.FlagProvider;
 import com.helospark.financialdata.service.AltmanZCalculator;
 import com.helospark.financialdata.service.CapeCalculator;
@@ -211,6 +213,11 @@ public class FinancialsController {
     @GetMapping("/pfcf_ratio")
     public List<SimpleDataElement> getPFcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+    }
+
+    @GetMapping("/pocf_ratio")
+    public List<SimpleDataElement> getPOcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price / ((double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
     }
 
     @GetMapping("/price_to_gross_profit")
@@ -1141,6 +1148,62 @@ public class FinancialsController {
         }
 
         return result;
+    }
+
+    @GetMapping("/pe_vs_growth_bubble")
+    public List<ThreeDDataElement> getPeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunction(stock, years, s -> getPeRatio(s, false));
+    }
+
+    @GetMapping("/pfcf_vs_growth_bubble")
+    public List<ThreeDDataElement> getPfcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunction(stock, years, s -> getPFcfRatio(s, false));
+    }
+
+    @GetMapping("/pocf_vs_growth_bubble")
+    public List<ThreeDDataElement> getOcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunction(stock, years, s -> getPOcfRatio(s, false));
+    }
+
+    public List<ThreeDDataElement> getBubbleWithFunction(String stock, int years, Function<String, List<SimpleDataElement>> func) {
+        List<SimpleDataElement> timechart = getXyrPriceGrowthRateMovingAvgTrailing(stock, years);
+        List<SimpleDataElement> peTimechart = func.apply(stock);
+
+        List<ThreeDDataElement> result = new ArrayList<>();
+
+        for (int i = 0; i < timechart.size(); ++i) {
+            Double xYrReturn = timechart.get(i).value;
+            String date = timechart.get(i).date;
+            Double peRatio = peTimechart.stream().filter(a -> a.date.equals(date)).map(a -> a.value).findFirst().orElse(null);
+            if (peRatio != null && xYrReturn != null && peRatio > 0) {
+                result.add(new ThreeDDataElement(peRatio, xYrReturn, 10, peTimechart.get(i).date + ": " + String.format("%.2f PE -> %.2f CAGR", peRatio, xYrReturn) + "%"));
+            }
+        }
+
+        result = removeOutliers(result, 2.5);
+
+        return result;
+    }
+
+    private List<ThreeDDataElement> removeOutliers(List<ThreeDDataElement> result, double k) {
+        if (result.size() < 4)
+            return new ArrayList<>(result);
+
+        List<Double> xValues = result.stream()
+                .map(a -> a.x)
+                .sorted()
+                .collect(Collectors.toList());
+
+        int n = xValues.size();
+        double q1 = xValues.get(n / 4);
+        double q3 = xValues.get(3 * n / 4);
+        double iqr = q3 - q1;
+
+        double upperFence = q3 + (k * iqr);
+
+        return result.stream()
+                .filter(p -> p.x <= upperFence)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/price_growth_rate_xyr_moving_avg_trailing")
