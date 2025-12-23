@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.helospark.financialdata.domain.ChartAnnotation;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
@@ -27,6 +28,7 @@ import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.domain.SimpleDataElement;
 import com.helospark.financialdata.domain.SimpleDateDataElement;
+import com.helospark.financialdata.domain.ThreeDChart;
 import com.helospark.financialdata.domain.ThreeDDataElement;
 import com.helospark.financialdata.flags.FlagProvider;
 import com.helospark.financialdata.service.AltmanZCalculator;
@@ -1151,21 +1153,21 @@ public class FinancialsController {
     }
 
     @GetMapping("/pe_vs_growth_bubble")
-    public List<ThreeDDataElement> getPeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+    public ThreeDChart getPeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
         return getBubbleWithFunction(stock, years, s -> getPeRatio(s, false));
     }
 
     @GetMapping("/pfcf_vs_growth_bubble")
-    public List<ThreeDDataElement> getPfcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+    public ThreeDChart getPfcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
         return getBubbleWithFunction(stock, years, s -> getPFcfRatio(s, false));
     }
 
     @GetMapping("/pocf_vs_growth_bubble")
-    public List<ThreeDDataElement> getOcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+    public ThreeDChart getOcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
         return getBubbleWithFunction(stock, years, s -> getPOcfRatio(s, false));
     }
 
-    public List<ThreeDDataElement> getBubbleWithFunction(String stock, int years, Function<String, List<SimpleDataElement>> func) {
+    public ThreeDChart getBubbleWithFunction(String stock, int years, Function<String, List<SimpleDataElement>> func) {
         List<SimpleDataElement> timechart = getXyrPriceGrowthRateMovingAvgTrailing(stock, years);
         List<SimpleDataElement> peTimechart = func.apply(stock);
 
@@ -1182,7 +1184,15 @@ public class FinancialsController {
 
         result = removeOutliers(result, 2.5);
 
-        return result;
+        SimpleDataElement latestData = peTimechart.get(0);
+        ChartAnnotation annotation;
+        if (latestData.value != null) {
+            annotation = new ChartAnnotation(List.of(new ChartAnnotation.ChartLine(latestData.value, "Current value")));
+        } else {
+            annotation = new ChartAnnotation(List.of());
+        }
+
+        return new ThreeDChart(result, annotation);
     }
 
     private List<ThreeDDataElement> removeOutliers(List<ThreeDDataElement> result, double k) {

@@ -25,15 +25,16 @@ import com.helospark.financialdata.domain.EconomicPriceElement;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.SimpleDataElement;
 import com.helospark.financialdata.domain.SimpleDateDataElement;
+import com.helospark.financialdata.domain.ThreeDChart;
 import com.helospark.financialdata.domain.ThreeDDataElement;
 import com.helospark.financialdata.service.CpiAdjustor;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
+import com.helospark.financialdata.util.spconstituents.GeneralCompanyMetrics;
 import com.helospark.financialdata.util.spconstituents.Sp500ConstituentsProvider;
 import com.helospark.financialdata.util.spconstituents.Sp500MetricCalculator;
-import com.helospark.financialdata.util.spconstituents.GeneralCompanyMetrics;
 import com.helospark.financialdata.util.spconstituents.Sp500WeightedConstituent;
 
 @RestController
@@ -354,33 +355,33 @@ public class Sp500Controller {
     }
 
     @GetMapping("/xyr_shiller_return")
-    public List<ThreeDDataElement> getXYearShillerReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return createBubbleChart(years, loadLttFile("/info/sp500_shiller_pe.json"), 50.0);
+    public ThreeDChart getXYearShillerReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return new ThreeDChart(createBubbleChart(years, loadLttFile("/info/sp500_shiller_pe.json"), 50.0));
     }
 
     @GetMapping("/xyr_pe_return")
-    public List<ThreeDDataElement> getXYearPeReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return createBubbleChart(years, loadLttFile("/info/sp500_pe.json"), 50.0);
+    public ThreeDChart getXYearPeReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return new ThreeDChart(createBubbleChart(years, loadLttFile("/info/sp500_pe.json"), 50.0));
     }
 
     @GetMapping("/spgdpratio_return")
-    public List<ThreeDDataElement> getSpGdpRatioReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return createBubbleChart(years, loadLttFile("/info/sp_to_gdp_ratio.json"), 50.0);
+    public ThreeDChart getSpGdpRatioReturn(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return new ThreeDChart(createBubbleChart(years, loadLttFile("/info/sp_to_gdp_ratio.json"), 50.0));
     }
 
     @GetMapping("/buffet_indicator_return")
-    public List<ThreeDDataElement> getBuffetIndicator(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return createBubbleChart(years, loadLttFile("/info/buffet_indicator.json"), 150.0);
+    public ThreeDChart getBuffetIndicator(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return new ThreeDChart(createBubbleChart(years, loadLttFile("/info/buffet_indicator.json"), 150.0));
     }
 
     @GetMapping("/interestrate_return")
-    public List<ThreeDDataElement> getInterestRateReturns(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return createBubbleChart(years, loadFpFile("/info/federalFunds.json"), 30.0);
+    public ThreeDChart getInterestRateReturns(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return new ThreeDChart(createBubbleChart(years, loadFpFile("/info/federalFunds.json"), 30.0));
     }
 
     @GetMapping("/inflatation_return")
-    public List<ThreeDDataElement> getInflationReturns(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return createBubbleChart(years, cpiToInflation(loadFpFile("/info/CPI.json")), 30.0);
+    public ThreeDChart getInflationReturns(@RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return new ThreeDChart(createBubbleChart(years, cpiToInflation(loadFpFile("/info/CPI.json")), 30.0));
     }
 
     @GetMapping("/getconst")

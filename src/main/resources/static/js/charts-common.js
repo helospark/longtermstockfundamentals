@@ -44,6 +44,27 @@ function drawHorizontalLine(chart, opts, yValue, color, lineWidth) {
       ctx.restore()
 }
 
+
+function drawVerticalLine(chart, opts, xValue, color, lineWidth) {
+      const {ctx} = chart
+      const {top, bottom, left, right} = chart.chartArea
+      const {x, y} = chart.scales;
+      
+      ctx.save()
+      
+      ctx.beginPath()
+      ctx.lineWidth = lineWidth;
+      ctx.strokeStyle = color;
+      ctx.setLineDash(opts.dash)
+      
+      ctx.moveTo(x.getPixelForValue(xValue), top)
+      ctx.lineTo(x.getPixelForValue(xValue), bottom)
+      
+      ctx.stroke()
+    
+      ctx.restore()
+}
+
 function calculateAvg(labels, values, interval) {
   if (!labels.length || !values.length) return 0;
   
@@ -884,19 +905,44 @@ function createBubbleChart(url, title, chartOptions) {
     commonDiv.appendChild(underChartBar);
     element.appendChild(commonDiv);
 
+
+
+    const bubblePlugin = {
+        id: 'corsair',
+        defaults: {
+            width: 1,
+            color: '#FF4949',
+            dash: [3, 3],
+            continousTooltipCagr: false
+        },
+        afterDatasetsDraw: (chart, args, opts) => {
+          const annotations = chart.config._config.chartAnnotations;
+          
+          if (annotations !== undefined && annotations.verticalLines.length > 0) {
+            for (i=0; i < annotations.verticalLines.length; ++i) {
+               var annotation = annotations.verticalLines[i];
+
+               drawVerticalLine(chart, opts, annotation.value, 'red', 1);
+            }
+          }
+        }
+      }
+
     fetch(urlToCall)
       .then(res => res.json())
       .then(out => {
               const data = {
                 datasets: [{
                   label: 'First Dataset',
-                  data: out,
+                  data: out.data,
                   backgroundColor: 'rgba(0,0,255,0.8)'
                 }]
               };
               
               const bubbleConfig = {
                 type: 'bubble',
+                plugins: [bubblePlugin],
+                chartAnnotations: out.annotations,
                 data: data,
                 options: {
                   scales: {
@@ -967,7 +1013,8 @@ function createBubbleChart(url, title, chartOptions) {
           fetch(urlToCall + "?" + chartOptions.slider.parameterName + "=" + this.value)
               .then(res => res.json())
               .then(out => {
-                    chart.data.datasets[0].data = out;
+                    chart.data.datasets[0].data = out.data;
+                    chart.config._config.chartAnnotations = out.annotations;
                     chart.update();
                 });
           }
