@@ -41,6 +41,7 @@ import com.helospark.financialdata.service.EverythingMoneyCalculator;
 import com.helospark.financialdata.service.FedRateProvider;
 import com.helospark.financialdata.service.GrahamNumberCalculator;
 import com.helospark.financialdata.service.GrowthCalculator;
+import com.helospark.financialdata.service.Helpers;
 import com.helospark.financialdata.service.InvestmentScoreCalculator;
 import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
@@ -799,35 +800,36 @@ public class FinancialsController {
     @GetMapping("/capex_per_ocf")
     public List<SimpleDataElement> getCapexPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
+                financialsTtm -> toPercentNonNull((double) financialsTtm.cashFlowTtm.capitalExpenditure / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
     }
 
     @GetMapping("/rnd_per_ocf")
     public List<SimpleDataElement> getRndPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / operatingCashFlowPlusRnd(financialsTtm)));
+                financialsTtm -> toPercentNonNull((double) financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / operatingCashFlowPlusRnd(financialsTtm)));
     }
 
     @GetMapping("/mna_per_ocf")
     public List<SimpleDataElement> getMnAPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.acquisitionsNet / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
+                financialsTtm -> toPercentNonNull((double) financialsTtm.cashFlowTtm.acquisitionsNet / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
     }
 
     @GetMapping("/dividend_per_ocf")
     public List<SimpleDataElement> getDividendPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.dividendsPaid / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercentNonNull((double) financialsTtm.cashFlowTtm.dividendsPaid / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
     }
 
     @GetMapping("/buyback_per_ocf")
     public List<SimpleDataElement> getBuybackPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent(((double) -financialsTtm.cashFlowTtm.commonStockRepurchased) / operatingCashFlowPlusRnd(financialsTtm)));
+                financialsTtm -> toPercentNonNull(((double) -financialsTtm.cashFlowTtm.commonStockRepurchased) / operatingCashFlowPlusRnd(financialsTtm)));
     }
 
     @GetMapping("/debt_repayment_per_ocf")
     public List<SimpleDataElement> getDebtRepaymentPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.debtRepayment / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
+                financialsTtm -> toPercentNonNull((double) financialsTtm.cashFlowTtm.debtRepayment / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
     }
 
     // operating cash flow already subtracts R&D, so readding it here so it can be charted better
@@ -914,6 +916,29 @@ public class FinancialsController {
         for (var element : dividends) {
             value += element.value != null ? element.value : 0.0;
             result.add(new SimpleDataElement(element.date, value));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/cumulative_dividend_per_purchase_share_price")
+    public List<SimpleDataElement> getCumulativeDividendPerPurchasePrice(@PathVariable("stock") String stock) {
+        var dividends = getDividendPaid(stock, true);
+        var company = DataLoader.readFinancials(stock);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        double value = 0.0;
+
+        for (var element : dividends) {
+            int index = Helpers.findIndexWithOrBeforeDate(company.financials, LocalDate.parse(element.date));
+            if (index == -1) {
+                index = 0;
+            }
+            double price = company.financials.get(index).price;
+            value += element.value != null ? element.value : 0.0;
+            result.add(new SimpleDataElement(element.date, toPercent(value / price)));
+
         }
 
         return result;
@@ -1182,9 +1207,17 @@ public class FinancialsController {
         return getBubbleWithFunctionIncludeNonNegative(stock, years, "price / book", s -> getP2BValue(s, false));
     }
 
+    @GetMapping("/peg_vs_growth_bubble")
+    public ThreeDChart getPegVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunctionIncludeNegative(stock, years, "PEG", s -> getTrailingPeg(s, false));
+    }
+
     @GetMapping("/growth_vs_returns_bubble")
     public ThreeDChart getGrownVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunctionIncludeNegative(stock, years, "3yr revenue growth %", s -> getXyrGrowthRateMovingAvg(s, 3));
+        return getBubbleWithFunctionIncludeNegative(stock, years, "3yr revenue growth %", s -> {
+            List<SimpleDataElement> xyrGrowthRateMovingAvg = getXyrGrowthRateMovingAvg(s, 3);
+            return xyrGrowthRateMovingAvg.stream().filter(a -> a.value != 0.0).collect(Collectors.toList());
+        });
     }
 
     public ThreeDChart getBubbleWithFunctionIncludeNegative(String stock, int years, String type, Function<String, List<SimpleDataElement>> func) {
@@ -1205,17 +1238,21 @@ public class FinancialsController {
             Double xYrReturn = timechart.get(i).value;
             String date = timechart.get(i).date;
             Double peRatio = peTimechart.stream().filter(a -> a.date.equals(date) && a.value != null).map(a -> a.value).findFirst().orElse(null);
-            if (peRatio != null && xYrReturn != null && (includeNegative || peRatio > 0)) {
+            if (peRatio != null && xYrReturn != null && (includeNegative || peRatio > 0) && i < peTimechart.size()) {
                 result.add(new ThreeDDataElement(peRatio, xYrReturn, 10, peTimechart.get(i).date + ": " + String.format("%.2f %s -> %.2f CAGR", peRatio, type, xYrReturn) + "%"));
             }
         }
 
         result = removeOutliers(result, 3.5);
 
-        SimpleDataElement latestData = peTimechart.get(0);
         ChartAnnotation annotation;
-        if (latestData.value != null) {
-            annotation = new ChartAnnotation(List.of(new ChartAnnotation.ChartLine(latestData.value, "Current value")));
+        if (peTimechart.size() > 0) {
+            SimpleDataElement latestData = peTimechart.get(0);
+            if (latestData.value != null) {
+                annotation = new ChartAnnotation(List.of(new ChartAnnotation.ChartLine(latestData.value, "Current value")));
+            } else {
+                annotation = new ChartAnnotation(List.of());
+            }
         } else {
             annotation = new ChartAnnotation(List.of());
         }
@@ -1513,6 +1550,14 @@ public class FinancialsController {
             return grossProfitMargin * 100.0;
         } else {
             return null;
+        }
+    }
+
+    private double toPercentNonNull(Double grossProfitMargin) {
+        if (grossProfitMargin != null && Double.isFinite(grossProfitMargin)) {
+            return grossProfitMargin * 100.0;
+        } else {
+            return Double.NaN;
         }
     }
 }

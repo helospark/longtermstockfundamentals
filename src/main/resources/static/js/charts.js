@@ -579,7 +579,11 @@ createChartInternal("/financials/dividend_payout_ratio", "Dividend payout ratio"
 createChartInternal("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150, avgEnabled: true});
 createChartInternal("/financials/dividend_paid", "Dividend paid", {quarterlyEnabled: false});
 createChartInternal("/financials/dividend_yield_per_current_price", "Dividend yield on cost", {unit: '%', suggestedMin: -2, suggestedMax: 200}, defaultEnabled=false);
-createChartInternal("/financials/total_dividend_per_share_since", "Cumulative dividends payed per share since", {suggestedMin: -2, suggestedMax: 200}, defaultEnabled=false);
+createChartInternal("/financials/total_dividend_per_share_since", "Cumulative dividends payed per share since", {suggestedMin: -2, suggestedMax: 200}, defaultEnabled=true);
+createChartInternal("/financials/cumulative_dividend_per_purchase_share_price", "Cumulative dividends payed divided by purchase price since", {
+  unit: '%',
+  tooltip: 'Percentage of purchase price returned as dividends, 100% means purchase price was payed back by dividends since investment'
+}, defaultEnabled=true);
 createChartInternal("/financials/share_buyback_per_net_income", "Net share buyback / net income", {
   unit: '%',
   tooltip: 'Positive means shares were bought back, negative means, shares were issued',
@@ -852,8 +856,22 @@ createBubbleChartInternal("/financials/pbook_vs_growth_bubble", "Price to book v
     default: 10
   }
 });
+/*
 createBubbleChartInternal("/financials/growth_vs_returns_bubble", "Growth vs returns", {
   xAxisLabel: '3yr revenue growth',
+  yAxisLabel: 'CAGR',
+  addToRowId: "book_growth_bubble_row",
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 20,
+    default: 10
+  }
+});
+*/
+createBubbleChartInternal("/financials/peg_vs_growth_bubble", "PEG vs returns", {
+  xAxisLabel: 'trailing PEG ratio',
   yAxisLabel: 'CAGR',
   addToRowId: "book_growth_bubble_row",
   slider: {

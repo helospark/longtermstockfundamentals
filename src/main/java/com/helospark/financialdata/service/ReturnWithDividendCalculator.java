@@ -23,7 +23,7 @@ public class ReturnWithDividendCalculator {
         if (Strings.isBlank(company.profile.symbol)) {
             return gerPriceGrowthInternal(company);
         } else {
-            return CACHE.get(company.profile.symbol, asd -> gerPriceGrowthInternal(company));
+            return new ArrayList<>(CACHE.get(company.profile.symbol, asd -> gerPriceGrowthInternal(company)));
         }
     }
 
