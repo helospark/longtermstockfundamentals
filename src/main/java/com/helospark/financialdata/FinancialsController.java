@@ -799,35 +799,40 @@ public class FinancialsController {
     @GetMapping("/capex_per_ocf")
     public List<SimpleDataElement> getCapexPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
     }
 
     @GetMapping("/rnd_per_ocf")
     public List<SimpleDataElement> getRndPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / operatingCashFlowPlusRnd(financialsTtm)));
     }
 
     @GetMapping("/mna_per_ocf")
     public List<SimpleDataElement> getMnAPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.acquisitionsNet / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.acquisitionsNet / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
     }
 
     @GetMapping("/dividend_per_ocf")
     public List<SimpleDataElement> getDividendPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.dividendsPaid / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
     }
 
     @GetMapping("/buyback_per_ocf")
     public List<SimpleDataElement> getBuybackPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.commonStockRepurchased / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+                financialsTtm -> toPercent(((double) -financialsTtm.cashFlowTtm.commonStockRepurchased) / operatingCashFlowPlusRnd(financialsTtm)));
     }
 
     @GetMapping("/debt_repayment_per_ocf")
     public List<SimpleDataElement> getDebtRepaymentPerOCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
-                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.debtRepayment / financialsTtm.cashFlowTtm.operatingCashFlow) * -1.0);
+                financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.debtRepayment / operatingCashFlowPlusRnd(financialsTtm)) * -1.0);
+    }
+
+    // operating cash flow already subtracts R&D, so readding it here so it can be charted better
+    public long operatingCashFlowPlusRnd(FinancialsTtm financialsTtm) {
+        return financialsTtm.cashFlowTtm.operatingCashFlow + financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses;
     }
 
     // stacked chart end ---
@@ -1154,20 +1159,43 @@ public class FinancialsController {
 
     @GetMapping("/pe_vs_growth_bubble")
     public ThreeDChart getPeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunction(stock, years, s -> getPeRatio(s, false));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "PE", s -> getPeRatio(s, false));
+    }
+
+    @GetMapping("/cape_vs_growth_bubble")
+    public ThreeDChart getCapeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "CAPE", s -> getCapeRatio(s));
     }
 
     @GetMapping("/pfcf_vs_growth_bubble")
     public ThreeDChart getPfcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunction(stock, years, s -> getPFcfRatio(s, false));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "price / FCF", s -> getPFcfRatio(s, false));
     }
 
     @GetMapping("/pocf_vs_growth_bubble")
     public ThreeDChart getOcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunction(stock, years, s -> getPOcfRatio(s, false));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "price / OCF", s -> getPOcfRatio(s, false));
     }
 
-    public ThreeDChart getBubbleWithFunction(String stock, int years, Function<String, List<SimpleDataElement>> func) {
+    @GetMapping("/pbook_vs_growth_bubble")
+    public ThreeDChart getBookVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "price / book", s -> getP2BValue(s, false));
+    }
+
+    @GetMapping("/growth_vs_returns_bubble")
+    public ThreeDChart getGrownVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunctionIncludeNegative(stock, years, "3yr revenue growth %", s -> getXyrGrowthRateMovingAvg(s, 3));
+    }
+
+    public ThreeDChart getBubbleWithFunctionIncludeNegative(String stock, int years, String type, Function<String, List<SimpleDataElement>> func) {
+        return getBubbleWithFunctionInternal(stock, years, type, true, func);
+    }
+
+    public ThreeDChart getBubbleWithFunctionIncludeNonNegative(String stock, int years, String type, Function<String, List<SimpleDataElement>> func) {
+        return getBubbleWithFunctionInternal(stock, years, type, false, func);
+    }
+
+    public ThreeDChart getBubbleWithFunctionInternal(String stock, int years, String type, boolean includeNegative, Function<String, List<SimpleDataElement>> func) {
         List<SimpleDataElement> timechart = getXyrPriceGrowthRateMovingAvgTrailing(stock, years);
         List<SimpleDataElement> peTimechart = func.apply(stock);
 
@@ -1176,13 +1204,13 @@ public class FinancialsController {
         for (int i = 0; i < timechart.size(); ++i) {
             Double xYrReturn = timechart.get(i).value;
             String date = timechart.get(i).date;
-            Double peRatio = peTimechart.stream().filter(a -> a.date.equals(date)).map(a -> a.value).findFirst().orElse(null);
-            if (peRatio != null && xYrReturn != null && peRatio > 0) {
-                result.add(new ThreeDDataElement(peRatio, xYrReturn, 10, peTimechart.get(i).date + ": " + String.format("%.2f PE -> %.2f CAGR", peRatio, xYrReturn) + "%"));
+            Double peRatio = peTimechart.stream().filter(a -> a.date.equals(date) && a.value != null).map(a -> a.value).findFirst().orElse(null);
+            if (peRatio != null && xYrReturn != null && (includeNegative || peRatio > 0)) {
+                result.add(new ThreeDDataElement(peRatio, xYrReturn, 10, peTimechart.get(i).date + ": " + String.format("%.2f %s -> %.2f CAGR", peRatio, type, xYrReturn) + "%"));
             }
         }
 
-        result = removeOutliers(result, 2.5);
+        result = removeOutliers(result, 3.5);
 
         SimpleDataElement latestData = peTimechart.get(0);
         ChartAnnotation annotation;

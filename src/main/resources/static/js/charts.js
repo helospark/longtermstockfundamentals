@@ -229,6 +229,7 @@ function customizeCharts() {
     var currentChart = findInArrayById(allCharts, currentCharts[i].id);
     if (currentChart == null) {
       console.log(currentCharts[i].id);
+      continue;
     }
     var currentSetting = currentCharts[i];
     if (currentSetting !== null) {
@@ -354,7 +355,9 @@ createChartInternal("/financials/operating_fcf_margin", "Operating FCF margin", 
 createChartInternal("/financials/operating_ebitda_margin", "EBITDA margin", {suggestedMin: -20, unit: '%'}, defaultEnabled=false);
 
 createSeparatorInternal("Expenses")
-createChartInternal("/financials/marketing_per_operating_expense", "Operating expense breakdown", {unit: '%', suggestedMin: 0, suggestedMax: 100, label: 'Marketing expense %', additionalCharts: [
+createChartInternal("/financials/marketing_per_operating_expense", "Operating expense breakdown", {unit: '%', suggestedMin: 0, suggestedMax: 110, suggestedMinOfMax: 110, label: 'Marketing expense %', 
+  stacked: true,
+  additionalCharts: [
   {
     "url": "/financials/rd_per_operating_expense",
     "label": "Research and development expense %"
@@ -580,11 +583,11 @@ createChartInternal("/financials/total_dividend_per_share_since", "Cumulative di
 createChartInternal("/financials/share_buyback_per_net_income", "Net share buyback / net income", {
   unit: '%',
   tooltip: 'Positive means shares were bought back, negative means, shares were issued',
-});
+}, defaultEnabled=false);
 createChartInternal("/financials/share_buyback_per_net_fcf", "Net share buyback / FCF", {
   unit: '%',
   tooltip: 'Positive means shares were bought back, negative means, shares were issued',
-});
+}, defaultEnabled=false);
 createChartInternal("/financials/total_payout_ratio", "Total payout / net income", {
   unit: '%',
   tooltip: 'Total payout (dividend + buyback)',
@@ -593,11 +596,12 @@ createChartInternal("/financials/total_payout_ratio", "Total payout / net income
 
 createChartInternal("/financials/rnd_per_ocf", "Usage of operating cash flow", {
   unit: '%',
-  label: 'Dividend / OCF',
+  label: 'R&D / OCF',
   tooltip: 'Usage of OCF, when the total < 100% extra cash remains, otherwise extra cash used during that quarter',
   stacked: true,
   suggestedMin: 0,
   suggestedMax: 250,
+  suggestedMinOfMax: 150,
   guidanceHorizontalLine: {
     yValue: 100,
     lineWidth: 1,
@@ -791,33 +795,72 @@ createChartInternal("/financials/price_growth_rate_xyr_moving_avg_trailing", "PE
 createBubbleChartInternal("/financials/pe_vs_growth_bubble", "PE vs returns bubble", {
   xAxisLabel: 'pe',
   yAxisLabel: 'CAGR',
+  addToRowId: "pe_cape_bubble_row",
   slider: {
     id: "years",
     parameterName: "year",
     min: 1,
-    max: 40,
+    max: 20,
+    default: 10
+  }
+});
+createBubbleChartInternal("/financials/cape_vs_growth_bubble", "CAPE vs returns bubble", {
+  xAxisLabel: 'cape',
+  yAxisLabel: 'CAGR',
+  addToRowId: "pe_cape_bubble_row",
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 20,
     default: 10
   }
 });
 createBubbleChartInternal("/financials/pfcf_vs_growth_bubble", "Price to FCF vs returns", {
   xAxisLabel: 'price to FCF',
   yAxisLabel: 'CAGR',
+  addToRowId: "cash_flow_bubble_row",
   slider: {
     id: "years",
     parameterName: "year",
     min: 1,
-    max: 40,
+    max: 20,
     default: 10
   }
 });
-createBubbleChartInternal("/financials/pocf_vs_growth_bubble", "Price to OCF vs growth", {
+createBubbleChartInternal("/financials/pocf_vs_growth_bubble", "Price to OCF vs returns", {
   xAxisLabel: 'price to operating cash flow',
   yAxisLabel: 'CAGR',
+  addToRowId: "cash_flow_bubble_row",
   slider: {
     id: "years",
     parameterName: "year",
     min: 1,
-    max: 40,
+    max: 20,
+    default: 10
+  }
+});
+createBubbleChartInternal("/financials/pbook_vs_growth_bubble", "Price to book vs returns", {
+  xAxisLabel: 'price to book',
+  yAxisLabel: 'CAGR',
+  addToRowId: "book_growth_bubble_row",
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 20,
+    default: 10
+  }
+});
+createBubbleChartInternal("/financials/growth_vs_returns_bubble", "Growth vs returns", {
+  xAxisLabel: '3yr revenue growth',
+  yAxisLabel: 'CAGR',
+  addToRowId: "book_growth_bubble_row",
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 20,
     default: 10
   }
 });

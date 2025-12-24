@@ -4,6 +4,7 @@ var constColorPalette = [
   "rgba(75,200,32,0.3)",
   "rgba(200,200,0,0.8)",
   "rgba(0,200,200,0.8)",
+  "rgba(200,0,200,0.8)",
   "rgba(100,100,100,0.8)",
 ];
 var constColorPaletteLine = [
@@ -12,6 +13,7 @@ var constColorPaletteLine = [
   "rgba(75,200,32,0.8)",
   "rgba(200,200,0,0.8)",
   "rgba(0,200,200,0.8)",
+  "rgba(200,0,200,0.8)",
   "rgba(100,100,100,0.8)",
 ];
 
@@ -276,9 +278,25 @@ function createChart(urlPath, title, chartOptions) {
   var underChartBar = document.createElement("div");
   underChartBar.className="under-chart-bar";
   underChartBar.style="width:100%";
+  var attachToChartsDom = true;
   
+  if (chartOptions.addToRowId !== undefined && chartOptions.addToRowId !== null) {
+    var rowToAddTo = document.getElementById(chartOptions.addToRowId);
+    if (rowToAddTo != null) {
+      rowDiv = rowToAddTo;
+      attachToChartsDom = false;
+    } else {
+      rowDiv = document.createElement("div");
+      rowDiv.className="row";
+      rowDiv.id = chartOptions.addToRowId;
+    }
+  } else {
+    var rowDiv = document.createElement("div");
+    rowDiv.className="row";
+  }
+  var columnDiv = document.createElement("div");
+  columnDiv.className="col";
   
-  var commonDiv = document.createElement("div");
   
   
   
@@ -304,11 +322,15 @@ function createChart(urlPath, title, chartOptions) {
   }
   
   
-  var element = document.getElementById("charts");
-  commonDiv.appendChild(titleDiv);
-  commonDiv.appendChild(chartDiv);
-  commonDiv.appendChild(underChartBar);
-  element.appendChild(commonDiv);
+  columnDiv.appendChild(titleDiv);
+  columnDiv.appendChild(chartDiv);
+  columnDiv.appendChild(underChartBar);
+  rowDiv.appendChild(columnDiv);
+
+  if (attachToChartsDom) {
+    var element = document.getElementById("charts");
+    element.appendChild(rowDiv);
+  }
 
   var xValues = [];
   var yValues = [];
@@ -795,9 +817,13 @@ function createChart(urlPath, title, chartOptions) {
                           if (chartOptions.suggestedMax !== undefined && chartOptions.suggestedMax < maxValueToSet) {
                              maxValueToSet = chartOptions.suggestedMax;
                           }
+                          if (chartOptions.suggestedMinOfMax !== undefined && chartOptions.suggestedMinOfMax > maxValueToSet) {
+                             maxValueToSet = chartOptions.suggestedMinOfMax;
+                          }
                           
   
                           
+                      console.log(url + " " + min + " " + max + " " + minValueToSet + " " + maxValueToSet);
                           if (minValueToSet >= maxValueToSet) {
                              minValueToSet = maxValueToSet + 1.0;
                           }
@@ -886,9 +912,24 @@ function createBubbleChart(url, title, chartOptions) {
     var underChartBar = document.createElement("div");
     underChartBar.style="width:100%";
     underChartBar.className="under-chart-bar";
+    var attachToChartsDom = true;
     
-    
-    var commonDiv = document.createElement("div");
+    if (chartOptions.addToRowId !== undefined && chartOptions.addToRowId !== null) {
+      var rowToAddTo = document.getElementById(chartOptions.addToRowId);
+      if (rowToAddTo != null) {
+        rowDiv = rowToAddTo;
+        attachToChartsDom = false;
+      } else {
+        rowDiv = document.createElement("div");
+        rowDiv.className="row";
+        rowDiv.id = chartOptions.addToRowId;
+      }
+    } else {
+      var rowDiv = document.createElement("div");
+      rowDiv.className="row";
+    }
+    var columnDiv = document.createElement("div");
+    columnDiv.className="col";
     
     var chartDiv = document.createElement("div");
     chartDiv.className="chartDiv";
@@ -899,12 +940,16 @@ function createBubbleChart(url, title, chartOptions) {
     titleDiv.innerText = title;
     titleDiv.className="chart-title";
 
-    var element = document.getElementById("charts");
-    commonDiv.appendChild(titleDiv);
-    commonDiv.appendChild(chartDiv);
-    commonDiv.appendChild(underChartBar);
-    element.appendChild(commonDiv);
+    columnDiv.appendChild(titleDiv);
+    columnDiv.appendChild(chartDiv);
+    columnDiv.appendChild(underChartBar);
+    
+    rowDiv.appendChild(columnDiv);
 
+    if (attachToChartsDom) {
+      var element = document.getElementById("charts");
+      element.appendChild(rowDiv);
+    }
 
 
     const bubblePlugin = {
