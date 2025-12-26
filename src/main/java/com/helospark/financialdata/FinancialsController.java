@@ -129,24 +129,25 @@ public class FinancialsController {
 
     @GetMapping("/marketing_per_operating_expense")
     public List<SimpleDataElement> getMarketingPerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
+                financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.sellingAndMarketingExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
     }
 
     @GetMapping("/rd_per_operating_expense")
     public List<SimpleDataElement> getRdPerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly,
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
                 financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
     }
 
     @GetMapping("/admin_per_operating_expense")
     public List<SimpleDataElement> getAdministrativePerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly,
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
                 financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.generalAndAdministrativeExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
     }
 
     @GetMapping("/other_per_operating_expense")
     public List<SimpleDataElement> getOtherPerOperatingExpense(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly,
+        return getIncomeDataOnlyPositiveNonNull(stock, quarterly,
                 financialsTtm -> toPercent((double) financialsTtm.incomeStatementTtm.otherExpenses / financialsTtm.incomeStatementTtm.operatingExpenses));
     }
 
@@ -793,7 +794,7 @@ public class FinancialsController {
 
     @GetMapping("/capex_to_revenue")
     public List<SimpleDataElement> getCapexToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.incomeStatementTtm.revenue) * -1.0);
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercentNonNull((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.incomeStatementTtm.revenue) * -1.0);
     }
 
     // stacked chart start ---
@@ -841,7 +842,8 @@ public class FinancialsController {
 
     @GetMapping("/rnd_to_revenue")
     public List<SimpleDataElement> getRndToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> toPercent((double) -financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.incomeStatementTtm.revenue) * -1.0);
+        return getIncomeData(stock, quarterly,
+                financialsTtm -> toPercentNonNull((double) -financialsTtm.incomeStatementTtm.researchAndDevelopmentExpenses / financialsTtm.incomeStatementTtm.revenue) * -1.0);
     }
 
     @GetMapping("/cash_per_share")

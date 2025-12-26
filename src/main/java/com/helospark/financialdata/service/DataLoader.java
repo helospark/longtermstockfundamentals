@@ -293,6 +293,14 @@ public class DataLoader {
                 }
             }
         }
+        if (symbol.equals("NICE")) {
+            for (var element : incomeStatement) {
+                if (element.getDate().equals(LocalDate.of(2025, 9, 30))) {
+                    element.weightedAverageShsOut = 62_036_000;
+                    element.weightedAverageShsOutDil = 63_161_000;
+                }
+            }
+        }
         if (symbol.equals("EPAM")) {
             if (cashFlow.size() > 1 && cashFlow.get(0).freeCashFlow == 0) {
                 cashFlow.get(0).freeCashFlow = cashFlow.get(1).freeCashFlow;

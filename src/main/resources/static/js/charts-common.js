@@ -832,7 +832,6 @@ function createChart(urlPath, title, chartOptions) {
                            yAxisID='y1';
                         }
                         if (chartToUpdate == -1) {
-                          console.log(elementIndex + " " + colorPalette.length);
                           shouldFill = chartConfig.options.scales.y.stacked === true;
                           var newChart = {
                             pointRadius: 2,
@@ -844,8 +843,6 @@ function createChart(urlPath, title, chartOptions) {
                             yAxisID: yAxisID,
                             fill: false
                           };
-                          
-                          console.log(newChart.backgroundColor + " " + (elementIndex + 1) + " % " + colorPalette.length + " = " + ((elementIndex + 1) % colorPalette.length) + " " + typeof(elementIndex));
                           
                           isLast = elementIndex == 0;
 
