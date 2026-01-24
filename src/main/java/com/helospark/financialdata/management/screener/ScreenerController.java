@@ -78,6 +78,12 @@ public class ScreenerController {
             .expireAfterWrite(1, TimeUnit.DAYS)
             .maximumSize(2000)
             .build();
+
+    Cache<String, Map<String, AtGlanceData>> filteredSymbolsToAtGlanceCache = Caffeine.newBuilder()
+            .expireAfterWrite(100, TimeUnit.DAYS)
+            .maximumSize(300)
+            .build();
+
     private boolean isHistoricalFilesInitialized;
 
     @Value("${backtest.multimonth:false}")
@@ -219,10 +225,6 @@ public class ScreenerController {
         }
         List<AtGlanceData> matchedStocks = findMatchingStocks(data, request, getSymbolsInExchanges(request.exchanges), false, List.of());
 
-        if (previousPageRequested) {
-            Collections.reverse(matchedStocks);
-        }
-
         ScreenerResult result = new ScreenerResult();
         result.hasMoreResults = (matchedStocks.size() >= MAX_RESULTS) || previousPageRequested;
         result.hasPreviousResults = nextPageRequested || (matchedStocks.size() >= MAX_RESULTS && previousPageRequested);
@@ -274,17 +276,19 @@ public class ScreenerController {
         List<AtGlanceData> matchedStocks = new ArrayList<>();
         List<String> symbols = symbolsInExchanges;
 
-        if (randomize) {
-            Collections.shuffle(symbols);
-        } else {
-            List<String> newSymbols = new ArrayList<>();
-            for (var symbol : symbols) {
-                if (data.get(symbol) != null) {
-                    newSymbols.add(symbol);
+        if (request.randomizeOrSort) {
+            if (randomize) {
+                Collections.shuffle(symbols);
+            } else {
+                List<String> newSymbols = new ArrayList<>();
+                for (var symbol : symbols) {
+                    if (data.get(symbol) != null) {
+                        newSymbols.add(symbol);
+                    }
                 }
+                symbols = newSymbols;
+                Collections.sort(symbols, (a, b) -> Double.compare(data.get(b).marketCapUsd, data.get(a).marketCapUsd));
             }
-            symbols = newSymbols;
-            Collections.sort(symbols, (a, b) -> Double.compare(data.get(b).marketCapUsd, data.get(a).marketCapUsd));
         }
 
         for (var entry : symbols) {
@@ -382,10 +386,10 @@ public class ScreenerController {
                 LocalDate endDate2 = useLatestData ? currentDate : LocalDate.of(request.endYear, 1, 1);
                 double yearAgo = calculateYearsDiff(date, endDate2);
 
-                Map<String, AtGlanceData> data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(year, month).orElse(null);
+                Map<String, AtGlanceData> data = filterAndCacheSymbolsToSymbolsInExchanges(year, month, symbolsInExchanges, request.exchanges); // symbolAtGlanceProvider.loadAtGlanceDataAtYear(year2, month2).orElse(null); //
                 List<AtGlanceData> matchedStocks = List.of();
                 if (data != null) {
-                    matchedStocks = findMatchingStocks(data, request, symbolsInExchanges, true, request.excludedStocks);
+                    matchedStocks = findMatchingStocks(data, request, symbolsInExchanges, false, request.excludedStocks);
 
                     for (var stockThen : matchedStocks) {
                         var stockNow = getLatestStockData(stockThen, request.endYear, useLatestData);
@@ -524,6 +528,32 @@ public class ScreenerController {
                 result.screenerWithDividendsMedianPercent, result.screenerWithDividendsAvgPercent, result.beatPercent);
 
         return result;
+    }
+
+    private Map<String, AtGlanceData> filterAndCacheSymbolsToSymbolsInExchanges(int year, int month, List<String> symbolsInExchanges, List<String> exchanges) {
+        if (exchanges.contains("ALL")) {
+            return symbolAtGlanceProvider.loadAtGlanceDataAtYear(year, month).orElse(null);
+        }
+
+        String hashKey = "" + year + "_" + month + "_" + exchanges.stream().collect(Collectors.joining("_"));
+
+        Map<String, AtGlanceData> result = filteredSymbolsToAtGlanceCache.get(hashKey, hashKey2 -> {
+            var data = symbolAtGlanceProvider.loadAtGlanceDataAtYear(year, month).orElse(null);
+            if (data == null) {
+                return null;
+            }
+            LinkedHashMap<String, AtGlanceData> result2 = new LinkedHashMap<>();
+            for (var symbol : symbolsInExchanges) {
+                var entry = data.get(symbol);
+                if (entry != null) {
+                    result2.put(symbol, entry);
+                }
+            }
+            return result2;
+        });
+
+        return result;
+
     }
 
     private void initializeHistoricalFile() {
@@ -854,6 +884,30 @@ public class ScreenerController {
                 return glance.epsGrExRnd;
             case "epsGrExMnS":
                 return glance.epsGrExMnS;
+            case "peCheapestYears":
+                return glance.peCheapestYears;
+            case "pfcfCheapestYears":
+                return glance.pfcfCheapestYears;
+            case "evRevenueCheapestYears":
+                return glance.evRevenueCheapestYears;
+            case "evFcfCheapestYears":
+                return glance.evFcfCheapestYears;
+            case "smoothRevenue5yr":
+                return glance.smoothRevenue5yr;
+            case "smoothRevenue10yr":
+                return glance.smoothRevenue10yr;
+            case "smoothEps5yr":
+                return glance.smoothEps5yr;
+            case "smoothEps10yr":
+                return glance.smoothEps10yr;
+            case "smoothFcf5yr":
+                return glance.smoothFcf5yr;
+            case "smoothFcf10yr":
+                return glance.smoothFcf10yr;
+            case "smoothEquity5yr":
+                return glance.smoothEquity5yr;
+            case "smoothEquity10yr":
+                return glance.smoothEquity10yr;
             default:
                 throw new RuntimeException("Unexpected type " + id);
         }

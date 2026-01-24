@@ -33,7 +33,7 @@ public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2008, 2011), new YearRange(2020, 2021));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(1999, 2000), new YearRange(2009, 2010));
 
     private static final double MINIMUM_BEAT_PERCENT = 95.0;
     private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
@@ -50,7 +50,7 @@ public class ParameterFinderBacktest {
     private static final LocalDate TEST_RUN_ON_DATE = null; // LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1); // or null
 
     private static final List<String> EXCLUDED_STOCKS = List.of();
-    private static final List<RandomParam> PARAMS = getBestParams();
+    private static final List<RandomParam> PARAMS = getAllParams();
     ScreenerController screenerController;
     Set<TestResult> resultSet = Collections.synchronizedSet(new TreeSet<>());
 
@@ -68,7 +68,7 @@ public class ParameterFinderBacktest {
         screenerController = new ScreenerController(symbolAtGlanceProvider, screenerStrategies, null);
         screenerController.setBacktestMultiMonth(true);
 
-        int numThreads = Runtime.getRuntime().availableProcessors();
+        int numThreads = Math.max(Runtime.getRuntime().availableProcessors() - 2, 1);
         ExecutorService tpe = Executors.newFixedThreadPool(numThreads);
 
         List<CompletableFuture<?>> futures = new ArrayList<>();
@@ -157,6 +157,11 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("dividendYield", 0.0, 10.0));
         params.add(new RandomParam("marketCapUsd", 400.0, 4_000_000.0, ltList));
 
+        params.add(new RandomParam("peCheapestYears", 0.0, 15.0));
+        params.add(new RandomParam("pfcfCheapestYears", 0.0, 15.0));
+        params.add(new RandomParam("evRevenueCheapestYears", 0.0, 15.0));
+        params.add(new RandomParam("evFcfCheapestYears", 0.0, 15.0));
+
         return params;
     }
 
@@ -180,6 +185,7 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("profitableYears", 0.0, 12.0));
         params.add(new RandomParam("revenueGrowth", 0.0, 50.0, gtList));
         params.add(new RandomParam("investmentScore", 0.0, 10.0));
+        params.add(new RandomParam("pfcfCheapestYears", 0.0, 15.0));
         return params;
     }
 
@@ -205,6 +211,7 @@ public class ParameterFinderBacktest {
             request.endYear = endYear;
             request.startYear = startYear;
             request.exchanges = EXCHANGES;
+            request.randomizeOrSort = false;
             request.operations = new ArrayList<>();
             request.operations.add(createOperationsWithFixParam("marketCapUsd", greaterThan, MINIMUM_MARKET_CAP));
 

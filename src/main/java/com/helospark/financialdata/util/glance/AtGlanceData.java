@@ -191,6 +191,32 @@ public class AtGlanceData {
     @ScreenerElement(name = "2yr EPS growth excluding Marketing&Sale expense", separatorBelow = true)
     public float epsGrExMnS;
 
+    @ScreenerElement(name = "PE cheapest years")
+    public byte peCheapestYears;
+    @ScreenerElement(name = "PFCF cheapest years")
+    public byte pfcfCheapestYears;
+    @ScreenerElement(name = "EV/Revenue cheapest years")
+    public byte evRevenueCheapestYears;
+    @ScreenerElement(name = "EV/FCF cheapest years", separatorBelow = true)
+    public byte evFcfCheapestYears;
+
+    @ScreenerElement(name = "Revenue smoothness (0..100) 5yr")
+    public byte smoothRevenue5yr;
+    @ScreenerElement(name = "Revenue smoothness (0..100) 10yr")
+    public byte smoothRevenue10yr;
+    @ScreenerElement(name = "EPS smoothness (0..100) 5yr")
+    public byte smoothEps5yr;
+    @ScreenerElement(name = "EPS smoothness (0..100) 10yr")
+    public byte smoothEps10yr;
+    @ScreenerElement(name = "FCF smoothness (0..100) 5yr")
+    public byte smoothFcf5yr;
+    @ScreenerElement(name = "FCF smoothness (0..100) 10yr")
+    public byte smoothFcf10yr;
+    @ScreenerElement(name = "Equity smoothness (0..100) 5yr")
+    public byte smoothEquity5yr;
+    @ScreenerElement(name = "Equity smoothness (0..100) 10yr", separatorBelow = true)
+    public byte smoothEquity10yr;
+
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield", format = AtGlanceFormat.PERCENT)
     public double getFreeCashFlowYield() {
         return fcfPerShare / latestStockPrice * 100.0;

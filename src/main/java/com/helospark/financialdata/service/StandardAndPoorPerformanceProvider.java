@@ -18,6 +18,10 @@ public class StandardAndPoorPerformanceProvider {
         prices = DataLoader.loadHistoricalFile(new File(CommonConfig.BASE_FOLDER + "/info/s&p500_price.json"));
 
         // source: https://www.multpl.com/s-p-500-dividend-yield/table/by-year
+        dividendsPaidPerShare.put(2026, calculateDividendsPaid(2022, 1.16));
+        dividendsPaidPerShare.put(2025, calculateDividendsPaid(2022, 1.15));
+        dividendsPaidPerShare.put(2024, calculateDividendsPaid(2022, 1.24));
+        dividendsPaidPerShare.put(2023, calculateDividendsPaid(2022, 1.50));
         dividendsPaidPerShare.put(2022, calculateDividendsPaid(2022, 1.71));
         dividendsPaidPerShare.put(2021, calculateDividendsPaid(2021, 1.29));
         dividendsPaidPerShare.put(2020, calculateDividendsPaid(2020, 1.58));

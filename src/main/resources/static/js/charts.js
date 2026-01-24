@@ -377,6 +377,7 @@ createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, sugge
 createChartInternal("/financials/price_to_op_cash_ratio", "Price to operating cash flow ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
 createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false, avgEnabled: true}, defaultEnabled=false);
 createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/pfcf_compensation_adjusted_ratio", "Price to compensation adjusted FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
 createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
   suggestedMin: -5,
   suggestedMax: 50,
@@ -557,12 +558,19 @@ createChartInternal("/financials/market_cap_usd", "Market cap $", {quarterlyEnab
 createChartInternal("/financials/share_count", "Share count", {quarterlyEnabled: false});
 createChartInternal("/financials/stock_compensation", "Stock compensation", {quarterlyEnabled: true});
 createChartInternal("/financials/stock_compensation_per_net_income", "Stock compensation / net income", {suggestedMin: -2, unit: '%'});
+createChartInternal("/financials/stock_compensation_per_fcf", "Stock compensation / FCF", {suggestedMin: -2, unit: '%'});
 createChartInternal("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%', avgEnabled: true});
 createChartInternal("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%', avgEnabled: true});
 createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%', label: "CAPEX to revenue",  additionalCharts: [
   {
     "url": "/financials/rnd_to_revenue",
     "label": "R&D to revenue"
+  }]
+});
+createChartInternal("/financials/growth_capex_percent", "CAPEX percent", {unit: '%', label: "Growth CAPEX",  additionalCharts: [
+  {
+    "url": "/financials/maintenance_capex_percent",
+    "label": "Maintenance CAPEX"
   }]
 });
 createChartInternal("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
@@ -579,7 +587,7 @@ createChartInternal("/financials/dividend_payout_ratio", "Dividend payout ratio"
 createChartInternal("/financials/dividend_payout_ratio_with_fcf", "Dividend payout ratio FCF", {unit: '%', suggestedMin: -2, suggestedMax: 150, avgEnabled: true});
 createChartInternal("/financials/dividend_paid", "Dividend paid", {quarterlyEnabled: false});
 createChartInternal("/financials/dividend_yield_per_current_price", "Dividend yield on cost", {unit: '%', suggestedMin: -2, suggestedMax: 200}, defaultEnabled=false);
-createChartInternal("/financials/total_dividend_per_share_since", "Cumulative dividends payed per share since", {suggestedMin: -2, suggestedMax: 200}, defaultEnabled=true);
+createChartInternal("/financials/total_dividend_per_share_since", "Cumulative dividends payed per share since", {}, defaultEnabled=true);
 createChartInternal("/financials/cumulative_dividend_per_purchase_share_price", "Cumulative dividends payed divided by purchase price since", {
   unit: '%',
   tooltip: 'Percentage of purchase price returned as dividends, 100% means purchase price was payed back by dividends since investment'

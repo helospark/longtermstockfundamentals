@@ -219,6 +219,12 @@ public class FinancialsController {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
     }
 
+    @GetMapping("/pfcf_compensation_adjusted_ratio")
+    public List<SimpleDataElement> getCompensationAdjusedPFcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price
+                / ((double) (financialsTtm.cashFlowTtm.freeCashFlow - financialsTtm.cashFlowTtm.stockBasedCompensation) / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+    }
+
     @GetMapping("/pocf_ratio")
     public List<SimpleDataElement> getPOcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price / ((double) financialsTtm.cashFlowTtm.operatingCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
@@ -762,6 +768,11 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.incomeStatementTtm.netIncome * 100.0);
     }
 
+    @GetMapping("/stock_compensation_per_fcf")
+    public List<SimpleDataElement> getStockBasedCompensationPerFCF(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> (double) financialsTtm.cashFlowTtm.stockBasedCompensation / financialsTtm.cashFlowTtm.freeCashFlow * 100.0);
+    }
+
     @GetMapping("/stock_compensation_per_market_cap")
     public List<SimpleDataElement> getStockBasedCompensationPerMarketCap(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly,
@@ -795,6 +806,18 @@ public class FinancialsController {
     @GetMapping("/capex_to_revenue")
     public List<SimpleDataElement> getCapexToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         return getIncomeData(stock, quarterly, financialsTtm -> toPercentNonNull((double) financialsTtm.cashFlowTtm.capitalExpenditure / financialsTtm.incomeStatementTtm.revenue) * -1.0);
+    }
+
+    @GetMapping("/growth_capex_percent")
+    public List<SimpleDataElement> getGrowthCapexPercent(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercentNonNull(
+                ((double) -financialsTtm.cashFlowTtm.capitalExpenditure - financialsTtm.incomeStatementTtm.depreciationAndAmortization) / -financialsTtm.cashFlowTtm.capitalExpenditure));
+    }
+
+    @GetMapping("/maintenance_capex_percent")
+    public List<SimpleDataElement> getMaintainanceCapexPercent(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercentNonNull(
+                ((double) financialsTtm.incomeStatementTtm.depreciationAndAmortization) / -financialsTtm.cashFlowTtm.capitalExpenditure));
     }
 
     // stacked chart start ---

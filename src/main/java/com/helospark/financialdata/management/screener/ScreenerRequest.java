@@ -15,6 +15,7 @@ public class ScreenerRequest {
     public String prevItem;
 
     public LocalDate onDate;
+    public boolean randomizeOrSort = true;
 
     @Override
     public String toString() {

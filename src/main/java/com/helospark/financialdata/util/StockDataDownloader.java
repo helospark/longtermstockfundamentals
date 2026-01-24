@@ -7,7 +7,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,6 +67,7 @@ import com.helospark.financialdata.domain.CompanyListElement;
 import com.helospark.financialdata.domain.CurrentPrice;
 import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.EconomicPriceElement;
+import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.domain.FlagInformation;
 import com.helospark.financialdata.domain.FlagType;
 import com.helospark.financialdata.domain.FxRatesResponse;
@@ -92,10 +97,10 @@ import com.helospark.financialdata.service.PietroskyScoreCalculator;
 import com.helospark.financialdata.service.ProfitabilityCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.RoicCalculator;
+import com.helospark.financialdata.service.SmoothnessCalculator;
 import com.helospark.financialdata.service.StockBasedCompensationCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.TrailingPegCalculator;
-import com.helospark.financialdata.service.exchanges.ExchangeRegion;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
@@ -111,8 +116,9 @@ public class StockDataDownloader {
     static final Integer NUM_QUARTER = NUM_YEARS * 4;
     static final String FX_BASE_FOLDER = BASE_FOLDER + "/fxratefiles";
     static final String BASE_URL = "https://financialmodelingprep.com/api";
-    static final int RATE_LIMIT_PER_MINUTE = 300;
+    static final int RATE_LIMIT_PER_MINUTE = 100;
     private static final String API_LAYER_API_KEY = System.getProperty("API_LAYER_API_KEY");
+    static final int _30_DAYS_AGO = 30;
 
     static RateLimiter rateLimiter = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 60.0);
     static RateLimiter rateLimiterForFx = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 30.0);
@@ -127,10 +133,10 @@ public class StockDataDownloader {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        boolean downloadNewData = true;
+        boolean downloadNewData = false;
         boolean downloadFx = false;
-        //Set<Exchanges> downloadOnlyExchanges = Set.of(); // Set.of(Exchanges.HKSE); // Exchanges.getExchangesByRegion(ExchangeRegion.US) // or empty set
-        Set<Exchanges> downloadOnlyExchanges = Exchanges.getExchangesByRegion(ExchangeRegion.US);
+        Set<Exchanges> downloadOnlyExchanges = Set.of(); // Set.of(Exchanges.HKSE); // Exchanges.getExchangesByRegion(ExchangeRegion.US) // or empty set
+        //Set<Exchanges> downloadOnlyExchanges = Exchanges.getExchangesByRegion(ExchangeRegion.US);
         statusMessage = "Downloading symbol list";
         progress = 0.0;
         inProgress = true;
@@ -148,7 +154,7 @@ public class StockDataDownloader {
             statusMessage = "Downloading useful info";
             downloadUsefulInfo();
 
-            int threads = 10;
+            int threads = 4;
             var executor = Executors.newFixedThreadPool(threads);
 
             Set<String> symbols = new HashSet<>();
@@ -156,11 +162,13 @@ public class StockDataDownloader {
             if (!downloadOnlyExchanges.isEmpty()) {
                 symbols.addAll(DataLoader.provideSymbolsIn(downloadOnlyExchanges));
             } else {
-                symbols.addAll(Arrays.asList(downloadSimpleUrlCachedWithoutSaving("/v3/financial-statement-symbol-lists", Map.of(), String[].class)));
+                symbols.addAll(Arrays.asList(downloadCachedUrlInternal("info/financial-statement-symbol-lists.json", "/v3/financial-statement-symbol-lists", String[].class, Map.of(), _30_DAYS_AGO)));
             }
 
             List<String> newSymbols = new ArrayList<>(symbols);
             Collections.shuffle(newSymbols);
+            newSymbols.removeAll(nasdaqSymbols);
+            newSymbols.addAll(0, nasdaqSymbols);
             Queue<String> symbolsQueue = new ConcurrentLinkedQueue<>(newSymbols);
 
             File downloadDates = new File(DOWNLOAD_DATES);
@@ -189,12 +197,13 @@ public class StockDataDownloader {
                         }
                         ++k;
 
-                        if (threadIndex == 0 && k % 1000 == 0) {
+                        if (threadIndex == 0 && k % 100 == 0) {
                             writeLastAttemptedFile(downloadDates, symbolToDates);
+                            System.out.printf("Updating cache file...");
                         }
                         if (threadIndex == 0 && k % 100 == 0) {
                             progress = (((double) (symbols.size() - symbolsQueue.size()) / symbols.size()) * 100.0);
-                            System.out.printf("Download progress: %.2f", progress);
+                            System.out.printf("Download progress: %.2f\n", progress);
                         }
                     }
                 }, executor));
@@ -294,8 +303,8 @@ public class StockDataDownloader {
         return symbolToDates;
     }
 
-    private static <T> T downloadSimpleUrlCached(String urlPath, String folder, Class<T> clazz) {
-        return downloadCachedUrlInternal(folder, urlPath, clazz, Map.of());
+    private static <T> T downloadSimpleUrlCached(String urlPath, String folder, Class<T> clazz, int daysAgo) {
+        return downloadCachedUrlInternal(folder, urlPath, clazz, Map.of(), daysAgo);
     }
 
     private static <T> T downloadSimpleUrlCachedWithoutSaving(String uriPath, Map<String, String> queryParams, Class<T> clazz) {
@@ -308,7 +317,6 @@ public class StockDataDownloader {
             System.out.println(fullUri);
             rateLimiter.acquire();
             String data = downloadUri(fullUri);
-            ;
 
             return objectMapper.readValue(data, clazz);
         } catch (Exception e) {
@@ -427,7 +435,8 @@ public class StockDataDownloader {
                         progress = (((double) (allSymbolsSet.size() - queueSize) / allSymbolsSet.size())) * 100.0;
                     }
 
-                    for (int i = 1; i < 35; ++i) {
+                    int years = LocalDate.now().getYear() - 1990;
+                    for (int i = 1; i < years; ++i) {
                         int year = LocalDate.now().minusYears(i).getYear();
                         for (int month = 1; month < 12; month += 3) {
                             File offsetFile = getBacktestFileAtYear(year, month);
@@ -649,6 +658,23 @@ public class StockDataDownloader {
 
         data.investmentScore = InvestmentScoreCalculator.calculate(company, offsetYear).orElse(Double.NaN).floatValue();
 
+        data.peCheapestYears = calculateNumberOfYearsCheapest(company, index, f -> calculatePe(f));
+        data.pfcfCheapestYears = calculateNumberOfYearsCheapest(company, index, f -> calculatePricePerFcf(f));
+        data.evRevenueCheapestYears = calculateNumberOfYearsCheapest(company, index, f -> calculateEvPerRevenue(f));
+        data.evFcfCheapestYears = calculateNumberOfYearsCheapest(company, index, f -> calculateEvPerFcf(f));
+
+        data.smoothRevenue5yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfRevenue(company, offsetYear, 5.0) * 100.0);
+        data.smoothRevenue10yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfRevenue(company, offsetYear, 10.0) * 100.0);
+
+        data.smoothEps5yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEps(company, offsetYear, 5.0) * 100.0);
+        data.smoothEps10yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEps(company, offsetYear, 10.0) * 100.0);
+
+        data.smoothFcf5yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfFcf(company, offsetYear, 5.0) * 100.0);
+        data.smoothFcf10yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfFcf(company, offsetYear, 10.0) * 100.0);
+
+        data.smoothEquity5yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEquity(company, offsetYear, 5.0) * 100.0);
+        data.smoothEquity10yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEquity(company, offsetYear, 10.0) * 100.0);
+
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 
         int numRed = 0;
@@ -676,12 +702,55 @@ public class StockDataDownloader {
         return Optional.of(data);
     }
 
+    private static byte calculateNumberOfYearsCheapest(CompanyFinancials company, int index, Function<FinancialsTtm, Double> function) {
+        if (index + 4 >= company.financials.size()) { // TODO: maybe calculate years from index, because not every company reports 4 times per year
+            return 0;
+        }
+        FinancialsTtm latestData = company.financials.get(index);
+        double multiple = function.apply(latestData);
+        int i = index + 3;
+        for (i = index + 3; i < company.financials.size() - 1; ++i) {
+            double newMultiple = function.apply(company.financials.get(i));
+
+            if (newMultiple < multiple || newMultiple < 0 || !Double.isFinite(newMultiple)) {
+                break;
+            }
+        }
+
+        LocalDate dateThen = company.financials.get(i).date;
+
+        return (byte) calculateYearsDiff(dateThen, latestData.date);
+    }
+
+    private static double calculateYearsDiff(LocalDate date, LocalDate laterDate) {
+        return Math.abs(ChronoUnit.DAYS.between(date, laterDate) / 365.0);
+    }
+
+    private static double calculatePe(FinancialsTtm financialsTtm) {
+        return financialsTtm.price / financialsTtm.incomeStatementTtm.eps;
+    }
+
+    private static double calculateEvPerRevenue(FinancialsTtm financialsTtm) {
+        return EnterpriseValueCalculator.calculateEv(financialsTtm, financialsTtm.price) / financialsTtm.incomeStatement.revenue;
+    }
+
+    private static double calculateEvPerFcf(FinancialsTtm financialsTtm) {
+        return EnterpriseValueCalculator.calculateEv(financialsTtm, financialsTtm.price) / financialsTtm.cashFlowTtm.freeCashFlow;
+    }
+
+    private static double calculatePricePerFcf(FinancialsTtm financialsTtm) {
+        if (financialsTtm.cashFlowTtm.freeCashFlow == 0 || financialsTtm.incomeStatementTtm.weightedAverageShsOut == 0) {
+            return Double.NaN;
+        }
+        return financialsTtm.price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+    }
+
     private static void downloadUsefulInfo() {
         //https: //financialmodelingprep.com/api/v4/treasury?from=2021-06-30&to=2021-09-30&apikey=API_KEY
-        downloadUrlIfNeeded("info/tresury_rates.json", "/v4/treasury", Map.of("from", "1990-01-01", "to", LocalDate.now().toString()));
+        downloadUrlIfNeeded("info/tresury_rates.json", "/v4/treasury", Map.of("from", "1990-01-01", "to", LocalDate.now().toString()), _30_DAYS_AGO);
         // https://financialmodelingprep.com/api/v3/historical-price-full/%5EGSPC?serietype=line&apikey=API_KEY
 
-        //downloadHistoricalJsonUrlIfNeeded("info/s&p500_price.json", "/v3/historical-price-full/%5EGSPC", Map.of("serietype", "line"), 5);
+        downloadHistoricalJsonUrlIfNeeded("info/s&p500_price.json", "/v3/historical-price-full/^GSPC", Map.of("serietype", "line"), 5);
 
         // https://financialmodelingprep.com/api/v3/historical/sp500_constituent?apikey=API_KEY
         //downloadEconomicJsonUrlIfNeeded("info/s&p500_historical_constituent.json", "/v3/historical/sp500_constituent", Map.of(), 10);
@@ -698,7 +767,6 @@ public class StockDataDownloader {
         downloadEconomicJsonUrlIfNeeded("info/realGDP.json", "/v4/economic", Map.of("name", "realGDP", "from", "1947-01-01", "to", LocalDate.now().toString()), 95);
         downloadEconomicJsonUrlIfNeeded("info/GDP.json", "/v4/economic", Map.of("name", "GDP", "from", "1947-01-01", "to", LocalDate.now().toString()), 95);
 
-        /*
         for (var element : List.of("GDP", "realGDP", "nominalPotentialGDP", "realGDPPerCapita", "federalFunds", "CPI",
                 "inflationRate", "inflation", "retailSales", "consumerSentiment", "durableGoods",
                 "unemploymentRate", "totalNonfarmPayroll", "initialClaims", "industrialProductionTotalIndex",
@@ -706,15 +774,15 @@ public class StockDataDownloader {
                 "smoothedUSRecessionProbabilities", "3MonthOr90DayRatesAndYieldsCertificatesOfDeposit",
                 "commercialBankInterestRateOnCreditCardPlansAllAccounts", "30YearFixedRateMortgageAverage",
                 "15YearFixedRateMortgageAverage")) {
-            downloadUrlIfNeeded("info/" + element + ".json", "/v4/economic", Map.of("name", element, "from", "1920-01-01", "to", LocalDate.now().format(ISO_DATE)));
-        }*/
+            downloadUrlIfNeeded("info/" + element + ".json", "/v4/economic", Map.of("name", element, "from", "1920-01-01", "to", LocalDate.now().format(DateTimeFormatter.ISO_DATE)), _30_DAYS_AGO);
+        }
 
         //https://financialmodelingprep.com/api/v3/form-thirteen-date/0001035674?apikey=API_KEY
         //https://financialmodelingprep.com/api/v3/form-thirteen/0001067983?date=2022-12-10&apikey=API_KEY
-        downloadUrlIfNeeded("info/portfolios/warren_buffett.json", "/v3/form-thirteen/0001067983", Map.of("date", "2022-09-30"));
-        downloadUrlIfNeeded("info/portfolios/seth_klarman.json", "/v3/form-thirteen/0001061768", Map.of("date", "2022-09-30"));
-        downloadUrlIfNeeded("info/portfolios/li_lu.json", "/v3/form-thirteen/0001709323", Map.of("date", "2022-09-30"));
-        downloadUrlIfNeeded("info/portfolios/li_lu.json", "/v3/form-thirteen/0001709323", Map.of("date", "2022-09-30"));
+        downloadUrlIfNeeded("info/portfolios/warren_buffett.json", "/v3/form-thirteen/0001067983", Map.of("date", "2025-09-30"), _30_DAYS_AGO);
+        downloadUrlIfNeeded("info/portfolios/seth_klarman.json", "/v3/form-thirteen/0001061768", Map.of("date", "2025-09-30"), _30_DAYS_AGO);
+        downloadUrlIfNeeded("info/portfolios/li_lu.json", "/v3/form-thirteen/0001709323", Map.of("date", "2025-09-30"), _30_DAYS_AGO);
+        downloadUrlIfNeeded("info/portfolios/li_lu.json", "/v3/form-thirteen/0001709323", Map.of("date", "2025-09-30"), _30_DAYS_AGO);
 
     }
 
@@ -844,14 +912,18 @@ public class StockDataDownloader {
             LocalDate expectedDownloadFinancialDate = downloadDateData.lastReportDate.plusDays(downloadDateData.previousReportPeriod);
 
             if (now.compareTo(expectedDownloadFinancialDate) > 0) {
-                if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastAttemptedDownload)) > 5) {
+                int expectedInterval = downloadDateData.previousReportPeriod - 10;
+                if (expectedInterval < 70) {
+                    expectedInterval = 70;
+                }
+                if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastAttemptedDownload)) > expectedInterval) {
                     downloadFinancials = true;
                 }
                 if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 500) {
-                    downloadFinancials = false;
+                    //   downloadFinancials = false;
                 }
             }
-            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastPriceDownload)) > 10 && Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) < 500) {
+            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastPriceDownload)) > 30) {
                 downloadPricesNeeded = true;
             }
         } else {
@@ -859,6 +931,20 @@ public class StockDataDownloader {
             downloadPricesNeeded = true;
             LocalDate never = LocalDate.of(1900, 1, 1);
             downloadDateData = new DownloadDateData(never, now, never, 90);
+        }
+
+        if (downloadFinancials || downloadPricesNeeded) {
+            boolean newDownloadFinancials = !wasFileModifiedLessThan("fundamentals/" + symbol + "/income-statement.json", _30_DAYS_AGO);
+            boolean newDownloadPricesNeeded = !wasFileModifiedLessThan("fundamentals/" + symbol + "/historical-price.json", _30_DAYS_AGO);
+
+            //                    if (newDownloadFinancials != downloadFinancials) {
+            //                        System.out.println("Overriding download for " + symbol + " to " + newDownloadFinancials);
+            //                        downloadFinancials = newDownloadFinancials;
+            //                    }
+            if (newDownloadPricesNeeded != downloadPricesNeeded) {
+                System.out.println("Overriding download price for " + symbol + " to " + downloadFinancials);
+                downloadPricesNeeded = newDownloadPricesNeeded;
+            }
         }
 
         symbol = symbol.replace("^", "%5E");
@@ -903,6 +989,11 @@ public class StockDataDownloader {
             downloadDateData.previousReportPeriod = (int) numberOfDaysDiff;
             downloadDateData.lastAttemptedDownload = now;
         }
+
+        if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 200) {
+            downloadPricesNeeded = false; // delisted companies
+        }
+
         if (downloadPricesNeeded) {
             boolean downloaded = downloadHistoricalJsonUrlIfNeeded("fundamentals/" + symbol + "/historical-price.json", "/v3/historical-price-full/" + symbol, Map.of("serietype", "line"), 10);
             if (downloaded) {
@@ -910,9 +1001,23 @@ public class StockDataDownloader {
             }
         }
 
-        downloadUrlIfNeeded("fundamentals/" + symbol + "/profile.json", "/v3/profile/" + symbol, Map.of());
+        downloadUrlIfNeeded("fundamentals/" + symbol + "/profile.json", "/v3/profile/" + symbol, Map.of(), 300000);
 
         symbolToDates.put(originalSymbol, downloadDateData);
+    }
+
+    private static boolean wasFileModifiedLessThan(String string, int daysAgo) {
+        File file = new File(string);
+
+        if (!file.exists()) {
+            return false;
+        }
+
+        try {
+            return !isModifiedMoreThanDaysAgo(file, daysAgo);
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     private static void downloadAuxilaryInformation(String symbol, List<IncomeStatement> incomeStatements) {
@@ -1029,7 +1134,7 @@ public class StockDataDownloader {
     }
 
     private static List<String> downloadCompanyListCached(String urlPath, String folder) {
-        CompanyListElement[] elements = downloadCachedUrlInternal(folder, urlPath, CompanyListElement[].class, Map.of("limit", asString(NUM_QUARTER)));
+        CompanyListElement[] elements = downloadCachedUrlInternal(folder, urlPath, CompanyListElement[].class, Map.of("limit", asString(NUM_QUARTER)), _30_DAYS_AGO);
 
         return Arrays.stream(elements)
                 .map(e -> e.getSymbol())
@@ -1040,8 +1145,8 @@ public class StockDataDownloader {
         return String.valueOf(numQuarter);
     }
 
-    private static <T> T downloadCachedUrlInternal(String folder, String uriPath, Class<T> clazz, Map<String, String> queryParams) {
-        File absoluteFile = downloadUrlIfNeeded(folder, uriPath, queryParams);
+    private static <T> T downloadCachedUrlInternal(String folder, String uriPath, Class<T> clazz, Map<String, String> queryParams, int daysAgo) {
+        File absoluteFile = downloadUrlIfNeeded(folder, uriPath, queryParams, daysAgo);
         try (FileInputStream fis = new FileInputStream(absoluteFile)) {
             return objectMapper.readValue(fis.readAllBytes(), clazz);
         } catch (Exception e) {
@@ -1049,13 +1154,13 @@ public class StockDataDownloader {
         }
     }
 
-    private static File downloadUrlIfNeeded(String folderAndfile, String uriPath, Map<String, String> queryParams) {
+    private static File downloadUrlIfNeeded(String folderAndfile, String uriPath, Map<String, String> queryParams, int daysAgo) {
         File result = null;
         int counter = 0;
 
         while (result == null && counter++ < 3) {
             try {
-                result = downloadUrlIfNeededWithoutRetry(folderAndfile, uriPath, queryParams);
+                result = downloadUrlIfNeededWithoutRetry(folderAndfile, uriPath, queryParams, daysAgo);
             } catch (Exception e) {
                 e.printStackTrace();
                 noExceptionSleep();
@@ -1075,9 +1180,9 @@ public class StockDataDownloader {
         }
     }
 
-    private static File downloadUrlIfNeededWithoutRetry(String folderAndfile, String uriPath, Map<String, String> queryParams) {
+    private static File downloadUrlIfNeededWithoutRetry(String folderAndfile, String uriPath, Map<String, String> queryParams, int daysAgo) throws IOException {
         File absoluteFile = new File(BASE_FOLDER + "/" + folderAndfile);
-        if (!absoluteFile.exists()) {
+        if (!absoluteFile.exists() || isModifiedMoreThanDaysAgo(absoluteFile, daysAgo)) {
             try {
                 absoluteFile.getParentFile().mkdirs();
 
@@ -1102,6 +1207,17 @@ public class StockDataDownloader {
             }
         }
         return absoluteFile;
+    }
+
+    private static boolean isModifiedMoreThanDaysAgo(File absoluteFile, int daysAgo) throws IOException {
+        FileTime lastModifiedTime = Files.getLastModifiedTime(absoluteFile.toPath());
+        Instant thirtyDaysAgo = Instant.now().minus(daysAgo, ChronoUnit.DAYS);
+
+        if (lastModifiedTime.toInstant().isBefore(thirtyDaysAgo)) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private static <T> void downloadJsonUrlIfNeeded(String folderAndfile, String uriPath, Map<String, String> queryParams, Class<T> elementType, int updateIntervalInDays,
@@ -1258,6 +1374,7 @@ public class StockDataDownloader {
                 fullUri += ("&" + entry.getKey() + "=" + entry.getValue());
             }
 
+            System.out.println(fullUri + " " + fullUri);
             rateLimiter.acquire();
 
             String data = downloadUri(fullUri);

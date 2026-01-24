@@ -228,7 +228,7 @@ public class WatchlistService {
             result = latestPriceProvider.provideLatestPrice(ticker);
         }
 
-        if (currency.equals("GBp")) {
+        if (currency != null && currency.equals("GBp")) {
             result /= 100.0;
         }
 

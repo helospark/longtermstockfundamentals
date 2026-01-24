@@ -12,18 +12,18 @@
   function onPreviousPageRequested() {
     lastDisplayedItem = $("#screener-result-table table tr:last-child td:first-child").text();
     firstDisplayedItem = $("#screener-result-table table tr:first-child td:first-child").text();
-    submitScreenerWithLastAndFirstItem(lastDisplayedItem, firstDisplayedItem, false);
+    submitScreenerWithLastAndFirstItem(lastDisplayedItem, firstDisplayedItem, false, true);
   }
   
   function onNextPageRequested() {
     lastDisplayedItem = $("#screener-result-table table tr:last-child td:first-child").text();
     firstDisplayedItem = $("#screener-result-table table tr:first-child td:first-child").text();
-    submitScreenerWithLastAndFirstItem(lastDisplayedItem, firstDisplayedItem, true);
+    submitScreenerWithLastAndFirstItem(lastDisplayedItem, firstDisplayedItem, true, true);
   }
 
   var serverScreenerCache = null;
 
-  function submitScreenerWithLastAndFirstItem(lastItem, firstItem, next) {
+  function submitScreenerWithLastAndFirstItem(lastItem, firstItem, next, scrollToTable=false) {
     exchanges = $("#exchanges").val();
     screenerOperations = collectOperations();
     
@@ -65,6 +65,9 @@
                      "info": "Showing _TOTAL_ entries"
                   }
                 });
+                if (scrollToTable) {
+                  $("#screener-result-table").get(0).scrollIntoView();
+                }
                 if (data.hasPreviousResults) {
                   $("#screener-result-table").append('<button style="float:left" class="btn btn-primary" onclick="onPreviousPageRequested()">&#60; Previous page</button>');
                 }
