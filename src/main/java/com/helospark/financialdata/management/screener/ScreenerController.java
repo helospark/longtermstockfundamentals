@@ -35,6 +35,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
+import com.helospark.financialdata.management.screener.ScreenerOperation.AtGlanceField;
 import com.helospark.financialdata.management.screener.annotation.AtGlanceFormat;
 import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
@@ -143,10 +144,11 @@ public class ScreenerController {
         AtGlanceData sampleData = symbolAtGlanceProvider.getAtGlanceData("AAPL").get();
         for (var entry : idToDescription.entrySet()) {
             ScreenerOperation sampleOp = new ScreenerOperation();
-            sampleOp.id = entry.getKey();
+            String key = entry.getKey();
             if (entry.getValue().readableName.equals("SEPARATOR")) {
                 continue;
             }
+            sampleOp.id = AtGlanceField.fromString(key);
             unreflectGetValue(sampleData, sampleOp, entry.getValue());
         }
     }
@@ -239,7 +241,7 @@ public class ScreenerController {
         result.columns.add("Symbol");
         result.columns.add("Company");
 
-        Map<String, ScreenerOperation> dedupedScreenersMap = new LinkedHashMap<>();
+        Map<AtGlanceField, ScreenerOperation> dedupedScreenersMap = new LinkedHashMap<>();
 
         for (var element : request.operations) {
             if (!dedupedScreenersMap.containsKey(element.id)) {
@@ -249,7 +251,7 @@ public class ScreenerController {
         var dedupedOperations = dedupedScreenersMap.values();
 
         for (var element : dedupedOperations) {
-            result.columns.add(idToDescription.get(element.id).readableName);
+            result.columns.add(idToDescription.get(element.id.toString()).readableName);
         }
 
         for (var stock : matchedStocks) {
@@ -261,7 +263,7 @@ public class ScreenerController {
             columnResult.put("Company", stock.companyName);
 
             for (var element : dedupedOperations) {
-                ScreenerDescription screenerDescription = idToDescription.get(element.id);
+                ScreenerDescription screenerDescription = idToDescription.get(element.id.toString());
                 String columnName = screenerDescription.readableName;
                 Double value = unreflectGetValue(stock, element, screenerDescription);
                 columnResult.put(columnName, screenerDescription.format.format(value));
@@ -299,7 +301,7 @@ public class ScreenerController {
 
             boolean allMatch = true;
             for (var operation : request.operations) {
-                ScreenerDescription source = idToDescription.get(operation.id);
+                ScreenerDescription source = idToDescription.get(operation.id.toString());
                 double value = unreflectGetValue(atGlanceData, operation, source);
                 ScreenerStrategy screenerStrategy = operation.screenerStrategy;
                 if (!screenerStrategy.matches(value, operation)) {
@@ -684,10 +686,7 @@ public class ScreenerController {
         }
 
         for (var element : operations) {
-            if (!idToDescription.containsKey(element.id)) {
-                throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
-            }
-            if (element.id.startsWith("SEPARATOR_")) {
+            if (!idToDescription.containsKey(element.id.toString())) {
                 throw new ScreenerClientSideException(element.id + " is not a valid screener condition");
             }
             ScreenerStrategy screenerStrategy = findScreenerStrategy(element.operation);
@@ -708,205 +707,201 @@ public class ScreenerController {
     }
 
     public double unreflectGetValue(AtGlanceData glance, ScreenerOperation operation, ScreenerDescription screenerDescriptor) {
-        try {
-            if (screenerDescriptor.source.equals(Source.FIELD)) {
-                //                Object value = ((Field) screenerDescriptor.data).get(glance);
-                //                return convertNumberToType(value);
+        switch (screenerDescriptor.source) {
+            case FIELD:
                 return unreflectiveGetField(operation.id, glance);
-            } else if (screenerDescriptor.source.equals(Source.METHOD)) {
-                //                Object value = ((Method) screenerDescriptor.data).invoke(glance);
-                //                return convertNumberToType(value);
+            case METHOD:
                 return unreflectiveGetMethod(operation.id, glance);
-            } else {
-                throw new RuntimeException("Unknown source");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+            default:
+                throw new RuntimeException("Cannot happen");
         }
+
     }
 
-    private double unreflectiveGetMethod(String id, AtGlanceData glance) {
+    private double unreflectiveGetMethod(AtGlanceField id, AtGlanceData glance) {
         switch (id) {
-            case "fcf_yield":
+            case fcf_yield:
                 return glance.getFreeCashFlowYield();
-            case "earnings_yield":
+            case earnings_yield:
                 return glance.getEarningsYield();
             default:
                 throw new RuntimeException("Unexpected type " + id);
         }
     }
 
-    private double unreflectiveGetField(String id, AtGlanceData glance) {
+    // this seems really ugly, but this is the result of large amount of performance optimization
+    // Using enum switch is the fastest way to execute this logic
+    private double unreflectiveGetField(AtGlanceField id, AtGlanceData glance) {
         switch (id) {
-            case "marketCapUsd":
+            case marketCapUsd:
                 return glance.marketCapUsd;
-            case "trailingPeg":
+            case trailingPeg:
                 return glance.trailingPeg;
-            case "roic":
+            case roic:
                 return glance.roic;
-            case "altman":
+            case altman:
                 return glance.altman;
-            case "pietrosky":
+            case pietrosky:
                 return glance.pietrosky;
-            case "pe":
+            case pe:
                 return glance.pe;
-            case "evToEbitda":
+            case evToEbitda:
                 return glance.evToEbitda;
-            case "ptb":
+            case ptb:
                 return glance.ptb;
-            case "pts":
+            case pts:
                 return glance.pts;
-            case "icr":
+            case icr:
                 return glance.icr;
-            case "currentRatio":
+            case currentRatio:
                 return glance.currentRatio;
-            case "quickRatio":
+            case quickRatio:
                 return glance.quickRatio;
-            case "dtoe":
+            case dtoe:
                 return glance.dtoe;
-            case "roe":
+            case roe:
                 return glance.roe;
-            case "epsGrowth":
+            case epsGrowth:
                 return glance.epsGrowth;
-            case "fcfGrowth":
+            case fcfGrowth:
                 return glance.fcfGrowth;
-            case "revenueGrowth":
+            case revenueGrowth:
                 return glance.revenueGrowth;
-            case "fYrIncomeGr":
+            case fYrIncomeGr:
                 return glance.fYrIncomeGr;
-            case "dividendGrowthRate":
+            case dividendGrowthRate:
                 return glance.dividendGrowthRate;
-            case "shareCountGrowth":
+            case shareCountGrowth:
                 return glance.shareCountGrowth;
-            case "netMarginGrowth":
+            case netMarginGrowth:
                 return glance.netMarginGrowth;
-            case "cape":
+            case cape:
                 return glance.cape;
-            case "epsSD":
+            case epsSD:
                 return glance.epsSD;
-            case "revSD":
+            case revSD:
                 return glance.revSD;
-            case "fcfSD":
+            case fcfSD:
                 return glance.fcfSD;
-            case "epsFcfCorrelation":
+            case epsFcfCorrelation:
                 return glance.epsFcfCorrelation;
-            case "dividendYield":
+            case dividendYield:
                 return glance.dividendYield;
-            case "dividendPayoutRatio":
+            case dividendPayoutRatio:
                 return glance.dividendPayoutRatio;
-            case "dividendFcfPayoutRatio":
+            case dividendFcfPayoutRatio:
                 return glance.dividendFcfPayoutRatio;
-            case "profitableYears":
+            case profitableYears:
                 return glance.profitableYears;
-            case "fcfProfitableYears":
+            case fcfProfitableYears:
                 return glance.fcfProfitableYears;
-            case "stockCompensationPerMkt":
+            case stockCompensationPerMkt:
                 return glance.stockCompensationPerMkt;
-            case "cpxToRev":
+            case cpxToRev:
                 return glance.cpxToRev;
-            case "sloan":
+            case sloan:
                 return glance.sloan;
-            case "ideal10yrRevCorrelation":
+            case ideal10yrRevCorrelation:
                 return glance.ideal10yrRevCorrelation;
-            case "ideal10yrEpsCorrelation":
+            case ideal10yrEpsCorrelation:
                 return glance.ideal10yrEpsCorrelation;
-            case "ideal10yrFcfCorrelation":
+            case ideal10yrFcfCorrelation:
                 return glance.ideal10yrFcfCorrelation;
-            case "fvCalculatorMoS":
+            case fvCalculatorMoS:
                 return glance.fvCalculatorMoS;
-            case "fvCompositeMoS":
+            case fvCompositeMoS:
                 return glance.fvCompositeMoS;
-            case "grahamMoS":
+            case grahamMoS:
                 return glance.grahamMoS;
-            case "starFlags":
+            case starFlags:
                 return glance.starFlags;
-            case "redFlags":
+            case redFlags:
                 return glance.redFlags;
-            case "yellowFlags":
+            case yellowFlags:
                 return glance.yellowFlags;
-            case "greenFlags":
+            case greenFlags:
                 return glance.greenFlags;
-            case "fYrPe":
+            case fYrPe:
                 return glance.fYrPe;
-            case "fYrPFcf":
+            case fYrPFcf:
                 return glance.fYrPFcf;
-            case "fiveYrRoic":
+            case fiveYrRoic:
                 return glance.fiveYrRoic;
-            case "ltl5Fcf":
+            case ltl5Fcf:
                 return glance.ltl5Fcf;
-            case "price10Gr":
+            case price10Gr:
                 return glance.price10Gr;
-            case "price15Gr":
+            case price15Gr:
                 return glance.price15Gr;
-            case "price20Gr":
+            case price20Gr:
                 return glance.price20Gr;
-            case "grMargin":
+            case grMargin:
                 return glance.grMargin;
-            case "opMargin":
+            case opMargin:
                 return glance.opMargin;
-            case "opCMargin":
+            case opCMargin:
                 return glance.opCMargin;
-            case "fcfMargin":
+            case fcfMargin:
                 return glance.fcfMargin;
-            case "tpr":
+            case tpr:
                 return glance.tpr;
-            case "ebitdaMargin":
+            case ebitdaMargin:
                 return glance.ebitdaMargin;
-            case "price5Gr":
+            case price5Gr:
                 return glance.price5Gr;
-            case "epsGrowth2yr":
+            case epsGrowth2yr:
                 return glance.epsGrowth2yr;
-            case "fcfGrowth2yr":
+            case fcfGrowth2yr:
                 return glance.fcfGrowth2yr;
-            case "revenueGrowth2yr":
+            case revenueGrowth2yr:
                 return glance.revenueGrowth2yr;
-            case "shareCountGrowth2yr":
+            case shareCountGrowth2yr:
                 return glance.shareCountGrowth2yr;
-            case "equityGrowth2yr":
+            case equityGrowth2yr:
                 return glance.equityGrowth2yr;
-            case "roa":
+            case roa:
                 return glance.roa;
-            case "rota":
+            case rota:
                 return glance.rota;
-            case "assetTurnoverRatio":
+            case assetTurnoverRatio:
                 return glance.assetTurnoverRatio;
-            case "priceToGrossProfit":
+            case priceToGrossProfit:
                 return glance.priceToGrossProfit;
-            case "equityGrowth":
+            case equityGrowth:
                 return glance.equityGrowth;
-            case "investmentScore":
+            case investmentScore:
                 return glance.investmentScore;
-            case "peExRnd":
+            case peExRnd:
                 return glance.peExRnd;
-            case "peExMnS":
+            case peExMnS:
                 return glance.peExMnS;
-            case "epsGrExRnd":
+            case epsGrExRnd:
                 return glance.epsGrExRnd;
-            case "epsGrExMnS":
+            case epsGrExMnS:
                 return glance.epsGrExMnS;
-            case "peCheapestYears":
+            case peCheapestYears:
                 return glance.peCheapestYears;
-            case "pfcfCheapestYears":
+            case pfcfCheapestYears:
                 return glance.pfcfCheapestYears;
-            case "evRevenueCheapestYears":
+            case evRevenueCheapestYears:
                 return glance.evRevenueCheapestYears;
-            case "evFcfCheapestYears":
+            case evFcfCheapestYears:
                 return glance.evFcfCheapestYears;
-            case "smoothRevenue5yr":
+            case smoothRevenue5yr:
                 return glance.smoothRevenue5yr;
-            case "smoothRevenue10yr":
+            case smoothRevenue10yr:
                 return glance.smoothRevenue10yr;
-            case "smoothEps5yr":
+            case smoothEps5yr:
                 return glance.smoothEps5yr;
-            case "smoothEps10yr":
+            case smoothEps10yr:
                 return glance.smoothEps10yr;
-            case "smoothFcf5yr":
+            case smoothFcf5yr:
                 return glance.smoothFcf5yr;
-            case "smoothFcf10yr":
+            case smoothFcf10yr:
                 return glance.smoothFcf10yr;
-            case "smoothEquity5yr":
+            case smoothEquity5yr:
                 return glance.smoothEquity5yr;
-            case "smoothEquity10yr":
+            case smoothEquity10yr:
                 return glance.smoothEquity10yr;
             default:
                 throw new RuntimeException("Unexpected type " + id);

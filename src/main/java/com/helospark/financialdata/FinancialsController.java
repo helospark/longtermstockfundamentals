@@ -748,6 +748,34 @@ public class FinancialsController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/drawdown")
+    public List<SimpleDataElement> getDrawDown(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        List<HistoricalPriceElement> prices = DataLoader.readHistoricalPrice(stock, 500);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        HistoricalPriceElement latestData = prices.get(prices.size() - 1);
+        double maxPrice = latestData.close;
+
+        result.add(new SimpleDataElement(latestData.date.toString(), 100.0));
+
+        for (int i = prices.size() - 2; i >= 0; --i) {
+            double value = prices.get(i).close;
+
+            if (value > maxPrice) {
+                maxPrice = value;
+            }
+
+            double drawDownPercent = (value / maxPrice) * 100.0;
+
+            result.add(new SimpleDataElement(prices.get(i).date.toString(), drawDownPercent));
+        }
+
+        Collections.reverse(result);
+
+        return result;
+    }
+
     @GetMapping("/return_with_reinvested_dividend")
     public List<SimpleDataElement> getPriceWithReinvestedDividends(@PathVariable("stock") String stock) {
         CompanyFinancials company = DataLoader.readFinancials(stock);

@@ -53,9 +53,9 @@ public class MaxDrawdownFinder implements StockScreeners {
 
                 if (price > max || i == 0) {
                     double drawDown = ((1.0 - (min / max)) * 100.0);
-                    if (drawDown > 20.0) {
+                    if (drawDown > 20.0) { // (drawDown > 50 && ChronoUnit.DAYS.between(maxDate, date) > 5 * 365) {
                         System.out.println(
-                                symbol + " drawdown " + ((int) Math.round(drawDown)) + "% in " + ChronoUnit.DAYS.between(minDate, maxDate) + " days between (" + maxDate + " - " + minDate + ")");
+                                symbol + " drawdown " + ((int) Math.round(drawDown)) + "% in " + ChronoUnit.DAYS.between(maxDate, minDate) + " days between (" + maxDate + " - " + minDate + ")");
                     }
 
                     maxDate = date;

@@ -18,6 +18,7 @@ import java.util.stream.IntStream;
 
 import com.helospark.financialdata.management.screener.ScreenerController;
 import com.helospark.financialdata.management.screener.ScreenerOperation;
+import com.helospark.financialdata.management.screener.ScreenerOperation.AtGlanceField;
 import com.helospark.financialdata.management.screener.ScreenerRequest;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
 import com.helospark.financialdata.management.screener.domain.BacktestResult;
@@ -33,7 +34,7 @@ public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(1999, 2000), new YearRange(2009, 2010));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2013, 2014), new YearRange(2022, 2023));
 
     private static final double MINIMUM_BEAT_PERCENT = 95.0;
     private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
@@ -47,7 +48,7 @@ public class ParameterFinderBacktest {
     private static final int RESULT_QUEUE_SIZE = 60;
 
     // Test what if this program was run on date, or null for latest date
-    private static final LocalDate TEST_RUN_ON_DATE = null; // LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1); // or null
+    private static final LocalDate TEST_RUN_ON_DATE = LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1); // or null
 
     private static final List<String> EXCLUDED_STOCKS = List.of();
     private static final List<RandomParam> PARAMS = getAllParams();
@@ -162,6 +163,11 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("evRevenueCheapestYears", 0.0, 15.0));
         params.add(new RandomParam("evFcfCheapestYears", 0.0, 15.0));
 
+        params.add(new RandomParam("smoothRevenue5yr", 0.0, 100.0, gtList));
+        params.add(new RandomParam("smoothEps5yr", 0.0, 100.0, gtList));
+        params.add(new RandomParam("smoothFcf5yr", 0.0, 100.0, gtList));
+        params.add(new RandomParam("smoothEquity5yr", 0.0, 100.0, gtList));
+
         return params;
     }
 
@@ -186,6 +192,7 @@ public class ParameterFinderBacktest {
         params.add(new RandomParam("revenueGrowth", 0.0, 50.0, gtList));
         params.add(new RandomParam("investmentScore", 0.0, 10.0));
         params.add(new RandomParam("pfcfCheapestYears", 0.0, 15.0));
+        params.add(new RandomParam("smoothEps5yr", 0.0, 100.0, gtList));
         return params;
     }
 
@@ -334,7 +341,7 @@ public class ParameterFinderBacktest {
 
     public ScreenerOperation createOperations(RandomParam param, String name, ScreenerStrategy strategyToUse) {
         ScreenerOperation op = new ScreenerOperation();
-        op.id = name;
+        op.id = AtGlanceField.fromString(name);
         op.number1 = param.getValue();
         op.operation = strategyToUse.getSymbol();
         op.screenerStrategy = strategyToUse;
@@ -343,7 +350,7 @@ public class ParameterFinderBacktest {
 
     public ScreenerOperation createOperationsWithFixParam(String name, ScreenerStrategy operationStrategy, double value) {
         ScreenerOperation op = new ScreenerOperation();
-        op.id = name;
+        op.id = AtGlanceField.fromString(name);
         op.number1 = value;
         op.operation = operationStrategy.getSymbol();
         op.screenerStrategy = operationStrategy;

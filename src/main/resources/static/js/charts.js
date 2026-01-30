@@ -759,6 +759,8 @@ createChartInternal("/financials/price", "Price vs calculated fair value", {
     "label": "Calculated fair value"
   }
 ]});
+createChartInternal("/financials/drawdown", "Drawdown", {quarterlyEnabled: false, unit: '%', suggestedMin: 0, suggestedMax: 110});
+
 createChartInternal("/financials/return_with_reinvested_dividend", "Total returns", {
   label: "Returns with reinvested dividends",
   quarterlyEnabled: false,
