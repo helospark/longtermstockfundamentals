@@ -13,6 +13,7 @@ public class User {
     private AccountType accountType;
     private boolean cancelling;
     private RegistrationSource registeredWith;
+    private boolean hidePrice;
 
     @DynamoDBHashKey
     public String getEmail() {
@@ -71,6 +72,14 @@ public class User {
 
     public void setRegisteredWith(RegistrationSource registeredWith) {
         this.registeredWith = registeredWith;
+    }
+
+    public boolean isHidePrice() {
+        return hidePrice;
+    }
+
+    public void setHidePrice(boolean hidePrice) {
+        this.hidePrice = hidePrice;
     }
 
     @Override

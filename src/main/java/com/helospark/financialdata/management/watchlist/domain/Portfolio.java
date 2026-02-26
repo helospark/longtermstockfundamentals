@@ -57,4 +57,6 @@ public class Portfolio {
     public double fifteenYearReturn = 0.0;
     public double twentyYearReturn = 0.0;
     public double expectedTenYrReturn = 0.0;
+
+    public boolean hidePrice;
 }

@@ -1175,5 +1175,6 @@ public class DataLoader {
 
     public static void clearCache(String symbol) {
         cache.invalidate(symbol);
+        priceHistoryCache.invalidateAll();
     }
 }

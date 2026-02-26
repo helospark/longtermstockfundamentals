@@ -32,6 +32,8 @@ import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.repository.AccountType;
+import com.helospark.financialdata.management.user.repository.User;
+import com.helospark.financialdata.management.user.repository.UserRepository;
 import com.helospark.financialdata.management.watchlist.domain.PieChart;
 import com.helospark.financialdata.management.watchlist.domain.Portfolio;
 import com.helospark.financialdata.management.watchlist.repository.LatestPriceProvider;
@@ -50,6 +52,7 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 public class PortfolioController {
+    private static final String HIDDEN_INDICATOR = "---";
     private static final Logger LOGGER = LoggerFactory.getLogger(PortfolioController.class);
     private static final String MARKET_CAP = "MarketCap";
     private static final String RANK = "Rank";
@@ -108,6 +111,8 @@ public class PortfolioController {
     private SymbolAtGlanceProvider symbolIndexProvider;
     @Autowired
     private LatestPriceProvider latestPriceProvider;
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/portfoliodata")
     public Portfolio getPortfolio(HttpServletRequest httpRequest, @RequestParam(name = "onlyOwned", defaultValue = "true") boolean onlyOwned) {
@@ -116,8 +121,9 @@ public class PortfolioController {
             throw new WatchlistPermissionDeniedException("Not logged in");
         }
         List<WatchlistElement> watchlistElements = watchlistService.readWatchlistFromDb(jwt.get().getSubject());
+        User user = userRepository.findByEmailOrThrow(jwt.get().getSubject());
 
-        Portfolio result = createSummaryTable(onlyOwned, watchlistElements);
+        Portfolio result = createSummaryTable(onlyOwned, watchlistElements, user.isHidePrice());
 
         return result;
     }
@@ -150,7 +156,7 @@ public class PortfolioController {
             }
         }
 
-        Portfolio result = createSummaryTable(false, summaryElements);
+        Portfolio result = createSummaryTable(false, summaryElements, false);
 
         for (var line : result.portfolio) {
             String symbol = line.get(SYMBOL_RAW);
@@ -203,7 +209,7 @@ public class PortfolioController {
         return result;
     }
 
-    public Portfolio createSummaryTable(boolean onlyOwned, List<WatchlistElement> watchlistElements) {
+    public Portfolio createSummaryTable(boolean onlyOwned, List<WatchlistElement> watchlistElements, boolean hidePrice) {
         Portfolio result = new Portfolio();
         result.columns = List.of(SYMBOL_COL, NAME_COL, DIFFERENCE_COL, OWNED_SHARES, PE, ROIC, FIVE_YR_ROIC, ROE, SHARE_CHANGE, DEBT_TO_EQUITY, ICR, LTL5FCF, ALTMAN, PIETROSKY, RED_FLAGS,
                 GROSS_MARGIN,
@@ -300,7 +306,7 @@ public class PortfolioController {
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
                 portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
-                portfolioElement.put(OWNED_SHARES, watchlistService.formatString(ownedValue));
+                portfolioElement.put(OWNED_SHARES, hidePrice ? HIDDEN_INDICATOR : watchlistService.formatString(ownedValue));
                 portfolioElement.put(PE, isCurrency ? "-" : watchlistService.formatString(latestPriceInReportingCurrency / atGlance.eps));
                 portfolioElement.put(PFCF, watchlistService.formatString(latestPriceInReportingCurrency / atGlance.fcfPerShare));
                 portfolioElement.put(ROIC, formatStringWithThresholdsPercentAsc(atGlance.roic, ROIC_RANGES));
@@ -333,7 +339,7 @@ public class PortfolioController {
 
                 returnsElement.put(SYMBOL_COL, ticker);
                 returnsElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
-                returnsElement.put(OWNED_SHARES, watchlistService.formatString(ownedValue));
+                returnsElement.put(OWNED_SHARES, hidePrice ? HIDDEN_INDICATOR : watchlistService.formatString(ownedValue));
                 returnsElement.put(SYMBOL_RAW, ticker);
 
                 double oneYearReturn = calculateReturnMonthAgo(data, now, 1 * 12);
@@ -526,6 +532,8 @@ public class PortfolioController {
         result.shareChangeChart = convertToPieChartWithoutReverse(shareChangeToInvestment);
         result.piotroskyChart = convertToPieChartWithoutSorting(piotroskyToInvestment);
         result.investmentScoreChart = convertToPieChartWithoutSorting(investmentScoreToInvestment);
+
+        result.hidePrice = hidePrice;
 
         return result;
     }

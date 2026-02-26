@@ -79,7 +79,7 @@ public class SavePortfolioHistoryJob {
             List<PortfolioPerformanceHistoryElement> currentHistory = new ArrayList<>(messageCompresser.uncompressListOf(data.getHistory(), PortfolioPerformanceHistoryElement.class));
 
             if (watchlistElements.size() > 0) {
-                Portfolio result = portfolioController.createSummaryTable(true, watchlistElements);
+                Portfolio result = portfolioController.createSummaryTable(true, watchlistElements, false);
 
                 PortfolioPerformanceHistoryElement toSave = convert(user, result, watchlistElements, currentDate);
 

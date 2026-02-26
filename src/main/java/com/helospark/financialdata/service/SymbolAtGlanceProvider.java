@@ -178,6 +178,34 @@ public class SymbolAtGlanceProvider {
         return symbolCompanyNameCache;
     }
 
+    public Optional<Map<String, AtGlanceData>> loadAtGlanceDataClosestToDate(LocalDate date) {
+        int year = date.getYear();
+        int month = date.getMonthValue();
+
+        int roundedMonth;
+        int roundedYear = year;
+
+        if (month <= 2) {
+            roundedMonth = 1;
+        } else if (month <= 5) {
+            roundedMonth = 4;
+        } else if (month <= 8) {
+            roundedMonth = 7;
+        } else if (month <= 11) {
+            roundedMonth = 10;
+        } else {
+            roundedMonth = 1;
+            roundedYear++;
+        }
+
+        if (roundedYear >= 2026) {
+            roundedYear = 2025;
+            roundedMonth = 10;
+        }
+
+        return loadAtGlanceDataAtYear(roundedYear, roundedMonth);
+    }
+
     public Optional<Map<String, AtGlanceData>> loadAtGlanceDataAtYear(int year, int month) {
         return cache.get(YearMonthPair.of(year, month), y -> DataLoader.loadHistoricalAtGlanceData(year, month));
     }

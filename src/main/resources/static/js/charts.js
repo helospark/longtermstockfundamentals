@@ -567,12 +567,13 @@ createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '
     "label": "R&D to revenue"
   }]
 });
+/*
 createChartInternal("/financials/growth_capex_percent", "CAPEX percent", {unit: '%', label: "Growth CAPEX",  additionalCharts: [
   {
     "url": "/financials/maintenance_capex_percent",
     "label": "Maintenance CAPEX"
   }]
-});
+});*/
 createChartInternal("/financials/acquisitions_per_market_cap", "Acquisitions to marketcap", {unit: '%'});
 createChartInternal("/financials/asset_turnover_ratio", "Asset turnover ratio", {quarterlyEnabled: true}, defaultEnabled=false);
 createChartInternal("/financials/pietrosky_score", "Piotrosky score", {quarterlyEnabled: false, avgEnabled: true});

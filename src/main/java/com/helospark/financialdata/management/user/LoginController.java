@@ -203,6 +203,24 @@ public class LoginController {
         return Optional.ofNullable((DecodedJWT) request.getAttribute(JwtValidatorFilter.JWT_ATTRIBUTE));
     }
 
+    public User findUserOrThrow(HttpServletRequest request) {
+        Optional<DecodedJWT> optionalJwt = getJwt(request);
+
+        if (!optionalJwt.isPresent()) {
+            throw new RuntimeException("Not logged in");
+        }
+
+        Optional<User> optionalUser = userRepository.findByEmail(optionalJwt.get().getSubject());
+
+        if (!optionalUser.isPresent()) {
+            throw new RuntimeException("User already not exists");
+        }
+
+        User user = optionalUser.get();
+
+        return user;
+    }
+
     @ExceptionHandler(value = UserLoginException.class)
     @ResponseStatus(code = HttpStatus.UNAUTHORIZED)
     public LoginErrorResponse onLoginError(UserLoginException exception, HttpServletRequest httpRequest) {

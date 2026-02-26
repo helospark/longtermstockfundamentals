@@ -89,10 +89,17 @@ createdCharts = new Map();
            addPieChart(data.piotroskyChart, "#piotrosky-chart", "Piotrosky", true);
            addPieChart(data.investmentScoreChart, "#investment-score-chart", "Investment score", true);
 
-           $("#total").text("$" + parseInt(data.totalPrice, 10).toLocaleString());
-           $("#total-earnings").text("$" + parseInt(data.totalEarnings, 10).toLocaleString());
+           if (data.hidePrice) {
+             $("#total").text("$****");
+             $("#total-earnings").text("$****");
+             $("#total-fcf").text("$****");
+           } else {
+             $("#total").text("$" + parseInt(data.totalPrice, 10).toLocaleString());
+             $("#total-earnings").text("$" + parseInt(data.totalEarnings, 10).toLocaleString());
+             $("#total-fcf").text("$" + parseInt(data.totalFcf, 10).toLocaleString());
+           }
+           
            $("#total-dividend").text("$" + parseInt(data.dividend, 10).toLocaleString());
-           $("#total-fcf").text("$" + parseInt(data.totalFcf, 10).toLocaleString());
            $("#total-pe").text((data.totalPrice / data.totalEarnings).toFixed(2).toLocaleString());
            $("#total-pfcf").text((data.totalPrice / data.totalFcf).toFixed(2).toLocaleString());
            $("#total-net-assets").text("$" + parseInt(data.totalNetAssets).toLocaleString());

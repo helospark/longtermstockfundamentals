@@ -36,6 +36,7 @@ import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
+import com.helospark.financialdata.service.DrawDownService;
 import com.helospark.financialdata.service.EnterpriseValueCalculator;
 import com.helospark.financialdata.service.EverythingMoneyCalculator;
 import com.helospark.financialdata.service.FedRateProvider;
@@ -752,28 +753,11 @@ public class FinancialsController {
     public List<SimpleDataElement> getDrawDown(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
         List<HistoricalPriceElement> prices = DataLoader.readHistoricalPrice(stock, 500);
 
-        List<SimpleDataElement> result = new ArrayList<>();
+        return convertToSimpleDataElement(DrawDownService.getDrawdownChart(prices));
+    }
 
-        HistoricalPriceElement latestData = prices.get(prices.size() - 1);
-        double maxPrice = latestData.close;
-
-        result.add(new SimpleDataElement(latestData.date.toString(), 100.0));
-
-        for (int i = prices.size() - 2; i >= 0; --i) {
-            double value = prices.get(i).close;
-
-            if (value > maxPrice) {
-                maxPrice = value;
-            }
-
-            double drawDownPercent = (value / maxPrice) * 100.0;
-
-            result.add(new SimpleDataElement(prices.get(i).date.toString(), drawDownPercent));
-        }
-
-        Collections.reverse(result);
-
-        return result;
+    private List<SimpleDataElement> convertToSimpleDataElement(List<SimpleDateDataElement> drawdownChart) {
+        return drawdownChart.stream().map(a -> new SimpleDataElement(a.getDate().toString(), a.value)).collect(Collectors.toList());
     }
 
     @GetMapping("/return_with_reinvested_dividend")
@@ -905,7 +889,7 @@ public class FinancialsController {
 
     @GetMapping("/ev_over_ebitda")
     public List<SimpleDataElement> getEvOverEbitda(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getIncomeData(stock, quarterly, financialsTtm -> EnterpriseValueCalculator.calculateEv(financialsTtm, financialsTtm.price) / financialsTtm.incomeStatementTtm.ebitda);
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> EnterpriseValueCalculator.calculateEv(financialsTtm, price) / financialsTtm.incomeStatementTtm.ebitda);
     }
 
     @GetMapping("/graham_number")

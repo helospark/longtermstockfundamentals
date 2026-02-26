@@ -34,6 +34,7 @@ public class Sp500MetricSaverJob {
         LocalDate currentDate = LocalDate.now();
         Optional<JobLastRunData> result = jobLastRunRepository.readJobLastRanByName(JOB_NAME);
 
+        runJob(currentDate);
         if (result.isEmpty() || jobRanMoreThanAMonthAgo(currentDate, result.get().getDate())) {
             runJob(currentDate);
         }

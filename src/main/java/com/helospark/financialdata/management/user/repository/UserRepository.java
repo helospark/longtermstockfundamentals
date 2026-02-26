@@ -18,6 +18,18 @@ public class UserRepository {
         return Optional.ofNullable(mapper.load(User.class, email));
     }
 
+    public User findByEmailOrThrow(String email) {
+        var optionalUser = findByEmail(email);
+
+        if (!optionalUser.isPresent()) {
+            throw new RuntimeException("User already not exists");
+        }
+
+        User user = optionalUser.get();
+
+        return user;
+    }
+
     public void save(User user) {
         mapper.save(user);
     }
