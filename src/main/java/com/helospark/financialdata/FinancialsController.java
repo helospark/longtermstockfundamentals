@@ -217,13 +217,31 @@ public class FinancialsController {
 
     @GetMapping("/pfcf_ratio")
     public List<SimpleDataElement> getPFcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price / ((double) financialsTtm.cashFlowTtm.freeCashFlow / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> RatioCalculator.calculatePriceToFcfPerShareRatio(price, financialsTtm));
     }
 
     @GetMapping("/pfcf_compensation_adjusted_ratio")
     public List<SimpleDataElement> getCompensationAdjusedPFcfRatio(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
-        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> price
-                / ((double) (financialsTtm.cashFlowTtm.freeCashFlow - financialsTtm.cashFlowTtm.stockBasedCompensation) / financialsTtm.incomeStatementTtm.weightedAverageShsOut));
+        return getPriceIncomeData(stock, quarterly, (price, financialsTtm) -> RatioCalculator.calculatePriceToAdjustedFcfPerShareRatio(price, financialsTtm));
+    }
+
+    @GetMapping("/pfcf_compensation_adjusted")
+    public List<SimpleDataElement> getCompensationAdjusedPFcf(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+        List<SimpleDataElement> result = getIncomeData(company, quarterly,
+                financialsTtm -> (double) (financialsTtm.cashFlowTtm.freeCashFlow - financialsTtm.cashFlowTtm.stockBasedCompensation) / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
+        return result;
+    }
+
+    @GetMapping("/fcf_compensation_adjusted_margin")
+    public List<SimpleDataElement> getCompensationAdjusedFcfMargin(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(
+                (double) (financialsTtm.cashFlowTtm.freeCashFlow - financialsTtm.cashFlowTtm.stockBasedCompensation) / financialsTtm.incomeStatementTtm.revenue));
+    }
+
+    @GetMapping("/total_payout_ratio_fcf_compensation_adjusted")
+    public List<SimpleDataElement> getTotalPayoutRatioFcfCompensationAdjusted(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly) {
+        return getIncomeData(stock, quarterly, financialsTtm -> toPercent(RatioCalculator.calculateTotalPayoutRatioAdjustedFcf(financialsTtm)));
     }
 
     @GetMapping("/pocf_ratio")

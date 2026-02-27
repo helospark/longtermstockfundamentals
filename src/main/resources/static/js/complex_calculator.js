@@ -126,6 +126,7 @@
       var endShareChange = request.endShareChange;
       var discount = request.discount;
       var shareCount = request.shareCount;
+      var startMultiple = request.startMultiple;
       var endMultiple = request.endMultiple;
       var currentPrice = request.currentPrice;
       var startPayoutRatio = request.startPayoutRatio;
@@ -138,6 +139,7 @@
       var margins = [];
       var shareCounts = [];
       var totalPayouts = [];
+      var peRatios = [];
 
       if (!isNaN(revenue) && !isNaN(startGrowth) && !isNaN(endGrowth) && !isNaN(startMargin) && !isNaN(endMargin) && !isNaN(startShareChange) && !isNaN(discount) && !isNaN(endMultiple)) {
          var value = 0.0;
@@ -149,6 +151,7 @@
             currentMargin = startMargin - ((startMargin - endMargin) * i) / (years - 1);
             currentShareChange = startShareChange - ((startShareChange - endShareChange) * i) / (years - 1);
             payoutRatio = startPayoutRatio - ((startPayoutRatio - endPayoutRatio) * i) / (years - 1);
+            multiple = startMultiple - ((startMultiple - endMultiple) * (i + 1)) / (years);
 
             previousRevenue = previousRevenue * currentGrowth;
             previousShareCount = previousShareCount * currentShareChange;
@@ -164,13 +167,12 @@
             margins.push({x: dates[i], y: currentMargin * 100.0});
             shareCounts.push({x: dates[i], y: previousShareCount});
             totalPayouts.push({x: dates[i], y: payoutRatio * 100.0});
+            peRatios.push({x: dates[i], y: multiple});
             epsSum += (eps);
             
             discountedEps = (eps / Math.pow(1.0 + discount, i + 1));
             value += discountedEps;
             
-            
-            //console.log(i + " " + (1.0 + discount) + " " + discount + " " + request.discount);
             
             if (!reverse) {
               $(revInputs[i]).val((previousRevenue / 1000000).toFixed(2));
@@ -188,7 +190,7 @@
          var endPrice = (eps * endMultiple);
          var expectedGrowth = Math.pow(epsSum / currentPrice, (1.0 / years)) - 1.0;
          
-         return [value, marginOfSafety, endPrice, expectedGrowth, epses, revenues, margins, shareCounts, totalPayouts];
+         return [value, marginOfSafety, endPrice, expectedGrowth, epses, revenues, margins, shareCounts, totalPayouts, peRatios];
   }
   
   function reverseDcf(request, originalMarginOfSafety) {
@@ -232,6 +234,7 @@
       request.endShareChange = Number($("#endShareChange").val()) / 100.0 + 1.0;
       request.discount = Number($("#discount").val()) / 100.0;
       request.shareCount = Number($("#shareCount").val()) * 1000;
+      request.startMultiple = Number($("#startMultiple").val());
       request.endMultiple = Number($("#endMultiple").val());
       request.startPayoutRatio = Number($("#startPayout").val()) / 100.0;
       request.endPayoutRatio = Number($("#endPayout").val()) / 100.0;
@@ -244,12 +247,13 @@
       request.years = years;
       
       
-      [value, marginOfSafety, endPrice, expectedGrowth, epses, revenues, margins, shareCounts, totalPayouts] =  forwardDcf(request);
+      [value, marginOfSafety, endPrice, expectedGrowth, epses, revenues, margins, shareCounts, totalPayouts, peRatios] =  forwardDcf(request);
       
       
       expectedGrowth = reverseDcf(request, marginOfSafety);
+      fairPrice = convertFx(value, exchangeRate);
       
-         $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + convertFx(value, exchangeRate).toFixed(2) + "</span>");
+         $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + fairPrice.toFixed(2) + "</span>");
          $("#current_price").html("Current price: " + currencySymbol + currentPriceInTradingCurrency.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
                + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>, expected return: <b>" + (expectedGrowth*100.0).toFixed(2) + "%</b>)");
 
@@ -260,7 +264,10 @@
       calculatorExpectationHistory.eps  = updateListWithCurrentElement(chart, epses).map(point => point.y);
       calculatorExpectationHistory.margin  = updateListWithCurrentElement(marginChart, margins).map(point => point.y);
       calculatorExpectationHistory.shareCount  = updateListWithCurrentElement(shareCountChart, shareCounts).map(point => point.y);
-      
+      calculatorExpectationHistory.peRatios  = updateListWithCurrentElement(peChart, peRatios).map(point => point.y);
+      calculatorExpectationHistory.type = document.getElementById("calculatorType").innerText;
+      calculatorExpectationHistory.multiple = request.endMultiple;
+      calculatorExpectationHistory.value = fairPrice;
       
       $("#calculatorResult").html(JSON.stringify(calculatorExpectationHistory));
 
@@ -277,8 +284,12 @@
       if (shareCountChart !== undefined) {
         updateChart(shareCountChart, shareCounts);
       }
-      if (totalPayouts !== undefined) {
+      console.log("PAYOUT chart: " + totalPayoutChart);
+      if (totalPayoutChart !== undefined) {
         updateChart(totalPayoutChart, totalPayouts);
+      }
+      if (peChart !== undefined) {
+        updateChart(peChart, peRatios);
       }
   }
   
@@ -298,6 +309,7 @@
   var stock = document.getElementById("stock").innerText;
   var stockToLoad = document.getElementById("stockToLoad").innerText;
   var calculatorType = document.getElementById("calculatorType").innerText;
+  var historicalParam = document.getElementById("historical").innerText;
 
 
 
@@ -327,6 +339,9 @@
         updateChart(revChart, createPairedObjects(data.dates, data.revenue), connectToPrevious=false);
         updateChart(marginChart, createPairedObjects(data.dates, data.margin), connectToPrevious=false);
         updateChart(shareCountChart, createPairedObjects(data.dates, data.shareCount), connectToPrevious=false);
+        if (data.peRatios) {
+          updateChart(peChart, createPairedObjects(data.dates, data.peRatios), connectToPrevious=false);
+        }
    }
 
    fetch('/watchlist-expectation-history/' + stock, {
@@ -358,12 +373,25 @@
                   dropdownItemLink.append(deleteButton);
                   newListItem.append(dropdownItemLink);
                   dropdownMenu.append(newListItem);
+                  
+                  if (historicalParam === item.saveDate) {
+                    setTimeout(() => updateHistoricalExpectation(item), 200); // UGLY hack to load the latest
+                  }
           });
           
           $('#expectation-dropdown-menu').on('click', '.dropdown-item', function(event) {
             event.preventDefault();
             const jsonData = JSON.parse($(this).attr('data-json'));
-            updateHistoricalExpectation(jsonData);
+            if (calculatorType === jsonData.type || jsonData.type == null) {
+              updateHistoricalExpectation(jsonData);
+            } else {
+              const currentUrl = new URL(window.location.href);
+
+              currentUrl.searchParams.set('historical', jsonData.saveDate);
+              currentUrl.searchParams.set('type', jsonData.type);
+
+              window.location.href = currentUrl.toString();
+            }
           });
 
           $('.dropdown-menu').on('click', '.delete-button', function(event) {
@@ -428,6 +456,16 @@
          zeroBasedChangeListener: updateCalculation,
          continousTooltipCagr: true,
     });
+  } else if (calculatorType === 'adjusted_fcf') {
+    chart = createChart("/financials/pfcf_compensation_adjusted", "Adjusted FCF / share", {
+      additionalLabelsAtEnd: dates,
+      lazyLoading: false,
+      label: "past",
+      quarterlyEnabled: false,
+      runAfter: updateCalculation,
+      zeroBasedChangeListener: updateCalculation,
+      continousTooltipCagr: true,
+    });
   }
 
     revChart=createChart("/financials/revenue", "Revenue", {
@@ -460,17 +498,64 @@
            lazyLoading: false,
            continousTooltipCagr: true,
       });
-    }
+    } else if (calculatorType === 'adjusted_fcf') {
+        marginChart = createChart("/financials/fcf_compensation_adjusted_margin", "Adj FCF margin", {
+          additionalLabelsAtEnd: dates,
+          label: "past",
+          runAfter: updateCalculation,
+          zeroBasedChangeListener: updateCalculation,
+          quarterlyEnabled: false,
+          lazyLoading: false,
+          continousTooltipCagr: true,
+        });
+      }
     
+     
     shareCountChart = createChart("/financials/share_count", "Share count", {
          additionalLabelsAtEnd: dates,
          label: "past",
          runAfter: updateCalculation,
          zeroBasedChangeListener: updateCalculation,
          quarterlyEnabled: false,
-         lazyLoad: false,
+         lazyLoading: false,
          continousTooltipCagr: true,
      });
+
+
+    if (calculatorType === 'eps') {
+      peChart = createChart("/financials/pe_ratio", "PE ratio", {
+           additionalLabelsAtEnd: dates,
+           label: "past",
+           runAfter: updateCalculation,
+           zeroBasedChangeListener: updateCalculation,
+           quarterlyEnabled: false,
+           lazyLoading: false,
+           continousTooltipCagr: true,
+       });
+     } else if (calculatorType === 'fcf') {
+      peChart = createChart("/financials/pfcf_ratio", "Price to FCF ratio", {
+           additionalLabelsAtEnd: dates,
+           label: "past",
+           runAfter: updateCalculation,
+           zeroBasedChangeListener: updateCalculation,
+           quarterlyEnabled: false,
+           lazyLoading: false,
+           continousTooltipCagr: true,
+       });
+     } else if (calculatorType === 'adjusted_fcf') {
+          peChart = createChart("/financials/pfcf_compensation_adjusted_ratio", "Price to adjusted FCF ratio", {
+            additionalLabelsAtEnd: dates,
+            label: "past",
+            runAfter: updateCalculation,
+            zeroBasedChangeListener: updateCalculation,
+            quarterlyEnabled: false,
+            lazyLoading: false,
+            continousTooltipCagr: true,
+          });
+     }
+
+
+
 
     if (calculatorType === 'eps') {
       totalPayoutChart = createChart("/financials/total_payout_ratio", "Total payout ratio", {
@@ -479,7 +564,7 @@
            runAfter: updateCalculation,
            zeroBasedChangeListener: updateCalculation,
            quarterlyEnabled: false,
-           lazyLoad: false,
+           lazyLoading: false,
            continousTooltipCagr: true,
        });
      } else if (calculatorType === 'fcf') {
@@ -489,24 +574,20 @@
            runAfter: updateCalculation,
            zeroBasedChangeListener: updateCalculation,
            quarterlyEnabled: false,
-           lazyLoad: false,
+           lazyLoading: false,
            continousTooltipCagr: true,
        });
+     } else if (calculatorType === 'adjusted_fcf') {
+          totalPayoutChart = createChart("/financials/total_payout_ratio_fcf_compensation_adjusted", "Total payout ratio", {
+            additionalLabelsAtEnd: dates,
+            label: "past",
+            runAfter: updateCalculation,
+            zeroBasedChangeListener: updateCalculation,
+            quarterlyEnabled: false,
+            lazyLoading: false,
+            continousTooltipCagr: true,
+          });
      }
-     
-    
-    createChart("/financials/revenue_growth_rate_xyr_moving_avg", "Revenue annual growth x year intervals", {
-      type: 'bar',
-      unit: '%',
-      lazyLoading: false,
-      quarterlyEnabled: false,
-      continousTooltipCagr: true,
-      slider: {
-        id: "revenue_growth_rate_xyr_moving_avg_slider",
-        parameterName: "year",
-        min: 1,
-        max: 10,
-        default: 7
-    }});
+
     
     updateCalculation();

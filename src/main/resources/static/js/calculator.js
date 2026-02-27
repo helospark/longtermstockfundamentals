@@ -231,6 +231,7 @@
       calculatorExpectationHistory.shareCount  = shareCounts.map(point => point.y);
       
       
+      
       $("#calculatorResult").html(JSON.stringify(calculatorExpectationHistory));
       
       if (chart !== undefined) {

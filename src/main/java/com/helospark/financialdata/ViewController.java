@@ -4,8 +4,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Currency;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -217,6 +219,51 @@ public class ViewController {
 
     }
 
+    static class CalculatorFunctions {
+        Function<CompanyFinancials, Double> payoutRatio;
+        Function<CompanyFinancials, Double> margin;
+        Function<CompanyFinancials, Double> multiple;
+
+        private CalculatorFunctions(Builder builder) {
+            this.payoutRatio = builder.payoutRatio;
+            this.margin = builder.margin;
+            this.multiple = builder.multiple;
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public static final class Builder {
+            private Function<CompanyFinancials, Double> payoutRatio;
+            private Function<CompanyFinancials, Double> margin;
+            private Function<CompanyFinancials, Double> multiple;
+
+            private Builder() {
+            }
+
+            public Builder withPayoutRatio(Function<CompanyFinancials, Double> payoutRatio) {
+                this.payoutRatio = payoutRatio;
+                return this;
+            }
+
+            public Builder withMargin(Function<CompanyFinancials, Double> margin) {
+                this.margin = margin;
+                return this;
+            }
+
+            public Builder withMultiple(Function<CompanyFinancials, Double> multiple) {
+                this.multiple = multiple;
+                return this;
+            }
+
+            public CalculatorFunctions build() {
+                return new CalculatorFunctions(this);
+            }
+        }
+
+    }
+
     @GetMapping("/calculator/{stock}")
     public String calculator(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes,
             @RequestParam(required = false, name = "startMargin") Double startMarginParam,
@@ -229,17 +276,44 @@ public class ViewController {
             @RequestParam(required = false, name = "endMultiple") Double endMultipleParam,
             @RequestParam(required = false, name = "startPayout") Double startPayoutRatio,
             @RequestParam(required = false, name = "endPayout") Double endPayoutRatio,
-            @RequestParam(required = false, name = "type") String type) {
+            @RequestParam(required = false, name = "type") String type,
+            @RequestParam(required = false, name = "historical") String historical) {
         if (!symbolIndexProvider.doesCompanyExists(stock)) {
             redirectAttributes.addAttribute("generalInfo", "stock_not_found");
             return "redirect:/";
         } else {
             fillModelWithCommonStockData(stock, model, request);
 
-            boolean useEps = (type == null || type.equals("eps"));
+            if (type == null) {
+                type = "eps";
+            }
 
             if (Boolean.TRUE.equals(model.getAttribute("allowed"))) {
                 CompanyFinancials company = DataLoader.readFinancials(stock);
+
+                var tradingCurrency = Optional.ofNullable(company.profile.currency).orElse("");
+                var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
+                LocalDate now = LocalDate.now();
+                double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
+                double latestPriceFinal = DataLoader.convertFx(latestPriceInTradingCurrency, tradingCurrency, reportedCurrency, now, true).orElse(latestPriceInTradingCurrency);
+
+                Map<String, CalculatorFunctions> calculatorFunctions = Map.of(
+                        "eps", CalculatorFunctions.builder()
+                                .withMargin(company2 -> MarginCalculator.getAvgNetMargin(company2.financials, 0))
+                                .withPayoutRatio(company2 -> RatioCalculator.calculateTotalPayoutRatioAvg(company2.financials, 2))
+                                .withMultiple(company2 -> RatioCalculator.calculatePriceToEarningsRatio(latestPriceFinal, company2.financials.get(0)))
+                                .build(),
+                        "fcf", CalculatorFunctions.builder()
+                                .withMargin(company2 -> MarginCalculator.getAvgFcfMargin(company2.financials, 0))
+                                .withPayoutRatio(company2 -> RatioCalculator.calculateTotalPayoutRatioAvgFcf(company2.financials, 2))
+                                .withMultiple(company2 -> RatioCalculator.calculatePriceToFcfPerShareRatio(latestPriceFinal, company2.financials.get(0)))
+                                .build(),
+                        "adjusted_fcf", CalculatorFunctions.builder()
+                                .withMargin(company2 -> MarginCalculator.getAvgAdjustedFcfMargin(company2.financials, 0))
+                                .withPayoutRatio(company2 -> RatioCalculator.calculateTotalPayoutRatioAvgAdjustedFcf(company2.financials, 2))
+                                .withMultiple(company2 -> RatioCalculator.calculatePriceToAdjustedFcfPerShareRatio(latestPriceFinal, company2.financials.get(0)))
+                                .build());
+
                 if (company.financials.size() > 0) {
                     Double startGrowth = startGrowthParam;
                     if (startGrowth == null) {
@@ -247,8 +321,7 @@ public class ViewController {
                     }
                     Double startMargin = startMarginParam;
                     if (startMargin == null) {
-                        startMargin = useEps ? MarginCalculator.getAvgNetMargin(company.financials, 0) : MarginCalculator.getAvgFcfMargin(company.financials, 0);
-                        startMargin *= 100.0;
+                        startMargin = calculatorFunctions.get(type).margin.apply(company) * 100.0;
                     }
 
                     Double startShareCountGrowth = startShareChangeParam;
@@ -262,6 +335,7 @@ public class ViewController {
                         endShareCountGrowth = startShareCountGrowth;
                     }
 
+                    Double startMultiple = calculatorFunctions.get(type).multiple.apply(company);
                     Double endMultiple = endMultipleParam;
                     if (endMultiple == null) {
                         endMultiple = 12.0;
@@ -277,8 +351,8 @@ public class ViewController {
 
                     Double startPayoutRatioResult = startPayoutRatio;
                     if (startPayoutRatioResult == null) {
-                        startPayoutRatioResult = (useEps ? RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) : RatioCalculator.calculateTotalPayoutRatioAvgFcf(company.financials, 2))
-                                * 100.0;
+                        startPayoutRatioResult = calculatorFunctions.get(type).payoutRatio.apply(company) * 100.0;
+
                         if (startPayoutRatioResult <= 80.0) {
                             startPayoutRatioResult = 100.0;
                         }
@@ -297,17 +371,16 @@ public class ViewController {
                     model.addAttribute("endMargin", String.format("%.2f", endMargin));
                     model.addAttribute("shareChange", String.format("%.2f", startShareCountGrowth));
                     model.addAttribute("endShareChange", String.format("%.2f", endShareCountGrowth));
+                    model.addAttribute("startMultiple", String.format("%.0f", startMultiple));
                     model.addAttribute("endMultiple", String.format("%.0f", endMultiple));
                     model.addAttribute("discount", String.format("%.0f", discount));
                     model.addAttribute("startPayout", String.format("%.0f", startPayoutRatioResult));
                     model.addAttribute("endPayout", String.format("%.0f", endPayoutRatioResult));
-                    model.addAttribute("calculatorType", useEps ? "eps" : "fcf");
-                    var tradingCurrency = Optional.ofNullable(company.profile.currency).orElse("");
-                    var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
+                    model.addAttribute("calculatorType", type);
+                    model.addAttribute("historical", historical);
                     if (tradingCurrency.equals(reportedCurrency)) {
                         model.addAttribute("reportingCurrencyToTradingCurrencyRate", 1.0);
                     } else {
-                        LocalDate now = LocalDate.now();
                         Optional<Double> exchangeRate = DataLoader.convertFx(1.0, reportedCurrency, tradingCurrency, now, true);
                         if (!exchangeRate.isPresent()) {
                             LOGGER.error("Cannot convert exchange rates {}->{} at date {}", reportedCurrency, tradingCurrency, now);
@@ -315,8 +388,6 @@ public class ViewController {
                         model.addAttribute("reportingCurrencyToTradingCurrencyRate", exchangeRate.orElse(1.0));
                     }
                 }
-
-                double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
 
                 if (company.profile.currency.equals("GBp")) {
                     latestPriceInTradingCurrency /= 100.0;
@@ -343,111 +414,6 @@ public class ViewController {
             return "complex_calculator";
         }
     }
-
-    /*
-    @GetMapping("/complex_calculator/{stock}")
-    public String complexCalculator(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes,
-            @RequestParam(required = false, name = "startMargin") Double startMarginParam,
-            @RequestParam(required = false, name = "endMargin") Double endMarginParam,
-            @RequestParam(required = false, name = "startGrowth") Double startGrowthParam,
-            @RequestParam(required = false, name = "endGrowth") Double endGrowthParam,
-            @RequestParam(required = false, name = "startShareChange") Double startShareChangeParam,
-            @RequestParam(required = false, name = "endShareChange") Double endShareChangeParam,
-            @RequestParam(required = false, name = "discount") Double discountParam,
-            @RequestParam(required = false, name = "endMultiple") Double endMultipleParam,
-            @RequestParam(required = false, name = "startPayout") Double startPayoutRatio,
-            @RequestParam(required = false, name = "endPayout") Double endPayoutRatio) {
-        if (!symbolIndexProvider.doesCompanyExists(stock)) {
-            redirectAttributes.addAttribute("generalInfo", "stock_not_found");
-            return "redirect:/";
-        } else {
-            fillModelWithCommonStockData(stock, model, request);
-    
-            if (Boolean.TRUE.equals(model.getAttribute("allowed"))) {
-                CompanyFinancials company = DataLoader.readFinancials(stock);
-                if (company.financials.size() > 0) {
-                    Double startGrowth = startGrowthParam;
-                    if (startGrowth == null) {
-                        startGrowth = GrowthCalculator.getMedianRevenueGrowth(company.financials, 8, 0.0).orElse(10.0);
-                    }
-                    Double startMargin = startMarginParam;
-                    if (startMargin == null) {
-                        startMargin = MarginCalculator.getAvgNetMargin(company.financials, 0) * 100.0;
-                    }
-    
-                    Double startShareCountGrowth = startShareChangeParam;
-                    if (startShareCountGrowth == null) {
-                        startShareCountGrowth = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 5, 0).orElse(0.0);
-                    }
-                    double endGrowth = nonNullOf(endGrowthParam, startGrowth * 0.5);
-    
-                    Double startPayoutRatioResult = startPayoutRatio;
-                    if (startPayoutRatioResult == null) {
-                        startPayoutRatioResult = RatioCalculator.calculateTotalPayoutRatioAvg(company.financials, 2) * 100.0;
-                        if (startPayoutRatioResult <= 10.0) {
-                            startPayoutRatioResult = 10.0;
-                        }
-                        if (startPayoutRatioResult >= 100.0) {
-                            startPayoutRatioResult = 100.0;
-                        }
-                    }
-                    double endPayoutRatioResult = nonNullOf(endPayoutRatio, startShareCountGrowth);
-    
-                    Double endShareCountGrowth = endShareChangeParam;
-                    if (endShareCountGrowth == null) {
-                        endShareCountGrowth = startShareCountGrowth;
-                    }
-    
-                    Double endMultiple = endMultipleParam;
-                    if (endMultiple == null) {
-                        endMultiple = 12.0;
-                        if (endGrowth > 12) {
-                            endMultiple = endGrowth;
-                        }
-                        if (endMultiple > 24) {
-                            endMultiple = 24.0;
-                        }
-                    }
-                    Double endMargin = nonNullOf(endMarginParam, startMargin);
-                    Double discount = nonNullOf(discountParam, 10.0);
-    
-                    model.addAttribute("revenue", (double) company.financials.get(0).incomeStatementTtm.revenue / 1_000_000);
-                    model.addAttribute("shareCount", company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / 1000);
-    
-                    model.addAttribute("startGrowth", String.format("%.2f", startGrowth));
-                    model.addAttribute("endGrowth", String.format("%.2f", endGrowth));
-                    model.addAttribute("startMargin", String.format("%.2f", startMargin));
-                    model.addAttribute("endMargin", String.format("%.2f", endMargin));
-                    model.addAttribute("shareChange", String.format("%.2f", startShareCountGrowth));
-                    model.addAttribute("endShareChange", String.format("%.2f", endShareCountGrowth));
-                    model.addAttribute("endMultiple", String.format("%.0f", endMultiple));
-                    model.addAttribute("discount", String.format("%.0f", discount));
-                    model.addAttribute("startPayout", String.format("%.0f", startPayoutRatioResult));
-                    model.addAttribute("endPayout", String.format("%.0f", endPayoutRatioResult));
-                    var tradingCurrency = Optional.ofNullable(company.profile.currency).orElse("");
-                    var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
-                    if (tradingCurrency.equals(reportedCurrency)) {
-                        model.addAttribute("reportingCurrencyToTradingCurrencyRate", 1.0);
-                    } else {
-                        LocalDate now = LocalDate.now();
-                        Optional<Double> exchangeRate = DataLoader.convertFx(1.0, reportedCurrency, tradingCurrency, now, true);
-                        if (!exchangeRate.isPresent()) {
-                            LOGGER.error("Cannot convert exchange rates {}->{} at date {}", reportedCurrency, tradingCurrency, now);
-                        }
-                        model.addAttribute("reportingCurrencyToTradingCurrencyRate", exchangeRate.orElse(1.0));
-                    }
-                }
-    
-                double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
-                Optional<Double> priceInReportCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, company.profile.currency, company.profile.reportedCurrency, LocalDate.now(), false);
-                model.addAttribute("latestPrice", priceInReportCurrency.orElse(company.latestPrice));
-                model.addAttribute("latestPriceTradingCurrency", latestPriceInTradingCurrency);
-                model.addAttribute("tradingCurrencySymbol", getCurrencySymbol(company.profile.currency));
-            }
-    
-            return "complex_calculator";
-        }
-    }*/
 
     public static String getCurrencySymbol(String currencyName) {
         try {

@@ -2,6 +2,8 @@ package com.helospark.financialdata.management.watchlist.domain;
 
 import java.util.List;
 
+import org.hibernate.validator.constraints.Length;
+
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
@@ -23,6 +25,15 @@ public class AddToWatchlistExpectationHistoryRequest {
     @NotEmpty
     @NotNull
     public List<Double> shareCount;
+    @NotEmpty
+    @NotNull
+    public List<Double> peRatios;
+    @NotEmpty
+    @NotNull
+    @Length(min = 0, max = 20)
+    public String type;
+    public double value;
+    public double multiple;
 
     @Override
     public String toString() {

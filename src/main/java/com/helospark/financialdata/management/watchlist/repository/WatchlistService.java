@@ -443,6 +443,10 @@ public class WatchlistService {
         elementToUpdate.revenue = request.revenue;
         elementToUpdate.margin = request.margin;
         elementToUpdate.shareCount = request.shareCount;
+        elementToUpdate.peRatios = request.peRatios;
+        elementToUpdate.type = request.type;
+        elementToUpdate.value = request.value;
+        elementToUpdate.multiple = request.multiple;
 
         elements.add(elementToUpdate);
 

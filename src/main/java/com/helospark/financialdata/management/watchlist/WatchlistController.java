@@ -110,7 +110,7 @@ public class WatchlistController {
             throw new WatchlistBadRequestException("Cannot own less than 0 shares");
         }
         if (request.calculatorParameters != null && request.calculatorParameters.type != null
-                && !(request.calculatorParameters.type.equals("eps") || request.calculatorParameters.type.equals("fcf"))) {
+                && !(request.calculatorParameters.type.equals("eps") || request.calculatorParameters.type.equals("fcf") || request.calculatorParameters.type.equals("adjusted_fcf"))) {
             throw new WatchlistBadRequestException("Invalid calculator type");
         }
 
@@ -154,6 +154,9 @@ public class WatchlistController {
             throw new WatchlistBadRequestException("Maximum of 10 element supported");
         }
         if (request.dates.size() > 11) {
+            throw new WatchlistBadRequestException("Maximum of 10 element supported");
+        }
+        if (request.peRatios.size() > 11) {
             throw new WatchlistBadRequestException("Maximum of 10 element supported");
         }
         for (var element : request.dates) {

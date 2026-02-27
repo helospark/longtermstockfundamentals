@@ -341,8 +341,6 @@
         } else {
           calculatorResult = $("#calculatorResult").html();
           
-          console.log("asd: " + calculatorResult);
-          
           if (calculatorResult) {
             fetch('/watchlist-expectation-history', {
               method: 'POST',
