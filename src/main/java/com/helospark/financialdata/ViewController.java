@@ -104,6 +104,20 @@ public class ViewController {
         return "portfolio";
     }
 
+    @GetMapping("/extended-history")
+    public String extendedHistory(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request,
+            @RequestParam(defaultValue = "true", name = "onlyOwned", required = false) boolean onlyOwned) {
+        Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
+
+        if (!jwtOptional.isPresent()) {
+            model.addAttribute("accountType", "NOT_LOGGED_IN");
+            model.addAttribute("allowed", false);
+        }
+        model.addAttribute("stock", stock);
+
+        return "extended-history";
+    }
+
     @GetMapping("/portfolio-compare")
     public String portfolioCompare(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request) {
         Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);

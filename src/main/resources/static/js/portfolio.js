@@ -91,17 +91,19 @@ createdCharts = new Map();
 
            if (data.hidePrice) {
              $("#total").text("$****");
-             $("#total-earnings").text("$****");
-             $("#total-fcf").text("$****");
+            // $("#total-earnings").text("$****");
+            // $("#total-fcf").text("$****");
+             $("#total-pe").text("*****");
+             $("#total-pfcf").text("*****");
            } else {
              $("#total").text("$" + parseInt(data.totalPrice, 10).toLocaleString());
-             $("#total-earnings").text("$" + parseInt(data.totalEarnings, 10).toLocaleString());
-             $("#total-fcf").text("$" + parseInt(data.totalFcf, 10).toLocaleString());
+             $("#total-pe").text((data.totalPrice / data.totalEarnings).toFixed(2).toLocaleString());
+             $("#total-pfcf").text((data.totalPrice / data.totalFcf).toFixed(2).toLocaleString());
            }
-           
+
+           $("#total-earnings").text("$" + parseInt(data.totalEarnings, 10).toLocaleString());
+           $("#total-fcf").text("$" + parseInt(data.totalFcf, 10).toLocaleString());
            $("#total-dividend").text("$" + parseInt(data.dividend, 10).toLocaleString());
-           $("#total-pe").text((data.totalPrice / data.totalEarnings).toFixed(2).toLocaleString());
-           $("#total-pfcf").text((data.totalPrice / data.totalFcf).toFixed(2).toLocaleString());
            $("#total-net-assets").text("$" + parseInt(data.totalNetAssets).toLocaleString());
            $("#stock-count").text(parseInt(data.numberOfStocks).toLocaleString());
            
@@ -115,15 +117,16 @@ createdCharts = new Map();
            $("#total-d2e").text(data.totalDebtToEquity.toFixed(2).toLocaleString());
            $("#total-is").text(data.investmentScore.toFixed(2).toLocaleString());
            
-           
-           $("#one-year-returns").text(data.oneYearReturn.toFixed(2).toLocaleString() + "%");
-           $("#two-year-returns").text(data.twoYearReturn.toFixed(2).toLocaleString() + "%");
-           $("#three-year-returns").text(data.threeYearReturn.toFixed(2).toLocaleString() + "%");
-           $("#five-year-returns").text(data.fiveYearReturn.toFixed(2).toLocaleString() + "%");
-           $("#ten-year-returns").text(data.tenYearReturn.toFixed(2).toLocaleString() + "%");
-           $("#fifteen-year-returns").text(data.fifteenYearReturn.toFixed(2).toLocaleString() + "%");
-           $("#twenty-year-returns").text(data.twentyYearReturn.toFixed(2).toLocaleString() + "%");
-           $("#expected-returns").text(data.expectedTenYrReturn.toFixed(2).toLocaleString() + "%");
+           if (!data.hidePrice) {
+             $("#one-year-returns").text(data.oneYearReturn.toFixed(2).toLocaleString() + "%");
+             $("#two-year-returns").text(data.twoYearReturn.toFixed(2).toLocaleString() + "%");
+             $("#three-year-returns").text(data.threeYearReturn.toFixed(2).toLocaleString() + "%");
+             $("#five-year-returns").text(data.fiveYearReturn.toFixed(2).toLocaleString() + "%");
+             $("#ten-year-returns").text(data.tenYearReturn.toFixed(2).toLocaleString() + "%");
+             $("#fifteen-year-returns").text(data.fifteenYearReturn.toFixed(2).toLocaleString() + "%");
+             $("#twenty-year-returns").text(data.twentyYearReturn.toFixed(2).toLocaleString() + "%");
+             $("#expected-returns").text(data.expectedTenYrReturn.toFixed(2).toLocaleString() + "%");
+           }
            
            
            
@@ -180,6 +183,10 @@ createdCharts = new Map();
                  quarterlyEnabled: false,
                  addStockPrefix: false
                 });
+            /*createChart("/historical-performance/pe-ratio", "PE ratio", {
+                 quarterlyEnabled: false,
+                 addStockPrefix: false
+                });*/
             createChart("/historical-performance/total", "Total", {
                  quarterlyEnabled: false,
                  addStockPrefix: false,

@@ -283,6 +283,11 @@ public class DataLoader {
                     element.weightedAverageShsOut = 2_345_125_000L;
                     element.weightedAverageShsOutDil = 2_415_250_000L;
                 }
+
+                if (element.getDate().equals(LocalDate.of(2026, 3, 31))) {
+                    element.revenue = 243_380_000_000L;
+                    element.netIncome = 23_502_000_000L;
+                }
             }
         }
         if (symbol.equals("BIDU")) {
@@ -532,7 +537,7 @@ public class DataLoader {
             }
         }
 
-        if (profile.currency == null && symbol.endsWith(".BD")) {
+        if ((profile.currency == null || profile.currency.isBlank()) && symbol.endsWith(".BD")) {
             profile.currency = "HUF";
             profile.currencySymbol = Currency.getInstance("HUF").getSymbol();
         }

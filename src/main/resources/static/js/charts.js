@@ -133,34 +133,6 @@ function addFlags() {
 }
 
 
-function createSeparator(title) {
-  var hrElement =document.createElement("hr");
-  var hone = document.createElement("h3");
-  
-  hone.innerHTML = title;
-  
-  var element = document.getElementById("charts");
-  
-  children=Array.from(element.children);
-  
-  if (children.length > 1) {
-    element.appendChild(hrElement);
-  }
-  element.appendChild(hone);
-  
-  
-  dropDown = $("#chart-dropdown");
-  dropDownElements = $("#chart-dropdown li");
-  if (dropDown.length > 0) {
-    if (dropDownElements.length > 0) {
-      dropDown.append("<div class=\"dropdown-divider\"></div>");
-    }
-    dropDown.append("<div class=\"dropdown-header\">" + title + "</div>");
-  }
-  
-  
-}
-
 
 allCharts=[]
 

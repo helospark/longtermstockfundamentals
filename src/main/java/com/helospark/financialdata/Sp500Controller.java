@@ -35,7 +35,7 @@ import com.helospark.financialdata.service.StandardAndPoorPerformanceProvider;
 import com.helospark.financialdata.util.spconstituents.GeneralCompanyMetrics;
 import com.helospark.financialdata.util.spconstituents.Sp500ConstituentsProvider;
 import com.helospark.financialdata.util.spconstituents.Sp500MetricCalculator;
-import com.helospark.financialdata.util.spconstituents.Sp500WeightedConstituent;
+import com.helospark.financialdata.util.spconstituents.WeightedConstituent;
 
 @RestController
 @RequestMapping("/sp500/data")
@@ -385,7 +385,7 @@ public class Sp500Controller {
     }
 
     @GetMapping("/getconst")
-    public List<Sp500WeightedConstituent> getConstituents() {
+    public List<WeightedConstituent> getConstituents() {
         return constituentsProvider.getConstituents();
     }
 

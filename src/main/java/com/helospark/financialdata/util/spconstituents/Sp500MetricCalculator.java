@@ -34,7 +34,7 @@ public class Sp500MetricCalculator {
     private SymbolAtGlanceProvider symbolIndexProvider;
 
     public GeneralCompanyMetrics calculateMetrics() {
-        List<Sp500WeightedConstituent> constituents = constituentsProvider.getConstituents();
+        List<WeightedConstituent> constituents = constituentsProvider.getConstituents();
 
         Map<String, CompanyFinancials> localCache = new HashMap<>();
         for (var cons : constituents) {
@@ -85,7 +85,7 @@ public class Sp500MetricCalculator {
         return result;
     }
 
-    public FinancialsTtm convertToTtm(List<Sp500WeightedConstituent> constituents, Map<String, CompanyFinancials> localCache, int index) {
+    public FinancialsTtm convertToTtm(List<WeightedConstituent> constituents, Map<String, CompanyFinancials> localCache, int index) {
         Map<String, Double> mergedIncomeStatementData = new HashMap<>();
         Map<String, Double> mergedBalanceSheetData = new HashMap<>();
         Map<String, Double> mergedCashflowStatementData = new HashMap<>();
@@ -161,7 +161,7 @@ public class Sp500MetricCalculator {
         }
     }
 
-    public void calculateFor(Map<String, Double> mergedData, Sp500WeightedConstituent cons, Object incomeStatement) {
+    public void calculateFor(Map<String, Double> mergedData, WeightedConstituent cons, Object incomeStatement) {
         try {
             for (var field : incomeStatement.getClass().getDeclaredFields()) {
                 String name = field.getName();
