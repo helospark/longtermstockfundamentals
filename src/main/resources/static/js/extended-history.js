@@ -4,7 +4,7 @@ function createExtendedHistoryCharts() {
   if (document.getElementById("charts") !== null) {
        $( '<button id="change_cash_button" type="button" class="main_bt btn btn-primary" onclick="changeCash()" style="float:right;margin-right:20px;">+ Cash</button>' ).insertAfter( $( "#DataTables_Table_0_filter" ) );
   
-  /*createSeparator("Ratios");
+  createSeparator("Ratios");
   
       createChart("/historical-performance/pe-ratio", "PE ratio", {
            quarterlyEnabled: false,
@@ -13,7 +13,7 @@ function createExtendedHistoryCharts() {
       createChart("/historical-performance/pfcf-ratio", "PFCF ratio", {
            quarterlyEnabled: false,
            addStockPrefix: false
-          });*/
+          });
            
   createSeparator("Results");
               
@@ -165,6 +165,11 @@ function createExtendedHistoryCharts() {
           createChart("/historical-performance/dividends", "Dividends", {
                quarterlyEnabled: false,
                addStockPrefix: false
+              });
+          createChart("/historical-performance/shareholder-yield", "Shareholder returns (dividends + buyback)", {
+               quarterlyEnabled: false,
+               addStockPrefix: false,
+               unit: '$'
               });
           createChart("/historical-performance/stock-based-compensation-per-fcf", "Stock based compensation per FCF", {
            quarterlyEnabled: false,

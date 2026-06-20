@@ -1239,32 +1239,32 @@ public class FinancialsController {
 
     @GetMapping("/pe_vs_growth_bubble")
     public ThreeDChart getPeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunctionIncludeNonNegative(stock, years, "PE", s -> getPeRatio(s, false));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "%.2f PE -> %.2f CAGR %%", s -> getPeRatio(s, false));
     }
 
     @GetMapping("/cape_vs_growth_bubble")
     public ThreeDChart getCapeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunctionIncludeNonNegative(stock, years, "CAPE", s -> getCapeRatio(s));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "%.2f CAPE -> %.2f CAGR %%", s -> getCapeRatio(s));
     }
 
     @GetMapping("/pfcf_vs_growth_bubble")
     public ThreeDChart getPfcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunctionIncludeNonNegative(stock, years, "price / FCF", s -> getPFcfRatio(s, false));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "%.2f Price / FCF -> %.2f CAGR %%", s -> getPFcfRatio(s, false));
     }
 
     @GetMapping("/pocf_vs_growth_bubble")
     public ThreeDChart getOcfVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunctionIncludeNonNegative(stock, years, "price / OCF", s -> getPOcfRatio(s, false));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "%.2f price / OCF-> %.2f CAGR %%", s -> getPOcfRatio(s, false));
     }
 
     @GetMapping("/pbook_vs_growth_bubble")
     public ThreeDChart getBookVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunctionIncludeNonNegative(stock, years, "price / book", s -> getP2BValue(s, false));
+        return getBubbleWithFunctionIncludeNonNegative(stock, years, "%.2f price / book -> %.2f CAGR %%", s -> getP2BValue(s, false));
     }
 
     @GetMapping("/peg_vs_growth_bubble")
     public ThreeDChart getPegVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
-        return getBubbleWithFunctionIncludeNegative(stock, years, "PEG", s -> getTrailingPeg(s, false));
+        return getBubbleWithFunctionIncludeNegative(stock, years, "%.2f PEG -> %.2f CAGR %%", s -> getTrailingPeg(s, false));
     }
 
     @GetMapping("/growth_vs_returns_bubble")
@@ -1275,34 +1275,58 @@ public class FinancialsController {
         });
     }
 
-    public ThreeDChart getBubbleWithFunctionIncludeNegative(String stock, int years, String type, Function<String, List<SimpleDataElement>> func) {
-        return getBubbleWithFunctionInternal(stock, years, type, true, func);
+    @GetMapping("/pe_vs_buyback_bubble")
+    public ThreeDChart getPeVsBuyback(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithYWithFunctionInternal(stock, years, "%.2f PE -> %.2f buyback %%", false, s -> getPeRatio(s, false), (stock2, years2) -> getBuybackPerOCF(stock2, false));
     }
 
-    public ThreeDChart getBubbleWithFunctionIncludeNonNegative(String stock, int years, String type, Function<String, List<SimpleDataElement>> func) {
-        return getBubbleWithFunctionInternal(stock, years, type, false, func);
+    @GetMapping("/pfcf_vs_buyback_bubble")
+    public ThreeDChart getPfcfVsBuyback(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithYWithFunctionInternal(stock, years, "%.2f PE -> %.2f buyback %%", false, s -> getPFcfRatio(s, false), (stock2, years2) -> getBuybackPerOCF(stock2, false));
     }
 
-    public ThreeDChart getBubbleWithFunctionInternal(String stock, int years, String type, boolean includeNegative, Function<String, List<SimpleDataElement>> func) {
-        List<SimpleDataElement> timechart = getXyrPriceGrowthRateMovingAvgTrailing(stock, years);
-        List<SimpleDataElement> peTimechart = func.apply(stock);
+    @GetMapping("/book_vs_buyback_bubble")
+    public ThreeDChart getBookVsBuyback(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithYWithFunctionInternal(stock, years, "%.2f PE -> %.2f buyback %%", false, s -> getP2BValue(s, false), (stock2, years2) -> getBuybackPerOCF(stock2, false));
+    }
+
+    @GetMapping("/investmentscore_vs_returns_bubble")
+    public ThreeDChart getInvestmentScoreVsReturnsBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years) throws IOException {
+        return getBubbleWithFunctionIncludeNegative(stock, years, "%.2f PEG -> %.2f CAGR %%", s -> getInvestScore(s));
+    }
+
+    public ThreeDChart getBubbleWithFunctionIncludeNegative(String stock, int years, String format, Function<String, List<SimpleDataElement>> func) {
+        return getBubbleWithFunctionInternal(stock, years, format, true, func);
+    }
+
+    public ThreeDChart getBubbleWithFunctionIncludeNonNegative(String stock, int years, String format, Function<String, List<SimpleDataElement>> func) {
+        return getBubbleWithFunctionInternal(stock, years, format, false, func);
+    }
+
+    public ThreeDChart getBubbleWithFunctionInternal(String stock, int years, String format, boolean includeNegative, Function<String, List<SimpleDataElement>> func) {
+        return getBubbleWithYWithFunctionInternal(stock, years, format, includeNegative, func, (stock2, years2) -> getXyrPriceGrowthRateMovingAvgTrailing(stock2, years2));
+    }
+
+    public ThreeDChart getBubbleWithYWithFunctionInternal(String stock, int years, String format, boolean includeNegative, Function<String, List<SimpleDataElement>> xFunc, BiFunction<String, Integer, List<SimpleDataElement>> yFunc) {
+        List<SimpleDataElement> yChart = yFunc.apply(stock, years);
+        List<SimpleDataElement> xChart = xFunc.apply(stock);
 
         List<ThreeDDataElement> result = new ArrayList<>();
 
-        for (int i = 0; i < timechart.size(); ++i) {
-            Double xYrReturn = timechart.get(i).value;
-            String date = timechart.get(i).date;
-            Double peRatio = peTimechart.stream().filter(a -> a.date.equals(date) && a.value != null).map(a -> a.value).findFirst().orElse(null);
-            if (peRatio != null && xYrReturn != null && (includeNegative || peRatio > 0) && i < peTimechart.size()) {
-                result.add(new ThreeDDataElement(peRatio, xYrReturn, 10, peTimechart.get(i).date + ": " + String.format("%.2f %s -> %.2f CAGR", peRatio, type, xYrReturn) + "%"));
+        for (int i = 0; i < yChart.size(); ++i) {
+            Double y = yChart.get(i).value;
+            String date = yChart.get(i).date;
+            Double x = xChart.stream().filter(a -> a.date.equals(date) && a.value != null).map(a -> a.value).findFirst().orElse(null);
+            if (y != null && x != null && (includeNegative || x > 0) && i < xChart.size()) {
+                result.add(new ThreeDDataElement(x, y, 10, xChart.get(i).date + ": " + String.format(format, x, y)));
             }
         }
 
         result = removeOutliers(result, 3.5);
 
         ChartAnnotation annotation;
-        if (peTimechart.size() > 0) {
-            SimpleDataElement latestData = peTimechart.get(0);
+        if (xChart.size() > 0) {
+            SimpleDataElement latestData = xChart.get(0);
             if (latestData.value != null) {
                 annotation = new ChartAnnotation(List.of(new ChartAnnotation.ChartLine(latestData.value, "Current value")));
             } else {

@@ -155,7 +155,7 @@ public class HistorcalPerformanceController {
 
     @GetMapping("/roa")
     public List<SimpleDataElement> getRoa(HttpServletRequest request, HttpServletResponse response) {
-        return mapExtendedChartElement(request, a -> a.roe);
+        return mapExtendedChartElement(request, a -> a.roa);
     }
 
     @GetMapping("/fcf-roic")
@@ -232,6 +232,11 @@ public class HistorcalPerformanceController {
     @GetMapping("/dividends")
     public List<SimpleDataElement> getDividends(HttpServletRequest request, HttpServletResponse response) {
         return mapExtendedChartElement(request, a -> -a.dividends);
+    }
+
+    @GetMapping("/shareholder-yield")
+    public List<SimpleDataElement> getShareholderYield(HttpServletRequest request, HttpServletResponse response) {
+        return mapExtendedChartElement(request, a -> a.shareholderYield);
     }
 
     @GetMapping("/pietrosky")
@@ -373,8 +378,6 @@ public class HistorcalPerformanceController {
                         totalFCF4YrsAgo += DataLoader.convertFx(fcfAmountThen, data.profile.reportedCurrency, "USD", date, false).orElse(0.0);
                         totalEPSNow += DataLoader.convertFx(epsAmountNow, data.profile.reportedCurrency, "USD", date, false).orElse(0.0);
                         totalFCFNow += DataLoader.convertFx(fcfAmountNow, data.profile.reportedCurrency, "USD", date, false).orElse(0.0);
-
-                        System.out.println(date + " " + stock + " " + fcfAmountThen + " " + fcfAmountNow);
                     }
                     totalRevenueOwned += DataLoader.convertFx((financialTtm.incomeStatementTtm.revenue / financialTtm.incomeStatementTtm.weightedAverageShsOut) * owned, data.profile.reportedCurrency, "USD", date, false).orElse(0.0);
                     investmentScoreSum += InvestmentScoreCalculator.calculate(data, offsetYear).orElse(0.0) * ownedValue;
@@ -399,17 +402,17 @@ public class HistorcalPerformanceController {
             currentExtendedElement.operatingCashFlow = entity.cashFlowTtm.operatingCashFlow;
 
             currentExtendedElement.altman = totalAltman / totalExCash;
-            currentExtendedElement.d2e = RatioCalculator.calculateDebtToEquityRatio(mergedEntities.get(historicalIndex));
+            currentExtendedElement.d2e = RatioCalculator.calculateDebtToEquityRatio(entity);
             currentExtendedElement.pietrosky = pietroskyTotal / totalExCash;
             currentExtendedElement.investmentScore = investmentScoreSum / totalExCash;
             currentExtendedElement.totalAssets = entity.balanceSheet.totalAssets;
             currentExtendedElement.totalLiabilities = entity.balanceSheet.totalLiabilities;
             currentExtendedElement.totalDebt = entity.balanceSheet.totalDebt;
 
-            currentExtendedElement.roic = RoicCalculator.calculateRoic(mergedEntities.get(historicalIndex)) * 100.0;
-            currentExtendedElement.roe = RoicCalculator.calculateROE(mergedEntities.get(historicalIndex)) * 100.0;
-            currentExtendedElement.roa = RoicCalculator.calculateROA(mergedEntities.get(historicalIndex)) * 100.0;
-            currentExtendedElement.fcfRoic = RoicCalculator.calculateFcfRoic(mergedEntities.get(historicalIndex)) * 100.0;
+            currentExtendedElement.roic = RoicCalculator.calculateRoic(entity) * 100.0;
+            currentExtendedElement.roe = RoicCalculator.calculateROE(entity) * 100.0;
+            currentExtendedElement.roa = RoicCalculator.calculateROA(entity) * 100.0;
+            currentExtendedElement.fcfRoic = RoicCalculator.calculateFcfRoic(entity) * 100.0;
 
             currentExtendedElement.opMargin = (double) entity.incomeStatementTtm.operatingIncome / entity.incomeStatementTtm.revenue * 100.0;
             currentExtendedElement.grossMargin = (double) entity.incomeStatementTtm.grossProfit / entity.incomeStatementTtm.revenue * 100.0;
@@ -425,6 +428,7 @@ public class HistorcalPerformanceController {
             // -- end of usage
 
             currentExtendedElement.dividends = entity.cashFlowTtm.dividendsPaid;
+            currentExtendedElement.shareholderYield = (entity.cashFlowTtm.dividendsPaid + entity.cashFlowTtm.commonStockRepurchased) * -1.0;
             currentExtendedElement.stockBasedCompensationPerFcf = (double) entity.cashFlowTtm.stockBasedCompensation / entity.cashFlowTtm.freeCashFlow * 100.0;
             currentExtendedElement.stockBasedCompensationPerRevenue = (double) entity.cashFlowTtm.stockBasedCompensation / entity.incomeStatementTtm.revenue * 100.0;
 
@@ -540,6 +544,7 @@ public class HistorcalPerformanceController {
     }
 
     static class ExtendedHistoricalChartElement implements DateAware {
+        public double shareholderYield;
         public double fcfGrowth;
         public double epsGrowth;
         public double totalDebt;

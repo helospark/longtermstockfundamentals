@@ -806,7 +806,7 @@ createBubbleChartInternal("/financials/cape_vs_growth_bubble", "CAPE vs returns 
 createBubbleChartInternal("/financials/pfcf_vs_growth_bubble", "Price to FCF vs returns", {
   xAxisLabel: 'price to FCF',
   yAxisLabel: 'CAGR',
-  addToRowId: "cash_flow_bubble_row",
+  addToRowId: "pe_cape_bubble_row",
   slider: {
     id: "years",
     parameterName: "year",
@@ -815,7 +815,20 @@ createBubbleChartInternal("/financials/pfcf_vs_growth_bubble", "Price to FCF vs 
     default: 10
   }
 });
+/*
 createBubbleChartInternal("/financials/pocf_vs_growth_bubble", "Price to OCF vs returns", {
+  xAxisLabel: 'price to operating cash flow',
+  yAxisLabel: 'CAGR',
+  addToRowId: "cash_flow_bubble_row",
+  slider: {
+    id: "years",
+    parameterName: "year",
+    min: 1,
+    max: 20,
+    default: 10
+  }
+});*/
+createBubbleChartInternal("/financials/investmentscore_vs_returns_bubble", "Investment score vs returns", {
   xAxisLabel: 'price to operating cash flow',
   yAxisLabel: 'CAGR',
   addToRowId: "cash_flow_bubble_row",
@@ -830,7 +843,7 @@ createBubbleChartInternal("/financials/pocf_vs_growth_bubble", "Price to OCF vs 
 createBubbleChartInternal("/financials/pbook_vs_growth_bubble", "Price to book vs returns", {
   xAxisLabel: 'price to book',
   yAxisLabel: 'CAGR',
-  addToRowId: "book_growth_bubble_row",
+  addToRowId: "cash_flow_bubble_row",
   slider: {
     id: "years",
     parameterName: "year",
@@ -843,7 +856,7 @@ createBubbleChartInternal("/financials/pbook_vs_growth_bubble", "Price to book v
 createBubbleChartInternal("/financials/growth_vs_returns_bubble", "Growth vs returns", {
   xAxisLabel: '3yr revenue growth',
   yAxisLabel: 'CAGR',
-  addToRowId: "book_growth_bubble_row",
+  addToRowId: "cash_flow_bubble_row",
   slider: {
     id: "years",
     parameterName: "year",
@@ -856,7 +869,7 @@ createBubbleChartInternal("/financials/growth_vs_returns_bubble", "Growth vs ret
 createBubbleChartInternal("/financials/peg_vs_growth_bubble", "PEG vs returns", {
   xAxisLabel: 'trailing PEG ratio',
   yAxisLabel: 'CAGR',
-  addToRowId: "book_growth_bubble_row",
+  addToRowId: "cash_flow_bubble_row",
   slider: {
     id: "years",
     parameterName: "year",
@@ -864,6 +877,24 @@ createBubbleChartInternal("/financials/peg_vs_growth_bubble", "PEG vs returns", 
     max: 20,
     default: 10
   }
+});
+
+createBubbleChartInternal("/financials/pe_vs_buyback_bubble", "PE vs buyback bubble", {
+  xAxisLabel: 'pe',
+  yAxisLabel: 'buyback',
+  addToRowId: "pe_buyback_bubble"
+});
+
+createBubbleChartInternal("/financials/pfcf_vs_buyback_bubble", "PFCF vs buyback bubble", {
+  xAxisLabel: 'price/fcf',
+  yAxisLabel: 'buyback',
+  addToRowId: "pe_buyback_bubble"
+});
+
+createBubbleChartInternal("/financials/book_vs_buyback_bubble", "Book ratio vs buyback bubble", {
+  xAxisLabel: 'book ratio',
+  yAxisLabel: 'buyback',
+  addToRowId: "pe_buyback_bubble"
 });
 
 createChartInternal("/financials/detailed_price", "Stock price", {quarterlyEnabled: false});

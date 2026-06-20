@@ -1,4 +1,6 @@
 
+  var hidePrice = document.getElementById("hidePrice").innerText;
+
   function pad(num, size) {
       num = num.toString();
       while (num.length < size) num = "0" + num;
@@ -254,8 +256,10 @@
       fairPrice = convertFx(value, exchangeRate);
       
          $("#fair_value").html("Value: " + currencySymbol + "<span id=\"fair-value\">" + fairPrice.toFixed(2) + "</span>");
-         $("#current_price").html("Current price: " + currencySymbol + currentPriceInTradingCurrency.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
-               + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>, expected return: <b>" + (expectedGrowth*100.0).toFixed(2) + "%</b>)");
+        // if (!hidePrice) {
+           $("#current_price").html("Current price: " + currencySymbol + currentPriceInTradingCurrency.toFixed(2) + " (Margin of safety: <b>" + marginOfSafety.toFixed(2) + "%</b>, "
+                 + "price in ten years: <b>" + currencySymbol + convertFx(endPrice, exchangeRate).toFixed(2) + "</b>, expected return: <b>" + (expectedGrowth*100.0).toFixed(2) + "%</b>)");
+        // }
 
       calculatorExpectationHistory = {}
       calculatorExpectationHistory.symbol = document.getElementById("stockToLoad").innerText;
@@ -362,7 +366,7 @@
                     .attr('data-json', JSON.stringify(item));
                 
                   // Create a span for the text (date)
-                  const dateText = $('<span>').text(item.saveDate);
+                  const dateText = $('<span>').text(item.saveDate + " (" + item.value.toFixed(2) + ")");
                   dropdownItemLink.append(dateText);
                 
                   // Create the delete button

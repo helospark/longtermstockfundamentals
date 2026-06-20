@@ -29,6 +29,8 @@ import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.ViewedStocksService;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.user.repository.FreeStockRepository;
+import com.helospark.financialdata.management.user.repository.User;
+import com.helospark.financialdata.management.user.repository.UserRepository;
 import com.helospark.financialdata.management.watchlist.repository.LatestPriceProvider;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
@@ -64,6 +66,8 @@ public class ViewController {
     private WatchlistService watchlistService;
     @Autowired
     private PortfolioCompareGenerator compareGenerator;
+    @Autowired
+    private UserRepository userRepository;
 
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
@@ -309,6 +313,10 @@ public class ViewController {
                 var reportedCurrency = Optional.ofNullable(company.profile.reportedCurrency).orElse("");
                 LocalDate now = LocalDate.now();
                 double latestPriceInTradingCurrency = latestPriceProvider.provideLatestPrice(stock);
+                if (tradingCurrency.equals("GBp")) {
+                    latestPriceInTradingCurrency /= 100;
+                    tradingCurrency = "GBP";
+                }
                 double latestPriceFinal = DataLoader.convertFx(latestPriceInTradingCurrency, tradingCurrency, reportedCurrency, now, true).orElse(latestPriceInTradingCurrency);
 
                 Map<String, CalculatorFunctions> calculatorFunctions = Map.of(
@@ -414,6 +422,7 @@ public class ViewController {
 
                 Optional<DecodedJWT> jwtOptional = loginController.getJwt(request);
                 if (jwtOptional.isPresent()) {
+                    User user = userRepository.findByEmailOrThrow(jwtOptional.get().getSubject());
                     Optional<WatchlistElement> watchlistElement = watchlistService.getWatchlistElement(jwtOptional.get().getSubject(), stock);
                     if (watchlistElement.isPresent() && watchlistElement.get().calculatorParameters != null) {
                         String calculatorUri = watchlistService.buildCalculatorUri(watchlistElement.get().calculatorParameters, stock);
@@ -421,7 +430,11 @@ public class ViewController {
 
                         model.addAttribute("calculatorUri", calculatorUri);
                         model.addAttribute("calculatorPrice", targetPrice);
+
                     }
+                    model.addAttribute("hidePrice", user.isHidePrice());
+                } else {
+                    model.addAttribute("hidePrice", "false");
                 }
             }
 

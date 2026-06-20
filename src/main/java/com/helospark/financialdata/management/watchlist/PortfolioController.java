@@ -305,7 +305,7 @@ public class PortfolioController {
 
                 portfolioElement.put(SYMBOL_COL, ticker);
                 portfolioElement.put(NAME_COL, Optional.ofNullable(atGlance.companyName).orElse(""));
-                portfolioElement.put(DIFFERENCE_COL, formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
+                portfolioElement.put(DIFFERENCE_COL, hidePrice ? HIDDEN_INDICATOR : formatStringAsPercent(calculateTargetPercent(latestPriceInTradingCurrency, currentElement.targetPrice)));
                 portfolioElement.put(OWNED_SHARES, hidePrice ? HIDDEN_INDICATOR : watchlistService.formatString(ownedValue));
                 portfolioElement.put(PE, isCurrency ? "-" : watchlistService.formatString(latestPriceInReportingCurrency / atGlance.eps));
                 portfolioElement.put(PFCF, watchlistService.formatString(latestPriceInReportingCurrency / atGlance.fcfPerShare));
