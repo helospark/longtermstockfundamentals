@@ -127,6 +127,36 @@ public class DataLoader {
         return readFinancials(symbol, false);
     }
 
+    // return the financials as if the date is endData
+    public static CompanyFinancials readFinancials(String symbol, LocalDate endDate) {
+        CompanyFinancials company = readFinancials(symbol, false);
+
+        if (endDate != null) {
+            List<FinancialsTtm> dateLimitedList = new ArrayList<>();
+
+            for (var financial : company.financials) {
+                if (financial.date.isBefore(endDate)) {
+                    dateLimitedList.add(financial);
+                }
+            }
+            double price = 0.0;
+            double priceUsd = 0.0;
+            double priceTradingCurrency = 0.0;
+            LocalDate latestDate = endDate;
+            if (dateLimitedList.size() > 0) {
+                price = dateLimitedList.get(0).price;
+                priceUsd = dateLimitedList.get(0).priceUsd;
+                priceTradingCurrency = dateLimitedList.get(0).priceTradingCurrency;
+                latestDate = dateLimitedList.get(0).date;
+            }
+
+            CompanyFinancials dateLimitedCompany = new CompanyFinancials(price, priceUsd, priceTradingCurrency, latestDate, dateLimitedList, company.profile, company.dataQualityIssue);
+
+            return dateLimitedCompany;
+        }
+        return company;
+    }
+
     public static CompanyFinancials readFinancials(String symbol, boolean addLatestPriceElement) {
         CompanyFinancials result = readFinancialsWithCacheEnabled(symbol, true);
 
@@ -624,6 +654,22 @@ public class DataLoader {
         }
 
         return result;
+    }
+
+    public static List<HistoricalPriceElement> readHistoricalPrice(String symbol, int detail, LocalDate endDate) {
+        List<HistoricalPriceElement> prices = readHistoricalPrice(symbol, detail);
+
+        if (endDate != null) {
+            List<HistoricalPriceElement> dateAdjustedPrice = new ArrayList<>();
+
+            for (var element : prices) {
+                if (element.date.isBefore(endDate)) {
+                    dateAdjustedPrice.add(element);
+                }
+            }
+            return dateAdjustedPrice;
+        }
+        return prices;
     }
 
     public static List<HistoricalPriceElement> readHistoricalPrice(String symbol, int detail) {

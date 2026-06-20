@@ -9,6 +9,6 @@ public class CustomErrorController implements ErrorController {
 
     @RequestMapping("/error")
     public String handleError() {
-        return "redirect:/?error=Unexpected error occurred";
+        return "redirect:/stock/AAPL?error=Unexpected error occurred";
     }
 }

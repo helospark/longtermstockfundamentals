@@ -29,8 +29,8 @@ public class WarmupService {
 
     public void warmupFinancialController() {
         try {
-            financialController.get7yrFcfGrowthRateMovingAvg("INTC", 7);
-            financialController.getRoic("INTC", false);
+            financialController.get7yrFcfGrowthRateMovingAvg("INTC", 7, null);
+            financialController.getRoic("INTC", false, null);
         } catch (Exception e) {
             LOGGER.warn("Unable to warmup", e);
         }

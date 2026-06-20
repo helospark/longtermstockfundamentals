@@ -67,6 +67,7 @@ function scrollToTop() {
 
 
 var stock = document.getElementById("stock").innerText;
+var endDate = document.getElementById("endDate")?.innerText ?? null;
 var stockToLoad = document.getElementById("stockToLoad").innerText;
 
 function populateProfile() {

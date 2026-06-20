@@ -683,7 +683,7 @@ function createChart(urlPath, title, chartOptions) {
         }
         
         let url = (addStockPrefix ? '/' + stockToLoad : "") + urlPath;
-        var parameters = new Map();
+        var parameters = new URLSearchParams();
         var parameterString = "";
         
         if (quarterly) {
@@ -697,15 +697,13 @@ function createChart(urlPath, title, chartOptions) {
             parameters.set(key, value);
           }
         }
-        
-        i = 0;
-        for (let [key, value] of parameters) {
-          parameterString += (key + "=" + value);
-          if (i < parameters.length - 1) {
-            parameterString += "&";
-          }
-          ++i;
+        if (endDate !== undefined && endDate !== null) {
+          parameters.set("endDate", endDate);
         }
+        
+        parameterString = parameters.toString();
+        
+        
         if (parameterString.length > 0) {
           url += "?" + parameterString;
         }
@@ -932,7 +930,11 @@ function createBubbleChart(url, title, chartOptions) {
     var chart = undefined;
     var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
     
-    let urlToCall = (addStockPrefix ? '/' + stockToLoad : "") + url;
+    let urlToCall = (addStockPrefix ? '/' + stockToLoad : "") + url
+
+    if (endDate != null) {
+      urlToCall += "?endDate=" + endDate;
+    }
     
     var underChartBar = document.createElement("div");
     underChartBar.style="width:100%";
@@ -1080,7 +1082,16 @@ function createBubbleChart(url, title, chartOptions) {
         
         optionSlider.oninput = function() {
           valueSpan.innerText = (this.value + " " + chartOptions.slider.parameterName);
-          fetch(urlToCall + "?" + chartOptions.slider.parameterName + "=" + this.value)
+          
+          const parameters = new URLSearchParams();
+          parameters.set(chartOptions.slider.parameterName, this.value);
+          if (endDate != null) {
+            parameters.set("endDate", endDate);
+          }
+          const queryString = parameters.toString();
+          
+          
+          fetch(urlToCall + "?" + queryString)
               .then(res => res.json())
               .then(out => {
                     chart.data.datasets[0].data = out.data;

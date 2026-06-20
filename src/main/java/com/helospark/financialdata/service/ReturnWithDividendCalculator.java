@@ -1,8 +1,10 @@
 package com.helospark.financialdata.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.util.Strings;
@@ -23,7 +25,7 @@ public class ReturnWithDividendCalculator {
         if (Strings.isBlank(company.profile.symbol)) {
             return gerPriceGrowthInternal(company);
         } else {
-            return new ArrayList<>(CACHE.get(company.profile.symbol, asd -> gerPriceGrowthInternal(company)));
+            return new ArrayList<>(CACHE.get(company.profile.symbol + "_" + company.financials.size(), asd -> gerPriceGrowthInternal(company)));
         }
     }
 
@@ -46,6 +48,18 @@ public class ReturnWithDividendCalculator {
         }
         Collections.reverse(result);
         return result;
+    }
+
+    public static Optional<Double> getCagrBetween(CompanyFinancials company, LocalDate startDate, LocalDate endDate) {
+        List<SimpleDateDataElement> result = getPriceWithDividendsReinvested(company);
+        int startIndex = Helpers.findIndexWithOrBeforeDate(result, startDate);
+        int endIndex = Helpers.findIndexWithOrBeforeDate(result, endDate);
+
+        if (startIndex != -1 && endIndex != -1) {
+            return GrowthCalculator.calculateAnnualGrowth(result.get(startIndex).value, result.get(startIndex).date, result.get(endIndex).value, result.get(endIndex).date);
+        } else {
+            return Optional.empty();
+        }
     }
 
 }

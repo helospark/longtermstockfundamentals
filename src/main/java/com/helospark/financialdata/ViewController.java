@@ -1,12 +1,15 @@
 package com.helospark.financialdata;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Currency;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.domain.CompanyFinancials;
+import com.helospark.financialdata.domain.FinancialsTtm;
 import com.helospark.financialdata.management.inspire.InspirationProvider;
 import com.helospark.financialdata.management.screener.ScreenerController;
 import com.helospark.financialdata.management.user.LoginController;
@@ -38,6 +42,7 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.GrowthCalculator;
 import com.helospark.financialdata.service.MarginCalculator;
 import com.helospark.financialdata.service.RatioCalculator;
+import com.helospark.financialdata.service.ReturnWithDividendCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 import com.helospark.financialdata.util.spconstituents.PortfolioCompareGenerator;
@@ -72,11 +77,74 @@ public class ViewController {
     @GetMapping("/stock/{stock}")
     public String stock(@PathVariable("stock") String stock, Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         if (!symbolIndexProvider.doesCompanyExists(stock)) {
-            return "redirect:/?error=Stock not found";
+            return "redirect:/stock/AAPL?error=Stock not found";
         } else {
             fillModelWithCommonStockData(stock, model, request);
             return "stock";
         }
+    }
+
+    @GetMapping("/stock-game")
+    public String stockGame(Model model, HttpServletRequest request,
+            @RequestParam(name = "randomStartDate", required = false, defaultValue = "2016-01-01") LocalDate randomStartDate,
+            @RequestParam(name = "randomEndDate", required = false, defaultValue = "2022-01-01") LocalDate randomEndDate) {
+        List<String> symbols = new ArrayList<>(DataLoader.provideSp500Symbols());
+
+        Collections.shuffle(symbols);
+
+        LocalDate randomDate = getRandomDate(randomStartDate, randomEndDate);
+
+        String stock = null;
+        CompanyFinancials companyDateLimited = null;
+
+        for (int i = 0; i < 400 && i < symbols.size(); ++i) {
+            stock = symbols.get(i);
+            companyDateLimited = DataLoader.readFinancials(stock, randomDate);
+
+            if (companyDateLimited.financials.size() > 10) {
+                break;
+            }
+
+        }
+        CompanyFinancials company = DataLoader.readFinancials(stock);
+
+        fillModelWithCommonStockData(stock, model, request);
+
+        FinancialsTtm limitedFinancialsNewest = companyDateLimited.financials.get(0);
+        FinancialsTtm financialsNewest = company.financials.get(0);
+        double cagr = ReturnWithDividendCalculator.getCagrBetween(company, limitedFinancialsNewest.date, financialsNewest.date).orElse(0.0);
+
+        var stockGameData = new StockGameData(randomDate, cagr, companyDateLimited.profile.sector, companyDateLimited.profile.companyName);
+
+        model.addAttribute("stockGame", true);
+        model.addAttribute("stockGameData", stockGameData);
+
+        return "stock";
+    }
+
+    public static class StockGameData {
+        public LocalDate date;
+        public double cagr;
+        public String industry;
+        public String name;
+
+        public StockGameData(LocalDate date, double cagr, String indusstry, String name) {
+            this.date = date;
+            this.cagr = cagr;
+            this.industry = indusstry;
+            this.name = name;
+        }
+
+    }
+
+    public static LocalDate getRandomDate(LocalDate startDate, LocalDate endDate) {
+        long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
+
+        if (daysBetween <= 0) {
+            return startDate;
+        }
+        long randomDays = ThreadLocalRandom.current().nextLong(0, daysBetween + 1);
+        return startDate.plusDays(randomDays);
     }
 
     @GetMapping("/stock")
