@@ -106,7 +106,8 @@ public class ScreenerOperation {
         smoothEquity5yr,
         smoothEquity10yr,
         fcf_yield,
-        earnings_yield;
+        earnings_yield,
+        drawdown;
 
         @JsonCreator
         public static AtGlanceField fromString(String id) {

@@ -216,6 +216,8 @@ public class AtGlanceData {
     public byte smoothEquity5yr;
     @ScreenerElement(name = "Equity smoothness (0..100) 10yr", separatorBelow = true)
     public byte smoothEquity10yr;
+    @ScreenerElement(name = "Drawdown % (0..100)", separatorBelow = true)
+    public byte drawdown;
 
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield", format = AtGlanceFormat.PERCENT)
     public double getFreeCashFlowYield() {

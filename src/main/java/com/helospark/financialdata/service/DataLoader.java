@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Currency;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,6 +56,7 @@ import com.helospark.financialdata.domain.TresuryRate;
 import com.helospark.financialdata.service.exchanges.Exchanges;
 import com.helospark.financialdata.util.StockDataDownloader;
 import com.helospark.financialdata.util.glance.AtGlanceData;
+import com.helospark.financialdata.util.spconstituents.Sp500ConstituentsProvider;
 
 public class DataLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(DataLoader.class);
@@ -134,11 +136,14 @@ public class DataLoader {
         if (endDate != null) {
             List<FinancialsTtm> dateLimitedList = new ArrayList<>();
 
-            for (var financial : company.financials) {
-                if (financial.date.isBefore(endDate)) {
-                    dateLimitedList.add(financial);
-                }
+            int index = Helpers.findIndexWithOrBeforeDate(company.financials, endDate);
+
+            if (index == -1) {
+                dateLimitedList = new ArrayList<>();
+            } else {
+                dateLimitedList = company.financials.subList(index, company.financials.size());
             }
+
             double price = 0.0;
             double priceUsd = 0.0;
             double priceTradingCurrency = 0.0;
@@ -657,19 +662,33 @@ public class DataLoader {
     }
 
     public static List<HistoricalPriceElement> readHistoricalPrice(String symbol, int detail, LocalDate endDate) {
-        List<HistoricalPriceElement> prices = readHistoricalPrice(symbol, detail);
-
         if (endDate != null) {
-            List<HistoricalPriceElement> dateAdjustedPrice = new ArrayList<>();
+            List<HistoricalPriceElement> pricesRaw = readHistoricalPriceNoCache(symbol);
+            List<HistoricalPriceElement> result = new ArrayList<>(detail);
 
-            for (var element : prices) {
-                if (element.date.isBefore(endDate)) {
-                    dateAdjustedPrice.add(element);
-                }
+            int index = Helpers.findIndexWithOrBeforeDate(pricesRaw, endDate);
+
+            List<HistoricalPriceElement> prices;
+            if (index != -1) {
+                prices = pricesRaw.subList(index, pricesRaw.size());
+            } else {
+                prices = pricesRaw;
             }
-            return dateAdjustedPrice;
+
+            int step = prices.size() / detail;
+
+            if (step < 1) {
+                step = 1;
+            }
+
+            for (int i = 0; i < prices.size(); i += step) {
+                result.add(prices.get(i));
+            }
+
+            return result;
+        } else {
+            return readHistoricalPrice(symbol, detail);
         }
-        return prices;
     }
 
     public static List<HistoricalPriceElement> readHistoricalPrice(String symbol, int detail) {
@@ -1000,6 +1019,10 @@ public class DataLoader {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static Set<String> provideSp500SymbolsOnDate(LocalDate date) {
+        return new LinkedHashSet<>(Sp500ConstituentsProvider.getConstituentsForDate(date));
     }
 
     public static Set<String> provideUsSymbols() {

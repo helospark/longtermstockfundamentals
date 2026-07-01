@@ -7,6 +7,14 @@ public class HistoricalPriceElement implements DateAware, Serializable {
     public LocalDate date;
     public double close;
 
+    public HistoricalPriceElement() {
+    }
+
+    public HistoricalPriceElement(LocalDate date, double close) {
+        this.date = date;
+        this.close = close;
+    }
+
     @Override
     public LocalDate getDate() {
         return date;

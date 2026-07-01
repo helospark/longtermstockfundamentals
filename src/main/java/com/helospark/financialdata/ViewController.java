@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,9 +46,11 @@ import com.helospark.financialdata.service.RatioCalculator;
 import com.helospark.financialdata.service.ReturnWithDividendCalculator;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.service.exchanges.Exchanges;
+import com.helospark.financialdata.util.glance.AtGlanceData;
 import com.helospark.financialdata.util.spconstituents.PortfolioCompareGenerator;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.Min;
 
 @Controller
 @RequestMapping("/")
@@ -84,37 +87,106 @@ public class ViewController {
         }
     }
 
+    @GetMapping("/reference-tables")
+    public String referenceTables(Model model, @RequestParam(defaultValue = "AAPL", name = "stock", required = false) String stock, HttpServletRequest request) {
+        model.addAttribute("stock", stock);
+        return "reference-tables";
+    }
+
     @GetMapping("/stock-game")
     public String stockGame(Model model, HttpServletRequest request,
-            @RequestParam(name = "randomStartDate", required = false, defaultValue = "2016-01-01") LocalDate randomStartDate,
-            @RequestParam(name = "randomEndDate", required = false, defaultValue = "2022-01-01") LocalDate randomEndDate) {
-        List<String> symbols = new ArrayList<>(DataLoader.provideSp500Symbols());
+            @RequestParam(name = "startYear", required = false, defaultValue = "2016") @Min(2011) int startYear,
+            @RequestParam(name = "endYear", required = false, defaultValue = "2018") @Min(2011) int endYear,
+            @RequestParam(name = "selection", required = false, defaultValue = "SP500") StockSourceSelection selection,
+            @RequestParam(name = "minMarketCap", required = false, defaultValue = "0.0") double minMarketCap,
+            @RequestParam(name = "revenueGrowth", required = false, defaultValue = "0.0") double revenueGrowthFilter) {
+        LocalDate randomDate = getRandomDate(startYear, endYear);
+        Set<String> symbolsRaw;
+
+        if (startYear > endYear) {
+            int tmp = startYear;
+            startYear = endYear;
+            endYear = tmp;
+        }
+        if (endYear > LocalDate.now().getYear()) {
+            endYear = LocalDate.now().getYear();
+        }
+        if (minMarketCap > 10.0) {
+            minMarketCap = 10.0;
+        }
+
+        switch (selection) {
+            case ALL:
+                symbolsRaw = DataLoader.provideAllSymbols();
+                break;
+            case SP500:
+                symbolsRaw = DataLoader.provideSp500SymbolsOnDate(randomDate);
+                break;
+            case US:
+                symbolsRaw = DataLoader.provideUsSymbols();
+                break;
+            case US_HEADQUARTER:
+                symbolsRaw = DataLoader.provideUsSymbols();
+                break;
+            case NASDAQ_NYSE:
+                symbolsRaw = DataLoader.provideSymbolsFromNasdaqNyse();
+                break;
+            default:
+                symbolsRaw = DataLoader.provideSp500Symbols();
+        }
+
+        Map<String, AtGlanceData> atGlanceData = symbolIndexProvider.loadAtGlanceDataClosestToDate(randomDate).orElse(Map.of());
+
+        List<String> symbols = new ArrayList<>(symbolsRaw);
 
         Collections.shuffle(symbols);
-
-        LocalDate randomDate = getRandomDate(randomStartDate, randomEndDate);
 
         String stock = null;
         CompanyFinancials companyDateLimited = null;
 
-        for (int i = 0; i < 400 && i < symbols.size(); ++i) {
+        for (int i = 0; i < 1000 && i < symbols.size(); ++i) {
             stock = symbols.get(i);
-            companyDateLimited = DataLoader.readFinancials(stock, randomDate);
 
-            if (companyDateLimited.financials.size() > 10) {
-                break;
+            AtGlanceData atGlance = atGlanceData.get(stock);
+
+            if (atGlance != null &&
+                    atGlance.marketCapUsd / 1000.0 > minMarketCap &&
+                    (revenueGrowthFilter == 0.0 || atGlance.revenueGrowth2yr > revenueGrowthFilter)) {
+
+                companyDateLimited = DataLoader.readFinancials(stock, randomDate);
+
+                if (selection.equals(StockSourceSelection.US_HEADQUARTER) && !"US".equals(companyDateLimited.profile.country)) {
+                    continue;
+                }
+
+                if (companyDateLimited.financials.size() > 10) {
+                    break;
+                }
             }
 
         }
-        CompanyFinancials company = DataLoader.readFinancials(stock);
+
+        if (companyDateLimited == null) {
+            System.out.println("EMPTY game filter");
+            stock = symbols.get(0);
+            companyDateLimited = DataLoader.readFinancials(stock, randomDate);
+        }
 
         fillModelWithCommonStockData(stock, model, request);
 
         FinancialsTtm limitedFinancialsNewest = companyDateLimited.financials.get(0);
+        CompanyFinancials company = DataLoader.readFinancials(stock);
         FinancialsTtm financialsNewest = company.financials.get(0);
         double cagr = ReturnWithDividendCalculator.getCagrBetween(company, limitedFinancialsNewest.date, financialsNewest.date).orElse(0.0);
 
-        var stockGameData = new StockGameData(randomDate, cagr, companyDateLimited.profile.sector, companyDateLimited.profile.companyName);
+        String countryName = "unknown country";
+        if (companyDateLimited.profile.country != null) {
+            Locale countryLocale = new Locale("", companyDateLimited.profile.country);
+            countryName = countryLocale.getDisplayCountry();
+        }
+        String sector = orUnknown(companyDateLimited.profile.sector);
+        String companyName = orUnknown(companyDateLimited.profile.companyName);
+        var stockGameData = new StockGameData(randomDate, cagr, sector, companyName, countryName);
 
         model.addAttribute("stockGame", true);
         model.addAttribute("stockGameData", stockGameData);
@@ -122,22 +194,42 @@ public class ViewController {
         return "stock";
     }
 
+    private String orUnknown(String sector) {
+        if (sector != null) {
+            return sector;
+        } else {
+            return "unknown";
+        }
+    }
+
+    public static enum StockSourceSelection {
+        SP500,
+        ALL,
+        US,
+        US_HEADQUARTER,
+        NASDAQ_NYSE;
+    }
+
     public static class StockGameData {
         public LocalDate date;
         public double cagr;
         public String industry;
         public String name;
+        public String country;
 
-        public StockGameData(LocalDate date, double cagr, String indusstry, String name) {
+        public StockGameData(LocalDate date, double cagr, String indusstry, String name, String country) {
             this.date = date;
             this.cagr = cagr;
             this.industry = indusstry;
             this.name = name;
+            this.country = country;
         }
 
     }
 
-    public static LocalDate getRandomDate(LocalDate startDate, LocalDate endDate) {
+    public static LocalDate getRandomDate(int startYear, int endYear) {
+        LocalDate startDate = LocalDate.of(startYear, 1, 1);
+        LocalDate endDate = LocalDate.of(endYear, 12, 31);
         long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
 
         if (daysBetween <= 0) {

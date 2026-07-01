@@ -561,7 +561,7 @@ public class FinancialsController {
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
 
-            Optional<Double> dcf = DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, (i / 4.0));
+            Optional<Double> dcf = DcfCalculator.doFullDcfAnalysisWithGrowth(company.financials, calculateYearsAgo(financialsTtm.date));
 
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), dcf.orElse(null)));
         }
@@ -576,7 +576,7 @@ public class FinancialsController {
         for (int i = 0; i < company.financials.size(); ++i) {
             FinancialsTtm financialsTtm = company.financials.get(i);
 
-            Optional<Double> dcf = DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, (i / 4.0)).map(a -> a < 0 ? 0.0 : a);
+            Optional<Double> dcf = DcfCalculator.doDcfAnalysisRevenueWithDefaultParameters(company, calculateYearsAgo(financialsTtm.date)).map(a -> a < 0 ? 0.0 : a);
 
             result.add(new SimpleDataElement(financialsTtm.getDate().toString(), dcf.orElse(null)));
         }

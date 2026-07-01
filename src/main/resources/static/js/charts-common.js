@@ -697,7 +697,7 @@ function createChart(urlPath, title, chartOptions) {
             parameters.set(key, value);
           }
         }
-        if (endDate !== undefined && endDate !== null) {
+        if (typeof endDate !== "undefined" && endDate !== null) {
           parameters.set("endDate", endDate);
         }
         

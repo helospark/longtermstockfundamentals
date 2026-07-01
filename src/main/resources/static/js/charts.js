@@ -113,6 +113,9 @@ function populateProfile() {
 
 function addFlags() {
   let url = '/' + stockToLoad + "/financials/flags";
+  if (endDate != null) {
+    url += '?endDate=' + endDate;
+  }
   var flagsDiv = document.getElementById("flags");
   fetch(url)
           .then(res => res.json())

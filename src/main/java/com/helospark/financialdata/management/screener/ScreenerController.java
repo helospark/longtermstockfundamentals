@@ -903,6 +903,8 @@ public class ScreenerController {
                 return glance.smoothEquity5yr;
             case smoothEquity10yr:
                 return glance.smoothEquity10yr;
+            case drawdown:
+                return glance.drawdown;
             default:
                 throw new RuntimeException("Unexpected type " + id);
         }

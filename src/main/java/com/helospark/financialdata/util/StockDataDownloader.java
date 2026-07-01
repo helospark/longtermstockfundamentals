@@ -82,6 +82,7 @@ import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
+import com.helospark.financialdata.service.DrawDownService;
 import com.helospark.financialdata.service.EnterpriseValueCalculator;
 import com.helospark.financialdata.service.EverythingMoneyCalculator;
 import com.helospark.financialdata.service.FlagsProviderService;
@@ -503,7 +504,7 @@ public class StockDataDownloader {
     }
 
     public static void saveSymbolCache(Map<String, AtGlanceData> companies) {
-        TreeSet<AtGlanceData> orderedCompaniesSet = new TreeSet<>((a, b) -> Double.compare(b.marketCapUsd, a.marketCapUsd));
+        TreeSet<AtGlanceData> orderedCompaniesSet = new TreeSet<>((a, b) -> marketCapComparator(a, b));
         orderedCompaniesSet.addAll(companies.values());
 
         LinkedHashMap<String, AtGlanceData> symbolCompanyNameCache = new LinkedHashMap<>();
@@ -519,6 +520,16 @@ public class StockDataDownloader {
             e.printStackTrace();
         }
 
+    }
+
+    public static int marketCapComparator(AtGlanceData a, AtGlanceData b) {
+        int marketCapCompare = Double.compare(b.marketCapUsd, a.marketCapUsd);
+
+        if (marketCapCompare != 0) {
+            return marketCapCompare;
+        }
+
+        return a.symbol.compareTo(b.symbol);
     }
 
     public static File getBacktestFileAtYear(int year, int month) {
@@ -674,6 +685,8 @@ public class StockDataDownloader {
 
         data.smoothEquity5yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEquity(company, offsetYear, 5.0) * 100.0);
         data.smoothEquity10yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEquity(company, offsetYear, 10.0) * 100.0);
+
+        data.drawdown = (byte) (DrawDownService.getLowQualityDrawdownAt(company, actualDate).orElse(Double.NaN) * 1.0);
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 
@@ -1182,7 +1195,7 @@ public class StockDataDownloader {
 
     private static File downloadUrlIfNeededWithoutRetry(String folderAndfile, String uriPath, Map<String, String> queryParams, int daysAgo) throws IOException {
         File absoluteFile = new File(BASE_FOLDER + "/" + folderAndfile);
-        if (!absoluteFile.exists() || isModifiedMoreThanDaysAgo(absoluteFile, daysAgo)) {
+        if (!absoluteFile.exists() || isModifiedMoreThanDaysAgo(absoluteFile, daysAgo) || (isModifiedMoreThanDaysAgo(absoluteFile, 30) && folderAndfile.contains("profile.json") && absoluteFile.length() < 10)) {
             try {
                 absoluteFile.getParentFile().mkdirs();
 

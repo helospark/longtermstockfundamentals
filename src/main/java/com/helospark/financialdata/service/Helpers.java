@@ -27,10 +27,10 @@ public class Helpers {
         if (cashFlows.size() == 0) {
             return -1;
         }
-        if (ChronoUnit.DAYS.between(cashFlows.get(0).getDate(), date) > 6 * 30) {
-            //LOGGER.warn("Company may be delisted already, the latest report is more than 6 month old date={}", cashFlows.get(0).getDate());
-            //return -1;
-        }
+        //if (ChronoUnit.DAYS.between(cashFlows.get(0).getDate(), date) > 6 * 30) {
+        //LOGGER.warn("Company may be delisted already, the latest report is more than 6 month old date={}", cashFlows.get(0).getDate());
+        //return -1;
+        //}
 
         for (int i = 0; i < cashFlows.size(); ++i) {
             LocalDate cashFlowDate = cashFlows.get(i).getDate();

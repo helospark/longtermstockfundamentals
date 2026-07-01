@@ -4,7 +4,10 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.SimpleDateDataElement;
 
@@ -60,6 +63,20 @@ public class DrawDownService {
         }
 
         return ((double) nearTop / all) * 100.0;
+    }
+
+    public static Optional<Double> getLowQualityDrawdownAt(CompanyFinancials company, LocalDate actualDate) {
+        var list = company.financials.stream().map(a -> new HistoricalPriceElement(a.date, a.price)).collect(Collectors.toList());
+
+        List<SimpleDateDataElement> drawDownChart = getDrawdownChart(list);
+
+        int index = Helpers.findIndexWithOrBeforeDate(drawDownChart, actualDate);
+
+        if (index != -1) {
+            return Optional.of(100.0 - drawDownChart.get(index).value);
+        } else {
+            return Optional.empty();
+        }
     }
 
 }

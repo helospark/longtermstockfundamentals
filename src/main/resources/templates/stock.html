@@ -14,6 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <script src="/js/charts-common.js"></script>
   <script src="/js/common.js"></script>
+  <script src="/js/stock-game-settings.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" ></script>
   <script src="http://SortableJS.github.io/Sortable/Sortable.js"></script>
 
@@ -46,8 +47,9 @@
             
             <p class="lead">
                 You are seeing the financial data of the stock as if the date was 
-                <span th:text="${stockGameData.date}">2015-01-01</span> for a company in 
-                <span th:text="${stockGameData.industry}">Technology</span>. 
+                <b><span th:text="${stockGameData.date}">2015-01-01</span></b> for a company in 
+                <b><span th:text="${stockGameData.industry}">Technology</span></b> sector, headquartered in 
+                <b><span th:text="${stockGameData.country}">US</span></b>. 
                 After studying the financials, try to make a guess of what the CAGR of this stock is until today.
             </p>
     
@@ -68,8 +70,9 @@
             </div>
     
             <div class="d-flex gap-2">
-                <a th:href="@{/stock-game}" class="btn btn-secondary">Next</a>
+                <a id="next-game-btn" th:href="@{/stock-game}" class="btn btn-secondary">Next</a>
                 <a th:href="@{/stock/{symbol}(symbol=${stock})}" class="btn btn-outline-dark">Show</a>
+                <button type="button" class="btn btn-outline-secondary" onclick="openConfigModal()">Configure</button>
             </div>
         </section>
     
@@ -84,6 +87,42 @@
                     revealDiv.classList.remove('d-none');
                 }
             }
+
+
+            // Run on page load to ensure the 'Next' button instantly includes saved settings
+            document.addEventListener("DOMContentLoaded", function() {
+                updateNextButtonUrl();
+            });
+        
+            // Helper to get settings or reasonable defaults
+            function getGameSettings() {
+                return {
+                    startYear: localStorage.getItem("sg_startYear") || "2016",
+                    endYear: localStorage.getItem("sg_endYear") || "2018",
+                    selection: localStorage.getItem("sg_selection") || "SP500",
+                    minMarketCap: localStorage.getItem("sg_minMarketCap") || "0",
+                    revenueGrowth: localStorage.getItem("sg_revenueGrowth") || "0"
+                };
+            }
+        
+            // Appends the saved settings as query parameters to the "Next" button link
+            function updateNextButtonUrl() {
+                const settings = getGameSettings();
+                const params = new URLSearchParams();
+                
+                params.set("startYear", settings.startYear);
+                params.set("endYear", settings.endYear);
+                params.set("selection", settings.selection);
+                params.set("minMarketCap", settings.minMarketCap);
+                params.set("revenueGrowth", settings.revenueGrowth);
+        
+                const nextBtn = document.getElementById("next-game-btn");
+                if (nextBtn) {
+                    nextBtn.href = "/stock-game?" + params.toString();
+                }
+            }
+
+
         </script>
     </div>
 
@@ -176,6 +215,6 @@
 <script src="../js/charts.js"></script>
 <script src="../js/autocomplete.js"></script>
 
-<script th:unless="${isPaidAccount}" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4680762769337689" crossorigin="anonymous"></script>
+
 </body>
 </html>

@@ -2,15 +2,32 @@ package com.helospark.financialdata.util.spconstituents;
 
 import static com.helospark.financialdata.CommonConfig.BASE_FOLDER;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.helospark.financialdata.CommonConfig;
+import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
@@ -19,6 +36,9 @@ import com.helospark.financialdata.util.glance.AtGlanceData;
 public class Sp500ConstituentsProvider {
     @Autowired
     private SymbolAtGlanceProvider symbolIndexProvider;
+
+    private static final Object lock = new Object();
+    private static TreeMap<LocalDate, Sp500HistoricalConstituents> historicalDataMap = null;
 
     public List<WeightedConstituent> getConstituents() {
         return List.of(
@@ -557,6 +577,145 @@ public class Sp500ConstituentsProvider {
         Collections.sort(result, (a, b) -> Double.compare(b.weight, a.weight));
 
         return result;
+    }
+
+    public static List<String> getConstituentsForDate(LocalDate targetDate) {
+        if (historicalDataMap == null) {
+            synchronized (lock) {
+                if (historicalDataMap == null) {
+                    historicalDataMap = parseZipFile(CommonConfig.BASE_FOLDER + "/info/sp500_historical_constituents_small.csv.zip");
+                }
+            }
+        }
+
+        if (historicalDataMap.isEmpty()) {
+            throw new IllegalStateException("The historical constituents map is empty.");
+        }
+
+        Map.Entry<LocalDate, Sp500HistoricalConstituents> entry = historicalDataMap.floorEntry(targetDate);
+
+        if (entry == null) {
+            return historicalDataMap.firstEntry().getValue().constituents;
+        }
+
+        return entry.getValue().constituents;
+    }
+
+    private static TreeMap<LocalDate, Sp500HistoricalConstituents> parseZipFile(String zipResourcePath) {
+        TreeMap<LocalDate, Sp500HistoricalConstituents> parsedMap = new TreeMap<>();
+
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(new File(zipResourcePath)))) {
+
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (!entry.isDirectory() && entry.getName().endsWith(".csv")) {
+
+                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(zis, StandardCharsets.UTF_8))) {
+                        String line;
+                        boolean isFirstLine = true;
+
+                        while ((line = reader.readLine()) != null) {
+                            if (isFirstLine) {
+                                isFirstLine = false;
+                                continue;
+                            }
+
+                            String[] parts = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+                            if (parts.length < 2)
+                                continue;
+
+                            LocalDate date = LocalDate.parse(parts[0].trim());
+                            System.out.println(date);
+
+                            // Strip outer quotes from the comma-separated ticker block
+                            String tickersBlock = parts[1].replace("\"", "").trim();
+                            List<String> constituentsList = Arrays.asList(tickersBlock.split(","));
+
+                            parsedMap.put(date, new Sp500HistoricalConstituents(date, constituentsList));
+                        }
+                    }
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to read and extract historical constituents zip dataset", e);
+        }
+
+        return parsedMap;
+    }
+
+    public static void exportOptimizedConstituentsZip(String outputPath) {
+        if (historicalDataMap == null || historicalDataMap.isEmpty()) {
+            throw new IllegalStateException("Historical data map must be parsed before optimization.");
+        }
+
+        List<Sp500HistoricalConstituents> optimizedList = new ArrayList<>();
+
+        LocalDate firstDate = historicalDataMap.firstKey();
+        LocalDate lastDate = historicalDataMap.lastKey();
+
+        optimizedList.add(historicalDataMap.get(firstDate));
+
+        LocalDate lastAddedDate = firstDate;
+
+        for (Map.Entry<LocalDate, Sp500HistoricalConstituents> entry : historicalDataMap.entrySet()) {
+            LocalDate currentDate = entry.getKey();
+
+            if (currentDate.equals(firstDate) || currentDate.equals(lastDate)) {
+                continue;
+            }
+
+            long monthsBetween = ChronoUnit.MONTHS.between(lastAddedDate, currentDate);
+            if (monthsBetween >= 6) {
+                optimizedList.add(entry.getValue());
+                lastAddedDate = currentDate;
+            }
+        }
+
+        if (!lastAddedDate.equals(lastDate)) {
+            optimizedList.add(historicalDataMap.get(lastDate));
+        }
+
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(outputPath));
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(zos, StandardCharsets.UTF_8))) {
+
+            ZipEntry entry = new ZipEntry("sp500_historical_constituents.csv");
+            zos.putNextEntry(entry);
+
+            writer.write("date,tickers\n");
+
+            for (Sp500HistoricalConstituents record : optimizedList) {
+                String tickersJoined = String.join(",", record.constituents);
+                writer.write(String.format("%s,\"%s\"\n", record.date.toString(), tickersJoined));
+            }
+
+            writer.flush();
+            zos.closeEntry();
+
+            System.out.println("Optimization successful! Wrote " + optimizedList.size() + " records to " + outputPath);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to compile and write optimized zip dataset", e);
+        }
+    }
+
+    public static class Sp500HistoricalConstituents implements DateAware {
+        public LocalDate date;
+        public List<String> constituents;
+
+        public Sp500HistoricalConstituents(LocalDate date, List<String> constituents) {
+            this.date = date;
+            this.constituents = constituents;
+        }
+
+        @Override
+        public LocalDate getDate() {
+            return date;
+        }
+    }
+
+    public static TreeMap<LocalDate, Sp500HistoricalConstituents> getAllDetailedSp500ConstituentsNonCached() {
+        return parseZipFile(CommonConfig.BASE_FOLDER + "/info/sp500_historical_constituents.csv.zip");
     }
 
 }

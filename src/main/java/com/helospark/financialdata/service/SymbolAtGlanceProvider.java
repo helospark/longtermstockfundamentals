@@ -178,6 +178,10 @@ public class SymbolAtGlanceProvider {
         return symbolCompanyNameCache;
     }
 
+    public Optional<AtGlanceData> loadAtGlanceDataClosestToDate(LocalDate date, String stock) {
+        return loadAtGlanceDataClosestToDate(date).map(map -> map.get(stock));
+    }
+
     public Optional<Map<String, AtGlanceData>> loadAtGlanceDataClosestToDate(LocalDate date) {
         int year = date.getYear();
         int month = date.getMonthValue();
