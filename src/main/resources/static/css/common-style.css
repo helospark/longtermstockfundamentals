@@ -439,3 +439,7 @@ select, #start-date-dropdown, #end-date-dropdown {
 #historical-expectation-watchlist-header .dropdown-item {
   padding-right: 5px !important;
 }
+
+.allowed-values-dropdown {
+  width:100px;
+}

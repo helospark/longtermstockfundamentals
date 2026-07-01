@@ -32,6 +32,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.management.config.ratelimit.RateLimit;
@@ -45,6 +47,7 @@ import com.helospark.financialdata.management.screener.domain.GenericErrorRespon
 import com.helospark.financialdata.management.screener.domain.ScreenerDescription;
 import com.helospark.financialdata.management.screener.domain.ScreenerDescription.Source;
 import com.helospark.financialdata.management.screener.domain.ScreenerResult;
+import com.helospark.financialdata.management.screener.strategy.ScreenerColumnListProvider;
 import com.helospark.financialdata.management.screener.strategy.ScreenerStrategy;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.user.repository.AccountType;
@@ -101,6 +104,8 @@ public class ScreenerController {
         SEPARATOR.data = null;
         SEPARATOR.source = Source.FIELD;
 
+        ObjectMapper om = new ObjectMapper();
+
         for (var field : AtGlanceData.class.getDeclaredFields()) {
             ScreenerElement screenerElement = field.getAnnotation(ScreenerElement.class);
             if (screenerElement != null) {
@@ -111,6 +116,15 @@ public class ScreenerController {
                 description.format = screenerElement.format();
                 description.source = Source.FIELD;
                 description.data = field;
+                description.annotation = screenerElement;
+                if (!screenerElement.listProvider().isBlank()) {
+                    Map<String, Integer> values = ScreenerColumnListProvider.provideValues().get(screenerElement.listProvider());
+                    try {
+                        description.allowedValuesJson = om.writeValueAsString(values);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
 
                 String id = screenerElement.id().equals("") ? field.getName() : screenerElement.id();
 
@@ -266,7 +280,7 @@ public class ScreenerController {
                 ScreenerDescription screenerDescription = idToDescription.get(element.id.toString());
                 String columnName = screenerDescription.readableName;
                 Double value = unreflectGetValue(stock, element, screenerDescription);
-                columnResult.put(columnName, screenerDescription.format.format(value));
+                columnResult.put(columnName, screenerDescription.format.format(value, screenerDescription.annotation));
             }
             result.portfolio.add(columnResult);
         }
@@ -905,6 +919,8 @@ public class ScreenerController {
                 return glance.smoothEquity10yr;
             case drawdown:
                 return glance.drawdown;
+            case sector:
+                return glance.sector;
             default:
                 throw new RuntimeException("Unexpected type " + id);
         }

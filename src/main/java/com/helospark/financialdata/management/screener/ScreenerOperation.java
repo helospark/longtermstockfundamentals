@@ -1,21 +1,53 @@
 package com.helospark.financialdata.management.screener;
 
+import java.lang.reflect.Field;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.helospark.financialdata.management.screener.annotation.ScreenerElement;
+import com.helospark.financialdata.management.screener.strategy.ScreenerColumnListProvider;
 import com.helospark.financialdata.management.screener.strategy.ScreenerStrategy;
+import com.helospark.financialdata.util.glance.AtGlanceData;
 
 public class ScreenerOperation {
     public AtGlanceField id;
     public String operation;
     public Double number1;
     public Double number2;
+    public int[] numberList;
 
     @JsonIgnore
     public ScreenerStrategy screenerStrategy;
 
     @Override
     public String toString() {
-        return id + " " + operation + " " + number1;
+        String value = "";
+
+        if (numberList != null) {
+            ScreenerElement annotation = getAnnotation();
+            if (annotation != null) {
+                Map<Integer, String> map = ScreenerColumnListProvider.provideValuesInverted().get(annotation.listProvider());
+                value = "[" + Arrays.stream(numberList).mapToObj(a -> map.get(a)).collect(Collectors.joining(", ")) + "]";
+            } else {
+                value = "[" + Arrays.stream(numberList).mapToObj(a -> String.valueOf(a)).collect(Collectors.joining(", ")) + "]";
+            }
+        } else {
+            value = String.valueOf(number1);
+        }
+
+        return id + " " + operation + " " + value;
+    }
+
+    public ScreenerElement getAnnotation() {
+        try {
+            Field field = AtGlanceData.class.getField(id.name());
+            return field.getDeclaredAnnotation(ScreenerElement.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // For increased performance
@@ -107,7 +139,8 @@ public class ScreenerOperation {
         smoothEquity10yr,
         fcf_yield,
         earnings_yield,
-        drawdown;
+        drawdown,
+        sector;
 
         @JsonCreator
         public static AtGlanceField fromString(String id) {

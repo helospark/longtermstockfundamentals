@@ -23,8 +23,11 @@ import com.helospark.financialdata.management.screener.ScreenerRequest;
 import com.helospark.financialdata.management.screener.domain.BacktestRequest;
 import com.helospark.financialdata.management.screener.domain.BacktestResult;
 import com.helospark.financialdata.management.screener.domain.ScreenerResult;
+import com.helospark.financialdata.management.screener.strategy.ContainsStrategy;
 import com.helospark.financialdata.management.screener.strategy.GreaterThanStrategy;
 import com.helospark.financialdata.management.screener.strategy.LessThanStrategy;
+import com.helospark.financialdata.management.screener.strategy.NotStrategy;
+import com.helospark.financialdata.management.screener.strategy.ScreenerColumnListProvider;
 import com.helospark.financialdata.management.screener.strategy.ScreenerStrategy;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
@@ -88,85 +91,87 @@ public class ParameterFinderBacktest {
         List<ScreenerStrategy> gtList = List.of(new GreaterThanStrategy());
         List<ScreenerStrategy> ltList = List.of(new LessThanStrategy());
         List<RandomParam> params = new ArrayList<>();
-        params.add(new RandomParam("altman", 1.0, 10.0, gtList));
-        params.add(new RandomParam("pietrosky", 1.0, 8.0, gtList));
-        params.add(new RandomParam("investmentScore", 0.0, 10.0));
+        params.add(new DoubleRandomParam("altman", 1.0, 10.0, gtList));
+        params.add(new DoubleRandomParam("pietrosky", 1.0, 8.0, gtList));
+        params.add(new DoubleRandomParam("investmentScore", 0.0, 10.0));
 
-        params.add(new RandomParam("roic", 8, 60, gtList));
-        params.add(new RandomParam("fiveYrRoic", 0, 20, gtList));
-        params.add(new RandomParam("roe", 1, 50));
-        params.add(new RandomParam("roa", 1, 50));
-        params.add(new RandomParam("rota", 1, 50));
-        params.add(new RandomParam("icr", 1, 30, gtList));
+        params.add(new DoubleRandomParam("roic", 8, 60, gtList));
+        params.add(new DoubleRandomParam("fiveYrRoic", 0, 20, gtList));
+        params.add(new DoubleRandomParam("roe", 1, 50));
+        params.add(new DoubleRandomParam("roa", 1, 50));
+        params.add(new DoubleRandomParam("rota", 1, 50));
+        params.add(new DoubleRandomParam("icr", 1, 30, gtList));
 
-        params.add(new RandomParam("trailingPeg", 0.1, 2.5));
-        params.add(new RandomParam("cape", 3.0, 80.0));
-        params.add(new RandomParam("fYrPe", 0.0, 50.0));
-        params.add(new RandomParam("fYrPFcf", 0.0, 50));
+        params.add(new DoubleRandomParam("trailingPeg", 0.1, 2.5));
+        params.add(new DoubleRandomParam("cape", 3.0, 80.0));
+        params.add(new DoubleRandomParam("fYrPe", 0.0, 50.0));
+        params.add(new DoubleRandomParam("fYrPFcf", 0.0, 50));
 
-        params.add(new RandomParam("pe", 0.0, 50));
-        params.add(new RandomParam("peExRnd", 0.0, 50));
-        params.add(new RandomParam("peExMnS", 0.0, 50));
-        params.add(new RandomParam("epsGrExRnd", 0.0, 50));
-        params.add(new RandomParam("epsGrExMnS", 0.0, 50));
+        params.add(new DoubleRandomParam("pe", 0.0, 50));
+        params.add(new DoubleRandomParam("peExRnd", 0.0, 50));
+        params.add(new DoubleRandomParam("peExMnS", 0.0, 50));
+        params.add(new DoubleRandomParam("epsGrExRnd", 0.0, 50));
+        params.add(new DoubleRandomParam("epsGrExMnS", 0.0, 50));
 
-        params.add(new RandomParam("epsGrowth", -10, 100));
-        params.add(new RandomParam("fcfGrowth", -10, 100));
-        params.add(new RandomParam("revenueGrowth", -10, 100));
-        params.add(new RandomParam("shareCountGrowth", -10, 10, ltList));
-        params.add(new RandomParam("netMarginGrowth", -5, 5));
-        params.add(new RandomParam("dividendGrowthRate", -10, 30));
-        params.add(new RandomParam("equityGrowth", -10, 30));
+        params.add(new DoubleRandomParam("epsGrowth", -10, 100));
+        params.add(new DoubleRandomParam("fcfGrowth", -10, 100));
+        params.add(new DoubleRandomParam("revenueGrowth", -10, 100));
+        params.add(new DoubleRandomParam("shareCountGrowth", -10, 10, ltList));
+        params.add(new DoubleRandomParam("netMarginGrowth", -5, 5));
+        params.add(new DoubleRandomParam("dividendGrowthRate", -10, 30));
+        params.add(new DoubleRandomParam("equityGrowth", -10, 30));
 
-        params.add(new RandomParam("epsGrowth2yr", -10, 100));
-        params.add(new RandomParam("fcfGrowth2yr", -10, 100));
-        params.add(new RandomParam("revenueGrowth2yr", -10, 100));
-        params.add(new RandomParam("shareCountGrowth2yr", -10, 10, ltList));
-        params.add(new RandomParam("equityGrowth2yr", -10, 30));
+        params.add(new DoubleRandomParam("epsGrowth2yr", -10, 100));
+        params.add(new DoubleRandomParam("fcfGrowth2yr", -10, 100));
+        params.add(new DoubleRandomParam("revenueGrowth2yr", -10, 100));
+        params.add(new DoubleRandomParam("shareCountGrowth2yr", -10, 10, ltList));
+        params.add(new DoubleRandomParam("equityGrowth2yr", -10, 30));
 
-        params.add(new RandomParam("ltl5Fcf", 0.2, 10));
-        params.add(new RandomParam("dtoe", 0.0, 4.0));
-        params.add(new RandomParam("currentRatio", 0.0, 2.0));
-        params.add(new RandomParam("assetTurnoverRatio", 0.0, 1.5));
+        params.add(new DoubleRandomParam("ltl5Fcf", 0.2, 10));
+        params.add(new DoubleRandomParam("dtoe", 0.0, 4.0));
+        params.add(new DoubleRandomParam("currentRatio", 0.0, 2.0));
+        params.add(new DoubleRandomParam("assetTurnoverRatio", 0.0, 1.5));
 
-        params.add(new RandomParam("opMargin", -10, 40));
-        params.add(new RandomParam("opCMargin", -10, 40));
-        params.add(new RandomParam("fcfMargin", -10, 30));
-        params.add(new RandomParam("ebitdaMargin", -10, 30));
+        params.add(new DoubleRandomParam("opMargin", -10, 40));
+        params.add(new DoubleRandomParam("opCMargin", -10, 40));
+        params.add(new DoubleRandomParam("fcfMargin", -10, 30));
+        params.add(new DoubleRandomParam("ebitdaMargin", -10, 30));
 
-        params.add(new RandomParam("pts", 0.2, 2));
-        params.add(new RandomParam("ptb", 0.2, 2));
-        params.add(new RandomParam("priceToGrossProfit", 0.2, 2));
+        params.add(new DoubleRandomParam("pts", 0.2, 2));
+        params.add(new DoubleRandomParam("ptb", 0.2, 2));
+        params.add(new DoubleRandomParam("priceToGrossProfit", 0.2, 2));
 
-        params.add(new RandomParam("dividendPayoutRatio", 0.0, 120.0));
-        params.add(new RandomParam("profitableYears", 0.0, 12.0));
-        params.add(new RandomParam("stockCompensationPerMkt", 0.0, 3.0, ltList));
-        params.add(new RandomParam("fvCalculatorMoS", -50.0, 1000.0));
-        params.add(new RandomParam("ideal10yrRevCorrelation", 0.0, 1.0));
+        params.add(new DoubleRandomParam("dividendPayoutRatio", 0.0, 120.0));
+        params.add(new DoubleRandomParam("profitableYears", 0.0, 12.0));
+        params.add(new DoubleRandomParam("stockCompensationPerMkt", 0.0, 3.0, ltList));
+        params.add(new DoubleRandomParam("fvCalculatorMoS", -50.0, 1000.0));
+        params.add(new DoubleRandomParam("ideal10yrRevCorrelation", 0.0, 1.0));
 
-        params.add(new RandomParam("price10Gr", -20.0, 30.0));
-        params.add(new RandomParam("price5Gr", -20.0, 30.0));
+        params.add(new DoubleRandomParam("price10Gr", -20.0, 30.0));
+        params.add(new DoubleRandomParam("price5Gr", -20.0, 30.0));
 
-        params.add(new RandomParam("fcf_yield", 0.0, 30.0));
-        params.add(new RandomParam("starFlags", 0.0, 10.0, gtList));
-        params.add(new RandomParam("greenFlags", 0.0, 10.0, gtList));
-        params.add(new RandomParam("yellowFlags", 0.0, 10.0));
-        params.add(new RandomParam("redFlags", 0.0, 10.0, ltList));
-        params.add(new RandomParam("revSD", 0.0, 1.0));
-        params.add(new RandomParam("epsSD", 0.0, 1.0));
-        params.add(new RandomParam("tpr", -0.5, 1.2));
-        params.add(new RandomParam("dividendYield", 0.0, 10.0));
-        params.add(new RandomParam("marketCapUsd", 400.0, 4_000_000.0, ltList));
+        params.add(new DoubleRandomParam("fcf_yield", 0.0, 30.0));
+        params.add(new DoubleRandomParam("starFlags", 0.0, 10.0, gtList));
+        params.add(new DoubleRandomParam("greenFlags", 0.0, 10.0, gtList));
+        params.add(new DoubleRandomParam("yellowFlags", 0.0, 10.0));
+        params.add(new DoubleRandomParam("redFlags", 0.0, 10.0, ltList));
+        params.add(new DoubleRandomParam("revSD", 0.0, 1.0));
+        params.add(new DoubleRandomParam("epsSD", 0.0, 1.0));
+        params.add(new DoubleRandomParam("tpr", -0.5, 1.2));
+        params.add(new DoubleRandomParam("dividendYield", 0.0, 10.0));
+        params.add(new DoubleRandomParam("marketCapUsd", 400.0, 4_000_000.0, ltList));
 
-        params.add(new RandomParam("peCheapestYears", 0.0, 15.0));
-        params.add(new RandomParam("pfcfCheapestYears", 0.0, 15.0));
-        params.add(new RandomParam("evRevenueCheapestYears", 0.0, 15.0));
-        params.add(new RandomParam("evFcfCheapestYears", 0.0, 15.0));
+        params.add(new DoubleRandomParam("peCheapestYears", 0.0, 15.0));
+        params.add(new DoubleRandomParam("pfcfCheapestYears", 0.0, 15.0));
+        params.add(new DoubleRandomParam("evRevenueCheapestYears", 0.0, 15.0));
+        params.add(new DoubleRandomParam("evFcfCheapestYears", 0.0, 15.0));
 
-        params.add(new RandomParam("smoothRevenue5yr", 0.0, 100.0, gtList));
-        params.add(new RandomParam("smoothEps5yr", 0.0, 100.0, gtList));
-        params.add(new RandomParam("smoothFcf5yr", 0.0, 100.0, gtList));
-        params.add(new RandomParam("smoothEquity5yr", 0.0, 100.0, gtList));
+        params.add(new DoubleRandomParam("smoothRevenue5yr", 0.0, 100.0, gtList));
+        params.add(new DoubleRandomParam("smoothEps5yr", 0.0, 100.0, gtList));
+        params.add(new DoubleRandomParam("smoothFcf5yr", 0.0, 100.0, gtList));
+        params.add(new DoubleRandomParam("smoothEquity5yr", 0.0, 100.0, gtList));
+
+        params.add(new ListProviderRandomParam("sector", ScreenerColumnListProvider.provideValues().get(ScreenerColumnListProvider.SECTOR_MAPPING), 4));
 
         return params;
     }
@@ -175,24 +180,25 @@ public class ParameterFinderBacktest {
         List<ScreenerStrategy> gtList = List.of(new GreaterThanStrategy());
         List<ScreenerStrategy> ltList = List.of(new LessThanStrategy());
         List<RandomParam> params = new ArrayList<>();
-        params.add(new RandomParam("altman", 1.0, 10.0, gtList));
-        params.add(new RandomParam("pietrosky", 1.0, 8.0, gtList));
-        params.add(new RandomParam("roic", 8, 60, gtList));
-        params.add(new RandomParam("fiveYrRoic", 0, 20, gtList));
-        params.add(new RandomParam("roe", 1, 30, gtList));
-        params.add(new RandomParam("trailingPeg", 0.1, 4.5));
-        params.add(new RandomParam("fYrPe", 0.0, 50.0, ltList));
-        params.add(new RandomParam("shareCountGrowth", -10, 10, ltList));
-        params.add(new RandomParam("ltl5Fcf", 0.2, 10, ltList));
-        params.add(new RandomParam("dtoe", 0.0, 4.0, ltList));
-        params.add(new RandomParam("opCMargin", -10, 40, gtList));
-        params.add(new RandomParam("dividendPayoutRatio", 0.0, 120.0));
-        params.add(new RandomParam("dividendYield", 0.0, 10.0));
-        params.add(new RandomParam("profitableYears", 0.0, 12.0));
-        params.add(new RandomParam("revenueGrowth", 0.0, 50.0, gtList));
-        params.add(new RandomParam("investmentScore", 0.0, 10.0));
-        params.add(new RandomParam("pfcfCheapestYears", 0.0, 15.0));
-        params.add(new RandomParam("smoothEps5yr", 0.0, 100.0, gtList));
+        params.add(new DoubleRandomParam("altman", 1.0, 10.0, gtList));
+        params.add(new DoubleRandomParam("pietrosky", 1.0, 8.0, gtList));
+        params.add(new DoubleRandomParam("roic", 8, 60, gtList));
+        params.add(new DoubleRandomParam("fiveYrRoic", 0, 20, gtList));
+        params.add(new DoubleRandomParam("roe", 1, 30, gtList));
+        params.add(new DoubleRandomParam("trailingPeg", 0.1, 4.5));
+        params.add(new DoubleRandomParam("fYrPe", 0.0, 50.0, ltList));
+        params.add(new DoubleRandomParam("shareCountGrowth", -10, 10, ltList));
+        params.add(new DoubleRandomParam("ltl5Fcf", 0.2, 10, ltList));
+        params.add(new DoubleRandomParam("dtoe", 0.0, 4.0, ltList));
+        params.add(new DoubleRandomParam("opCMargin", -10, 40, gtList));
+        params.add(new DoubleRandomParam("dividendPayoutRatio", 0.0, 120.0));
+        params.add(new DoubleRandomParam("dividendYield", 0.0, 10.0));
+        params.add(new DoubleRandomParam("profitableYears", 0.0, 12.0));
+        params.add(new DoubleRandomParam("revenueGrowth", 0.0, 50.0, gtList));
+        params.add(new DoubleRandomParam("investmentScore", 0.0, 10.0));
+        params.add(new DoubleRandomParam("pfcfCheapestYears", 0.0, 15.0));
+        params.add(new DoubleRandomParam("smoothEps5yr", 0.0, 100.0, gtList));
+        params.add(new ListProviderRandomParam("sector", ScreenerColumnListProvider.provideValues().get(ScreenerColumnListProvider.SECTOR_MAPPING), 4, List.of(new ContainsStrategy())));
         return params;
     }
 
@@ -230,7 +236,7 @@ public class ParameterFinderBacktest {
             for (int j = 0; j < random.nextInt(startIndex, endIndex); ++j) {
                 var param = params.get(randomIndices.get(j));
                 var strategyToUse = param.getOp();
-                request.operations.add(createOperations(param, param.name, strategyToUse));
+                request.operations.add(createOperations(param, param.getName(), strategyToUse));
             }
             request.addResultTable = false;
             request.excludedStocks = EXCLUDED_STOCKS;
@@ -342,7 +348,8 @@ public class ParameterFinderBacktest {
     public ScreenerOperation createOperations(RandomParam param, String name, ScreenerStrategy strategyToUse) {
         ScreenerOperation op = new ScreenerOperation();
         op.id = AtGlanceField.fromString(name);
-        op.number1 = param.getValue();
+        op.number1 = param.getNumber1();
+        op.numberList = param.getNumberList();
         op.operation = strategyToUse.getSymbol();
         op.screenerStrategy = strategyToUse;
         return op;
@@ -352,6 +359,7 @@ public class ParameterFinderBacktest {
         ScreenerOperation op = new ScreenerOperation();
         op.id = AtGlanceField.fromString(name);
         op.number1 = value;
+        op.numberList = null;
         op.operation = operationStrategy.getSymbol();
         op.screenerStrategy = operationStrategy;
         return op;
@@ -413,36 +421,135 @@ public class ParameterFinderBacktest {
 
     }
 
-    static class RandomParam {
+    static interface RandomParam {
+
+        public double getNumber1();
+
+        public int[] getNumberList();
+
+        public RandomParam copy();
+
+        public ScreenerStrategy getOp();
+
+        public String getName();
+    }
+
+    static class DoubleRandomParam implements RandomParam {
         Random random = new Random();
         String name;
         double min;
         double max;
         List<ScreenerStrategy> ops = List.of(new LessThanStrategy(), new GreaterThanStrategy());
 
-        public RandomParam(String name, double min, double max) {
+        public DoubleRandomParam(String name, double min, double max) {
             this.min = min;
             this.max = max;
             this.name = name;
         }
 
-        public RandomParam(String name, double min, double max, List<ScreenerStrategy> ops) {
+        public DoubleRandomParam(String name, double min, double max, List<ScreenerStrategy> ops) {
             this.min = min;
             this.max = max;
             this.ops = ops;
             this.name = name;
         }
 
-        public double getValue() {
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public double getNumber1() {
             return random.nextDouble(min, max);
         }
 
+        @Override
+        public int[] getNumberList() {
+            return null;
+        }
+
+        @Override
         public ScreenerStrategy getOp() {
             return ops.get(random.nextInt(ops.size()));
         }
 
+        @Override
         public RandomParam copy() {
-            return new RandomParam(name, min, max, ops);
+            return new DoubleRandomParam(name, min, max, ops);
+        }
+    }
+
+    static class ListProviderRandomParam implements RandomParam {
+        Random random = new Random();
+        String name;
+        int maxElements;
+        Map<String, Integer> listProvider;
+        List<Integer> allowedValues;
+        List<ScreenerStrategy> ops = List.of(new ContainsStrategy(), new NotStrategy());
+
+        public ListProviderRandomParam(String name, Map<String, Integer> listProvider, int maxElement) {
+            this.allowedValues = new ArrayList<>(listProvider.values());
+            this.listProvider = listProvider;
+            this.maxElements = maxElement;
+            this.name = name;
+        }
+
+        public ListProviderRandomParam(String name, Map<String, Integer> listProvider, int maxElement, List<ScreenerStrategy> ops) {
+            this.allowedValues = new ArrayList<>(listProvider.values());
+            this.maxElements = maxElement;
+            this.listProvider = listProvider;
+            this.ops = ops;
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public double getNumber1() {
+            return 0.0; // ignored
+        }
+
+        @Override
+        public int[] getNumberList() {
+            if (allowedValues == null || allowedValues.isEmpty()) {
+                return new int[0];
+            }
+
+            int totalSize = allowedValues.size();
+
+            int n = 1 + random.nextInt(Math.min(maxElements, totalSize));
+
+            if (n >= totalSize) {
+                return allowedValues.stream().mapToInt(Integer::intValue).toArray();
+            }
+
+            List<Integer> pool = new ArrayList<>(allowedValues);
+            int[] result = new int[n];
+
+            // Partial Fisher-Yates Shuffle: Only shuffle the 'n' elements we need
+            for (int i = 0; i < n; i++) {
+                int randomIndex = i + random.nextInt(totalSize - i);
+
+                Collections.swap(pool, i, randomIndex);
+
+                result[i] = pool.get(i);
+            }
+
+            return result;
+        }
+
+        @Override
+        public ScreenerStrategy getOp() {
+            return ops.get(random.nextInt(ops.size()));
+        }
+
+        @Override
+        public RandomParam copy() {
+            return new ListProviderRandomParam(name, listProvider, maxElements, ops);
         }
     }
 

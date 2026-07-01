@@ -21,6 +21,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.min.js" ></script>
   <script src="https://rawgit.com/notifyjs/notifyjs/master/dist/notify.js" ></script>
   <script src="/js/common.js" ></script>
+  <script src="/js/screener-menu.js"></script>
 
   <title>Stock screener</title>
 </head>
@@ -43,21 +44,29 @@
     <div class="col-xl-7">
       <div id="conditions">
         <div class="condition-row">
-          <select class="metric-dropdown"  style="float:left">
+          <!-- Metric Selector with data-allowed-values JSON node -->
+          <select class="metric-dropdown" style="float:left" onchange="handleMetricChange(this)">
             <option th:value="${field.key}" 
-                    th:text="${field.value.readableName == 'SEPARATOR' ? '&nbsp' : field.value.readableName}"
+                    th:text="${field.value.readableName == 'SEPARATOR' ? '&nbsp;' : field.value.readableName}"
                     th:style="${field.value.readableName == 'SEPARATOR' ? 'font-size: 1pt; color: #000000;' : ''}"
                     th:each="field : ${screenerFields}"
-                    th:disabled="${field.value.readableName == 'SEPARATOR'}"></option>
+                    th:disabled="${field.value.readableName == 'SEPARATOR'}"
+                    th:data-allowed-values="${field.value.allowedValuesJson != null} ? ${field.value.allowedValuesJson} : ''">
+            </option>
           </select>
-    
-          <select class="operator-dropdown"  style="float:left">
+        
+          <select class="operator-dropdown" style="float:left">
             <option th:value="${operator.symbol}" th:text="${operator.symbol}" th:each="operator : ${operators}"></option>
           </select>
         
-          <div style="float:left">
-            <input value="30.0"></input>
+          <!-- Value Control Wrapper Container -->
+          <div class="value-control-container" style="float:left;">
+            <div class="input-wrapper">
+              <input class="numeric-value-input" value="30.0"></input>
+            </div>
+            <div class="tags-container" style="margin-top: 5px; clear: both;"></div>
           </div>
+        
           <div class="remove-filter" style="float:left">
             <a class="remove-condition-link fa-solid fa-square-xmark" href="javascript:;"></a>
           </div>

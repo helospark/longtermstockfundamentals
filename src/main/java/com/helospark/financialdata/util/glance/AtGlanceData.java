@@ -1,5 +1,7 @@
 package com.helospark.financialdata.util.glance;
 
+import static com.helospark.financialdata.management.screener.strategy.ScreenerColumnListProvider.SECTOR_MAPPING;
+
 import java.time.LocalDate;
 
 import com.helospark.financialdata.management.screener.annotation.AtGlanceFormat;
@@ -216,8 +218,10 @@ public class AtGlanceData {
     public byte smoothEquity5yr;
     @ScreenerElement(name = "Equity smoothness (0..100) 10yr", separatorBelow = true)
     public byte smoothEquity10yr;
-    @ScreenerElement(name = "Drawdown % (0..100)", separatorBelow = true)
+    @ScreenerElement(name = "Drawdown % (0..100)")
     public byte drawdown;
+    @ScreenerElement(name = "Sector", separatorBelow = true, format = AtGlanceFormat.LIST_PROVIDER, listProvider = SECTOR_MAPPING)
+    public byte sector;
 
     @ScreenerElement(id = "fcf_yield", name = "Free cash flow yield", format = AtGlanceFormat.PERCENT)
     public double getFreeCashFlowYield() {

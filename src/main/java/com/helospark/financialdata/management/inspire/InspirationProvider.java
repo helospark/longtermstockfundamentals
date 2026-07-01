@@ -266,7 +266,7 @@ public class InspirationProvider {
             } else if (value.getClass().equals(Short.class)) {
                 result = ((Short) value).doubleValue();
             }
-            return format.format(result);
+            return format.format(result, screenerElementAnnotation);
         } catch (Exception e) {
             e.printStackTrace();
             return "-";

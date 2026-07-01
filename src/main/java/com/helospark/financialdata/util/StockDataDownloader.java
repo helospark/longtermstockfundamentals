@@ -64,6 +64,7 @@ import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.CompanyListElement;
+import com.helospark.financialdata.domain.CompanySector;
 import com.helospark.financialdata.domain.CurrentPrice;
 import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.EconomicPriceElement;
@@ -687,6 +688,7 @@ public class StockDataDownloader {
         data.smoothEquity10yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEquity(company, offsetYear, 10.0) * 100.0);
 
         data.drawdown = (byte) (DrawDownService.getLowQualityDrawdownAt(company, actualDate).orElse(Double.NaN) * 1.0);
+        data.sector = (byte) (CompanySector.getByProfile(company.profile).getId());
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);
 

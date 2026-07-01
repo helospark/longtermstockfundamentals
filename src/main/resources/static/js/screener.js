@@ -85,14 +85,27 @@
     $('.condition-row').each(function(i, obj) {
         metric = $(this).find(".metric-dropdown").val();
         operation = $(this).find(".operator-dropdown").val();
-        number1 = $(this).find("input:eq(0)").val();
-        number2 = 0.0;
-        secondField = $(this).find("input:eq(1)");
-        if (secondField.length > 0) {
-          number2 = secondField.val();
+        
+        
+        const $container = $(this).find('.value-control-container');
+        
+        let valueData = null;
+        const $dropdown = $container.find('.allowed-values-dropdown');
+
+        if ($dropdown.length > 0) {
+            valueData = $container.find('.badge-tag').map(function() {
+                return parseInt($(this).attr('data-id'), 10);
+            }).get();
+        } else {
+            number1 = $(this).find("input:eq(0)").val();
+            number2 = 0.0;
+            secondField = $(this).find("input:eq(1)");
+            if (secondField.length > 0) {
+              number2 = secondField.val();
+            }
         }
         
-        screenerOperations.push({id: metric, operation: operation, number1: number1, number2: number2});
+        screenerOperations.push({id: metric, operation: operation, number1: number1, number2: number2, numberList: valueData});
     });
     return screenerOperations;
   }
@@ -629,6 +642,9 @@ function migrateFromLocalStorageToBackend() {
     }
 }
 
+
+
+
 $(".metric-dropdown").val("roic");
 $(".operator-dropdown").val(">");
 $("#conditions input").first().val("30");
@@ -653,4 +669,3 @@ if (!runInit) {
   //migrateFromLocalStorageToBackend();
 }
 });
-
