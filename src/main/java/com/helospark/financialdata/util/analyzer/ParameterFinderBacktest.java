@@ -37,7 +37,7 @@ public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2013, 2014), new YearRange(2022, 2023));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2015, 2016), new YearRange(2025, 2026));
 
     private static final double MINIMUM_BEAT_PERCENT = 95.0;
     private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
@@ -46,15 +46,18 @@ public class ParameterFinderBacktest {
     private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
 
     private static final int MIN_PARAMS = 4;
-    private static final int MAX_PARAMS = 10;
+    private static final int MAX_PARAMS = 7;
 
     private static final int RESULT_QUEUE_SIZE = 60;
 
+    private static final boolean USE_CURRENT_DATE_FILTER = true;
+    private static final boolean JUST_BEST_PARAMS = true;
+
     // Test what if this program was run on date, or null for latest date
-    private static final LocalDate TEST_RUN_ON_DATE = LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1); // or null
+    private static final LocalDate TEST_RUN_ON_DATE = USE_CURRENT_DATE_FILTER ? null : LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1);
 
     private static final List<String> EXCLUDED_STOCKS = List.of();
-    private static final List<RandomParam> PARAMS = getAllParams();
+    private static final List<RandomParam> PARAMS = JUST_BEST_PARAMS ? getBestParams() : getAllParams();
     ScreenerController screenerController;
     Set<TestResult> resultSet = Collections.synchronizedSet(new TreeSet<>());
 
@@ -171,6 +174,7 @@ public class ParameterFinderBacktest {
         params.add(new DoubleRandomParam("smoothFcf5yr", 0.0, 100.0, gtList));
         params.add(new DoubleRandomParam("smoothEquity5yr", 0.0, 100.0, gtList));
 
+        params.add(new DoubleRandomParam("drawdown", 0.0, 100.0));
         params.add(new ListProviderRandomParam("sector", ScreenerColumnListProvider.provideValues().get(ScreenerColumnListProvider.SECTOR_MAPPING), 4));
 
         return params;
@@ -181,6 +185,7 @@ public class ParameterFinderBacktest {
         List<ScreenerStrategy> ltList = List.of(new LessThanStrategy());
         List<RandomParam> params = new ArrayList<>();
         params.add(new DoubleRandomParam("altman", 1.0, 10.0, gtList));
+        params.add(new DoubleRandomParam("icr", 1, 30, gtList));
         params.add(new DoubleRandomParam("pietrosky", 1.0, 8.0, gtList));
         params.add(new DoubleRandomParam("roic", 8, 60, gtList));
         params.add(new DoubleRandomParam("fiveYrRoic", 0, 20, gtList));
@@ -195,9 +200,10 @@ public class ParameterFinderBacktest {
         params.add(new DoubleRandomParam("dividendYield", 0.0, 10.0));
         params.add(new DoubleRandomParam("profitableYears", 0.0, 12.0));
         params.add(new DoubleRandomParam("revenueGrowth", 0.0, 50.0, gtList));
-        params.add(new DoubleRandomParam("investmentScore", 0.0, 10.0));
+        params.add(new DoubleRandomParam("investmentScore", 0.0, 10.0, gtList));
         params.add(new DoubleRandomParam("pfcfCheapestYears", 0.0, 15.0));
         params.add(new DoubleRandomParam("smoothEps5yr", 0.0, 100.0, gtList));
+        params.add(new DoubleRandomParam("smoothEquity5yr", 0.0, 100.0, gtList));
         params.add(new ListProviderRandomParam("sector", ScreenerColumnListProvider.provideValues().get(ScreenerColumnListProvider.SECTOR_MAPPING), 4, List.of(new ContainsStrategy())));
         return params;
     }
@@ -261,17 +267,21 @@ public class ParameterFinderBacktest {
             }
 
             if (threadIndex == 0 && i % 500 == 0 && !resultSet.equals(previousSet)) {
-                previousSet = new TreeSet<>(resultSet);
-                printMostCommonStocks(previousSet);
-                printMostCommonOperands(previousSet);
-                for (var element : previousSet) {
-                    System.out.println(element);
-                }
-                System.out.println("Throughput: " + ((count / ((System.currentTimeMillis() - startTime) / 1000.0)) * numThreads) + " op/s");
+                try {
+                    previousSet = new TreeSet<>(resultSet);
+                    printMostCommonStocks(previousSet);
+                    printMostCommonOperands(previousSet);
+                    for (var element : previousSet) {
+                        System.out.println(element);
+                    }
+                    System.out.printf("Throughput: %.2f op/s\n", ((count / ((System.currentTimeMillis() - startTime) / 1000.0)) * numThreads));
+                    System.out.println("----------------------");
 
-                startTime = System.currentTimeMillis();
-                count = 0;
-                System.out.println("----------------------");
+                    startTime = System.currentTimeMillis();
+                    count = 0;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             ++i;
             ++count;

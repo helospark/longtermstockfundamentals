@@ -48,10 +48,14 @@ function fallbackToTextInput(wrapper) {
 
 function handleTagSelection(dropdown) {
     if (dropdown.selectedIndex === 0) return;
-
     const selectedOption = dropdown.options[dropdown.selectedIndex];
+    const id = dropdown.value;
     const label = selectedOption.text;
-    const id = dropdown.value; // This is your Integer ID string (e.g., "5")
+    
+    addTagSelection(dropdown, id, label);
+}
+
+function addTagSelection(dropdown, id, label) {
     const tagsContainer = dropdown.closest('.value-control-container').querySelector('.tags-container');
 
     // Duplicate check

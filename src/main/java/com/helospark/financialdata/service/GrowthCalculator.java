@@ -260,7 +260,7 @@ public class GrowthCalculator {
         int oldIndex = findIndexWithOrBeforeDate(result, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
         int newIndex = findIndexWithOrBeforeDate(result, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
 
-        if (oldIndex >= result.size() || oldIndex == -1) {
+        if (oldIndex >= result.size() || oldIndex == -1 || newIndex == -1) {
             return Optional.empty();
         }
 

@@ -39,6 +39,7 @@ public class LatestPriceProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(LatestPriceProvider.class);
     private static final long CACHE_STORE_TIME = 60 * 60 * 24;
     private static final long CACHE_STORE_VARIATION = 60 * 60 * 4;
+    private static final boolean ENABLE_API = false;
 
     Cache<String, Double> tickerToPriceCache = Caffeine.newBuilder()
             .expireAfter(new Expiry<String, Double>() {
@@ -149,6 +150,10 @@ public class LatestPriceProvider {
             return 1.0;
         }
         try {
+            if (!ENABLE_API) {
+                return provideFileBasedPrice(symbol);
+            }
+
             double result = StockDataDownloader.loadLatestPrice(symbol);
             if (result == 0.0) {
                 result = provideFileBasedPrice(symbol);

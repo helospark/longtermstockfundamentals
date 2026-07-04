@@ -502,8 +502,52 @@
       newRow = templateRow.clone();
       newRow.find(".metric-dropdown").val(data.operations[i].id);
       newRow.find(".operator-dropdown").val(data.operations[i].operation);
-      newRow.find("input:eq(0)").val(data.operations[i].number1);
-      $("#conditions").append(newRow);
+      
+      const inputWrapper = newRow.find('.input-wrapper');
+      
+      const selectedOption = newRow.find(".metric-dropdown option:selected");
+      const allowedValuesRaw = selectedOption.attr('data-allowed-values');
+      
+      if (allowedValuesRaw && allowedValuesRaw.trim() !== '') {
+          const allowedValues = JSON.parse(allowedValuesRaw);
+          
+          let selectHtml = `<select class="allowed-values-dropdown" onchange="handleTagSelection(this)">`;
+          selectHtml += `<option value="" disabled selected>Select...</option>`;
+          
+          for (const [key, value] of Object.entries(allowedValues)) {
+              selectHtml += `<option value="${value}">${key}</option>`;
+          }
+          selectHtml += `</select>`;
+          
+          inputWrapper.html(selectHtml);
+          $("#conditions").append(newRow);
+          
+          
+          const savedIds = data.operations[i].numberList || [];
+          const $container = newRow.find('.value-control-container');
+          const dropdownDom = $container.find('.allowed-values-dropdown')[0];
+          
+          const idToLabelMap = {};
+          if (allowedValues) {
+              for (const [label, id] of Object.entries(allowedValues)) {
+                  idToLabelMap[id.toString()] = label;
+              }
+          }
+          
+          savedIds.forEach(function(id) {
+              const label = idToLabelMap[id.toString()];
+              
+              if (label && dropdownDom) {
+                  addTagSelection(dropdownDom, id, label);
+              }
+          });
+          
+          
+          
+        } else {
+          newRow.find("input:eq(0)").val(data.operations[i].number1);
+          $("#conditions").append(newRow);
+        }
     }
     
     $("#exchanges").val(data.exchanges);
