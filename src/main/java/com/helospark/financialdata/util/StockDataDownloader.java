@@ -136,7 +136,7 @@ public class StockDataDownloader {
     }
 
     public static void main(String[] args) throws StreamReadException, DatabindException, IOException {
-        boolean downloadNewData = true;
+        boolean downloadNewData = false;
         boolean downloadFx = false;
         Set<Exchanges> downloadOnlyExchanges = Exchanges.getExchangesByRegion(ExchangeRegion.US); // or empty set
         //Set<Exchanges> downloadOnlyExchanges = Exchanges.getExchangesByRegion(ExchangeRegion.US);
@@ -430,7 +430,6 @@ public class StockDataDownloader {
                     if (entry == null) {
                         break;
                     }
-                    CompanyFinancials company = DataLoader.readFinancialsWithCacheEnabled(entry, false);
                     int queueSize = allSymbolsSet.size() - queue.size();
                     if (queueSize % 1000 == 0) {
                         LOGGER.info("Progress: " + (((double) queueSize / allSymbolsSet.size())) * 100.0);
@@ -439,6 +438,7 @@ public class StockDataDownloader {
                     }
 
                     int years = LocalDate.now().getYear() - 1990;
+                    CompanyFinancials company = null;
                     for (int i = 1; i < years; ++i) {
                         int year = LocalDate.now().minusYears(i).getYear();
                         for (int month = 1; month < 12; month += 3) {
@@ -449,6 +449,9 @@ public class StockDataDownloader {
                                 if (companyMap == null) {
                                     companyMap = new ConcurrentHashMap<>();
                                     yearData.put(mapIndex, companyMap);
+                                }
+                                if (company == null) {
+                                    company = DataLoader.readFinancialsWithCacheEnabled(entry, false);
                                 }
 
                                 Optional<AtGlanceData> offsetDataOptional = symbolToSearchData(entry, company, i, month);
@@ -566,9 +569,10 @@ public class StockDataDownloader {
         LocalDate actualDate = financial.getDate();
         double offsetYear = (now.getYear() - actualDate.getYear()) + ((now.getDayOfYear() - actualDate.getDayOfYear()) / 365.0);
 
-        double latestPrice = (offsetYeari == 0 ? company.latestPrice : company.financials.get(index).price);
-        double latestPriceUsd = (offsetYeari == 0 ? company.latestPriceUsd : company.financials.get(index).priceUsd);
-        double latestPriceTradingCurrency = (offsetYeari == 0 ? company.latestPriceTradingCurrency : company.financials.get(index).priceTradingCurrency);
+        boolean needsLatestData = offsetYeari == 0;
+        double latestPrice = (needsLatestData ? company.latestPrice : company.financials.get(index).price);
+        double latestPriceUsd = (needsLatestData ? company.latestPriceUsd : company.financials.get(index).priceUsd);
+        double latestPriceTradingCurrency = (needsLatestData ? company.latestPriceTradingCurrency : company.financials.get(index).priceTradingCurrency);
 
         data.actualDate = actualDate;
         data.marketCapUsd = (latestPriceUsd * financial.incomeStatementTtm.weightedAverageShsOut) / 1_000_000.0;
@@ -584,9 +588,9 @@ public class StockDataDownloader {
         data.sloan = (float) (RatioCalculator.calculateSloanPercent(financial));
 
         data.eps = financial.incomeStatementTtm.eps;
-        data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial)).orElse(Double.NaN).floatValue();
-        data.peExRnd = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExRnd(financial, financial.price)).orElse(Double.NaN).floatValue();
-        data.peExMnS = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExMns(financial, financial.price)).orElse(Double.NaN).floatValue();
+        data.pe = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatio(financial, latestPrice)).orElse(Double.NaN).floatValue();
+        data.peExRnd = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExRnd(financial, latestPrice)).orElse(Double.NaN).floatValue();
+        data.peExMnS = Optional.ofNullable(RatioCalculator.calculatePriceToEarningsRatioExMns(financial, latestPrice)).orElse(Double.NaN).floatValue();
 
         data.evToEbitda = (float) (EnterpriseValueCalculator.calculateEv(financial, latestPrice) / financial.incomeStatementTtm.ebitda);
         data.ptb = (float) RatioCalculator.calculatePriceToBookRatio(financial, latestPrice);
@@ -688,7 +692,7 @@ public class StockDataDownloader {
         data.smoothEquity5yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEquity(company, offsetYear, 5.0) * 100.0);
         data.smoothEquity10yr = (byte) (SmoothnessCalculator.calculateSmoothnessOfEquity(company, offsetYear, 10.0) * 100.0);
 
-        data.drawdown = (byte) (DrawDownService.getLowQualityDrawdownAt(company, actualDate).orElse(Double.NaN) * 1.0);
+        data.drawdown = (byte) (DrawDownService.getLowQualityDrawdownAt(company, needsLatestData ? now : actualDate).orElse(Double.NaN) * 1.0);
         data.sector = (byte) (CompanySector.getByProfile(company.profile).getId());
 
         List<FlagInformation> flags = FlagsProviderService.giveFlags(company, offsetYear);

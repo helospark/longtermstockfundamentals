@@ -37,7 +37,7 @@ public class ParameterFinderBacktest {
     private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
     private static final double MINIMUM_MARKET_CAP = 100.0;
 
-    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2015, 2016), new YearRange(2025, 2026));
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2014, 2015), new YearRange(2020, 2021));
 
     private static final double MINIMUM_BEAT_PERCENT = 95.0;
     private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
@@ -50,7 +50,7 @@ public class ParameterFinderBacktest {
 
     private static final int RESULT_QUEUE_SIZE = 60;
 
-    private static final boolean USE_CURRENT_DATE_FILTER = true;
+    private static final boolean USE_CURRENT_DATE_FILTER = false;
     private static final boolean JUST_BEST_PARAMS = true;
 
     // Test what if this program was run on date, or null for latest date

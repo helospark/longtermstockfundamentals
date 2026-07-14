@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,6 +21,7 @@ import com.helospark.financialdata.management.watchlist.repository.WatchlistServ
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.StockDataDownloader;
 import com.helospark.financialdata.util.StockDataDownloader.DownloadDateData;
+import com.helospark.financialdata.util.glance.AtGlanceData;
 import com.helospark.financialdata.util.spconstituents.Sp500MetricSaverJob;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,6 +79,11 @@ public class SingleStockDownloadController {
         ensureOnlyAdminAccess(request);
 
         metricSaverJob.runJob(LocalDate.now());
+    }
+
+    @GetMapping("/at-glance/{symbol}")
+    public AtGlanceData atGlance(@PathVariable("symbol") String symbol) {
+        return symbolAtGlanceProvider.getAtGlanceData(symbol).orElse(null);
     }
 
     public List<String> getStocks(HttpServletRequest request) {

@@ -928,7 +928,7 @@ public class FinancialsController {
         CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
         var result = getIncomeData(company,
                 quarterly, financialsTtm -> toPercent((double) -financialsTtm.cashFlowTtm.dividendsPaid / financialsTtm.incomeStatementTtm.weightedAverageShsOut / financialsTtm.price));
-        if (company.financials.size() > 0 && result.size() > 0 && !company.financials.get(0).date.toString().equals(result.get(0).date)) {
+        if (company.financials.size() > 0 && result.size() > 0 && !company.financials.get(0).date.toString().equals(company.latestPriceDate.toString())) {
             Double yield = toPercent((double) -company.financials.get(0).cashFlowTtm.dividendsPaid / company.financials.get(0).incomeStatementTtm.weightedAverageShsOut / company.latestPrice);
             if (yield == null) {
                 yield = 0.0;

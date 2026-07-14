@@ -1,0 +1,270 @@
+    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
+    private static final double MINIMUM_MARKET_CAP = 100.0;
+
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2015, 2016), new YearRange(2025, 2026));
+
+    private static final double MINIMUM_BEAT_PERCENT = 95.0;
+    private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
+
+    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
+    private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
+
+    private static final int MIN_PARAMS = 4;
+    private static final int MAX_PARAMS = 7;
+
+    private static final int RESULT_QUEUE_SIZE = 60;
+
+    private static final boolean USE_CURRENT_DATE_FILTER = true;
+    private static final boolean JUST_BEST_PARAMS = true;
+
+    // Test what if this program was run on date, or null for latest date
+    private static final LocalDate TEST_RUN_ON_DATE = USE_CURRENT_DATE_FILTER ? null : LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1);
+
+    private static final List<String> EXCLUDED_STOCKS = List.of();
+    private static final List<RandomParam> PARAMS = JUST_BEST_PARAMS ? getBestParams() : getAllParams();
+    ScreenerController screenerController;
+    Set<TestResult> resultSet = Collections.synchronizedSet(new TreeSet<>());
+
+[ NVDA(48), ANET(34), FTNT(33), AMAT(33), CDNS(31), LRCX(27), MPWR(25), RMBS(25), NOW(23), ASML(23), UI(22), AVGO(21), MANH(18), AVGOP(18), AGYS(18), TPL(17), FICO(15), ADBE(15), AAPL(14), ADSK(13), APPF(12), JKHY(11), HUBS(11), ITRN(11), PANW(11), KLAC(11), XLNX(11), FIX(11), MSFT(10), DCBO(10), CRWD(10), PCTY(10), ACN(9), GOOG(9), GOOGL(9), QLYS(8), DECK(8), MSI(8), DOCU(7), CHKP(7), PAYS(7), AGX(7), QCOM(7), TER(6), IMOS(6), INTU(6), OAS(6), MA(6), UBER(6), LSCC(5), INFY(5), LOPE(5), TRAK(5), IDXX(5), NVR(5), TSM(5), LLTC(5), WDAY(5), MGY(5), V(4), WDFC(4), PCYG(4), PBT(4), USLM(4), KNSL(4), ODC(4), ENVA(4), ACLS(4), ZS(4), CRUS(4), FIZZ(4), DBX(4), CLMB(4), ESTC(4), DSGX(4), BCPC(4), NIE(4), AFYA(4), MIME(3), GDDY(3), STX(3), VRSN(3), ZIXI(3), IBKR(3), MCRI(3), TEAM(3), COIN(3), ACGL(3), EXEL(3), IT(3), CHRD(3), NFLX(3), IPLDP(3), TDC(3), NYT(3), DMLP(3), ATEN(2), MTSI(2), META(2), BSY(2), ATVI(2), CALM(2), ENPH(2), DDOG(2), TXN(2), NTAP(2), PFPT(2), TYL(2), WSTG(2), STRL(2), VMW(2), PLMR(2), MLI(2), DT(2), WPM(2), IDCC(2), SCCO(2), APHKX(2), BRCM(2), CSCO(2), WRB(2), PDD(2), ISSC(2), NSSC(2), DGII(2), CLR(2), ACGLO(2), SPOT(2), POWL(2), NATH(2), SNA(2), ANSS(2), INMD(2), DRD(2), CRVL(2), NET(2), MTD(2), ICFI(2), LOGI(2), RNG(2), ABNB(2), PSTG(2), CHCI(2), AMD(2), CORT(2), KAI(2), TENB(2), FFIV(2), QFIN(2), SBR(2), GAB-PG(2), IIVI(2), ALTM(2), UGP(2), MEDP(1), TIGR(1), HRMY(1), AG(1), NTNX(1), RAMP(1), OPFI(1), NVEC(1), IESC(1), ASR(1), LSTR(1), PAC(1), CTAS(1), TW(1), REX(1), PAX(1), ADP(1), ADS(1), SYF-PA(1), CIG(1), SYF(1), MSCI(1), ERIE(1), UMC(1), HCI(1), FN(1), SEIC(1), NTES(1), BBDO(1), ECOM(1), PAYX(1), ISRG(1), CEIX(1), AMOT(1), WDC(1), DCTH(1), TY-P(1), MELI(1), PLAB(1), PGR(1), NTB(1), MRVL(1), CRCT(1), NVMI(1), UAN(1), GFI(1), OVV(1), BMI(1), CPRX(1), HCKT(1), VEEV(1), MDB(1), RNR(1), PJT(1), HFRO-PA(1), DSP(1), MU(1), PEGA(1), BOX(1), ROL(1), YELP(1), EVR(1), GPJA(1), CIG-C(1), EXPD(1), EXPE(1), RNR-PF(1), GGT-PE(1), BKNG(1), DELL(1), ON(1), SSD(1), OTIS(1), CFBK(1), ALTR(1), CWCO(1), ]
+
+[ marketCapUsd>(60), sectorin(47), fiveYrRoic>(47), altman>(30), smoothEquity5yr>(22), revenueGrowth>(22), profitableYears>(22), icr>(18), smoothEps5yr>(15), opCMargin>(14), investmentScore>(11), dividendYield<(11), dividendPayoutRatio<(10), roe>(6), shareCountGrowth<(6), roic>(6), dtoe<(5), pfcfCheapestYears<(5), pietrosky>(5), fYrPe<(3), trailingPeg>(2), ltl5Fcf<(2), dividendPayoutRatio>(1), trailingPeg<(1), ]
+
+avgPercent=25.222081472858616, medianPercent=22.49640496453622, invested=163000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, altman > 6.855354153058951, profitableYears > 5.467973069036789, investmentScore > 0.7673074707401262, smoothEquity5yr > 64.23744221836036, sector in [Materials]]
+
+
+avgPercent=23.91469420452933, medianPercent=23.856165290946695, invested=693000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, roic > 10.334499604761014, sector in [Industrials, Utilities, Technology, Energy], dividendYield < 5.610797752674948, fiveYrRoic > 18.99448180033769, smoothEps5yr > 51.321638391083766]
+
+
+avgPercent=23.84686325815988, medianPercent=23.965606216587965, invested=513000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, pfcfCheapestYears < 11.765689648843576, dividendPayoutRatio < 100.67427277809124, altman > 8.072204688913734, fiveYrRoic > 13.577568867864368, sector in [Technology], profitableYears > 4.338739089712002]
+
+
+avgPercent=23.66972435227945, medianPercent=24.216199995859267, invested=478000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 18.182093525431913, opCMargin > 13.798690065517906, sector in [Technology, Unknown], pfcfCheapestYears < 4.279162090804367, icr > 13.013399390407141, smoothEquity5yr > 27.05769534508994]
+
+
+avgPercent=24.334048123612703, medianPercent=23.63459825429959, invested=221000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEps5yr > 69.60018114624215, fiveYrRoic > 17.887023877986664, opCMargin > 22.180977341580075, shareCountGrowth < -2.504785107479699]
+
+
+avgPercent=25.493186917437917, medianPercent=22.543715301131616, invested=193000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Other, Unknown, Communication services, Materials], profitableYears > 11.431809401657219, altman > 7.2428282460040965, icr > 3.1417403632406202, dividendYield < 2.3795198741127663]
+
+
+avgPercent=24.166048301250505, medianPercent=23.93440452358544, invested=537000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEps5yr > 52.32684387829036, fiveYrRoic > 14.751453421065792, smoothEquity5yr > 48.51622213456211, sector in [Materials, Utilities, Technology, Real estate]]
+
+
+avgPercent=23.598128110356893, medianPercent=24.510350715173914, invested=635000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 15.261179586564824, dtoe < 3.3999788479082422, smoothEps5yr > 29.77243432096699, roic > 12.538134391702808, revenueGrowth > 8.909007008269459, altman > 8.925827205324516]
+
+
+avgPercent=24.98799734370516, medianPercent=23.160364103290675, invested=408000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Technology, Real estate, Utilities, Materials], icr > 18.060842468380145, smoothEquity5yr > 74.28834085052375, fiveYrRoic > 16.13118176005554]
+
+
+avgPercent=24.70721293846198, medianPercent=23.539085335982435, invested=425000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Technology, Real estate], dividendPayoutRatio < 42.522829861483764, icr > 11.989716264445207, investmentScore > 6.373651334187672, fiveYrRoic > 19.48268012450166]
+
+
+avgPercent=26.685662162768956, medianPercent=21.59219466833642, invested=276000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Unknown, Industrials, Communication services], fYrPe < 37.50493086832254, smoothEquity5yr > 98.67104391704275, investmentScore > 0.2900609406603083]
+
+
+avgPercent=24.707096359546775, medianPercent=23.587819653127575, invested=751000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 15.467039545252781, smoothEps5yr > 49.408675731829376, sector in [Energy, Materials, Technology, Other], dividendYield < 3.8017546296632565]
+
+
+avgPercent=26.04358674028777, medianPercent=22.263813093862428, invested=365000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Utilities, Unknown, Other, Technology], profitableYears > 7.7506194826241295, fiveYrRoic > 18.863777441414765, smoothEps5yr > 52.571593236486336]
+
+
+avgPercent=24.323756723723704, medianPercent=23.988545465199508, invested=539000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, revenueGrowth > 16.472882515658988, profitableYears > 4.110286700159741, fiveYrRoic > 7.870696619100377, dividendPayoutRatio < 18.92517732067529, pietrosky > 2.9900750608656623, altman > 9.24479556595214]
+
+
+avgPercent=24.915008857046885, medianPercent=23.80162735924245, invested=164000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, icr > 16.714440848293076, sector in [Unknown, Materials], opCMargin > -2.918469096523376, smoothEquity5yr > 74.42534900264826, altman > 6.380454829577557]
+
+
+avgPercent=26.08864595967324, medianPercent=22.843662289147005, invested=432000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEquity5yr > 67.98879195575918, sector in [Technology, Materials, Other], fiveYrRoic > 18.251101133031774, altman > 4.0039885978699745]
+
+
+avgPercent=25.66311012777613, medianPercent=23.40565879637435, invested=286000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, icr > 23.39468095002059, fiveYrRoic > 18.881756505385894, investmentScore > 4.848976217051074, sector in [Technology, Consumer defensive, Other], profitableYears > 8.70945898750301]
+
+
+avgPercent=24.700665817174126, medianPercent=24.396957982388834, invested=625000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, icr > 2.762411762659535, sector in [Technology, Unknown], profitableYears > 5.540221574605805, fiveYrRoic > 15.291645021438105, smoothEquity5yr > 0.9415547158797777]
+
+
+avgPercent=24.49119527290669, medianPercent=24.72432602238357, invested=371000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, roic > 12.712183432553545, altman > 8.037239215047439, fiveYrRoic > 18.796669705807968, sector in [Technology], dividendPayoutRatio < 104.58932391918601]
+
+
+avgPercent=24.78936982202471, medianPercent=24.473380389643996, invested=504000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEps5yr > 64.14842993301833, roic > 14.273313669878235, sector in [Energy, Technology, Unknown, Consumer defensive], fiveYrRoic > 18.566118744768765]
+
+
+avgPercent=24.029771819839315, medianPercent=25.329011703683733, invested=174000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, revenueGrowth > 4.9028757484513354, sector in [Other, Energy, Communication services], altman > 6.159077173081303, smoothEps5yr > 67.32057398042572]
+
+
+avgPercent=24.077182098263272, medianPercent=25.34267077721011, invested=682000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, altman > 6.252831711375384, dividendPayoutRatio < 70.01983691694318, opCMargin > 18.816626981766504, icr > 24.19357113372464, sector in [Technology], profitableYears > 4.155566494106991]
+
+
+avgPercent=24.195938401815006, medianPercent=25.39005971319712, invested=652000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, dividendYield < 3.798539424463007, roe > 4.594905338177166, fiveYrRoic > 15.739365327658161, investmentScore > 3.9855529221680186, smoothEquity5yr > 75.41835861853353, sector in [Energy, Technology]]
+
+
+avgPercent=24.628484136783264, medianPercent=25.07988282386031, invested=513000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, revenueGrowth > 17.00457250392452, fiveYrRoic > 15.561812205223752, investmentScore > 2.131559905920146, sector in [Technology]]
+
+
+avgPercent=23.70046567547392, medianPercent=26.088334891297382, invested=615000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, altman > 6.300290147011316, revenueGrowth > 6.7315134605164415, sector in [Technology, Unknown, Other, Real estate], opCMargin > 20.635608789876382, icr > 25.887362066673244]
+
+
+avgPercent=25.750975917940913, medianPercent=24.199605789033885, invested=351000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 19.008180632491175, sector in [Materials, Technology], icr > 27.91908258249242, profitableYears > 2.042177093073213]
+
+
+avgPercent=24.908861951088447, medianPercent=25.093263573693637, invested=354000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, dividendPayoutRatio < 9.147583588976289, fiveYrRoic > 18.759140234136332, shareCountGrowth < 3.07930167455514, profitableYears > 4.765462125177038, altman > 7.30020057468386]
+
+
+avgPercent=25.066104920738077, medianPercent=24.96239763565782, invested=540000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 19.117705846203357, dividendYield < 1.203915554826549, altman > 8.696744173237175, trailingPeg > 0.40618523465312895, opCMargin > 3.476903775865928]
+
+
+avgPercent=25.83222353955264, medianPercent=24.520675406890934, invested=447000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Technology], pfcfCheapestYears < 6.217856236034234, icr > 28.415279488877122, fiveYrRoic > 12.91196296131103, smoothEquity5yr > 70.4831409202174]
+
+
+avgPercent=26.921155402716202, medianPercent=23.45895037889396, invested=145000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, icr > 2.6066775419049435, sector in [Utilities, Materials], profitableYears > 9.048631481181403, altman > 8.307563309684301]
+
+
+avgPercent=25.06425827827024, medianPercent=25.504142895115113, invested=597000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Materials, Utilities, Technology], fiveYrRoic > 17.380992557018068, opCMargin > 16.477126676435947, revenueGrowth > 11.615123254014758]
+
+
+avgPercent=25.918445369445376, medianPercent=25.64679742349325, invested=179000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, trailingPeg < 2.684602481055584, altman > 8.464511489463916, smoothEps5yr > 68.9558931390841, sector in [Utilities, Energy, Materials, Communication services]]
+
+
+avgPercent=27.05546662471815, medianPercent=24.66047879792923, invested=384000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Technology, Real estate, Communication services, Other], opCMargin > 11.821138334916014, revenueGrowth > 4.138296502948085, altman > 7.727667395307543, shareCountGrowth < 5.129468289539895, fiveYrRoic > 18.217847098815625]
+
+
+avgPercent=29.69609817395614, medianPercent=22.15025833245734, invested=226000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, pietrosky > 3.6075821319443437, dtoe < 1.4529693388835616, sector in [Industrials], fYrPe < 37.55170725373029, smoothEquity5yr > 98.8812528271194]
+
+
+avgPercent=25.786305567581763, medianPercent=26.108440204698134, invested=478000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEquity5yr > 27.23586827537191, roe > 14.0461052654854, fiveYrRoic > 18.214962272170624, profitableYears > 6.2376482608259565, dividendYield < 1.037980620465997, pfcfCheapestYears < 6.208856198431222]
+
+
+avgPercent=26.879009778001524, medianPercent=25.21844584875932, invested=519000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEquity5yr > 76.89678542083581, dividendPayoutRatio < 50.836714896452925, opCMargin > 18.37240264056072, roe > 11.208894168631153, revenueGrowth > 7.53351441101468, fiveYrRoic > 18.490317654981574]
+
+
+avgPercent=26.06153783176113, medianPercent=26.40661688273247, invested=581000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, dividendPayoutRatio < 24.23109368827101, smoothEps5yr > 32.13599082332572, altman > 8.847487876118247, roe > 17.949190166310135, opCMargin > -4.42517055202333, fiveYrRoic > 14.430258458211721]
+
+
+avgPercent=26.26263299465684, medianPercent=26.257974753279466, invested=258000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, investmentScore > 7.986329005880616, altman > 8.103985672661388, opCMargin > 30.307621782050127, profitableYears > 10.861796284773988, smoothEps5yr > 32.45897350287801, shareCountGrowth < 9.00308486402264]
+
+
+avgPercent=26.87112645149813, medianPercent=25.666662870639033, invested=348000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Consumer defensive, Other, Consumer cyclical, Technology], smoothEquity5yr > 79.88152056861483, fiveYrRoic > 17.647552944311805, opCMargin > 19.71655239593403, roic > 16.274539098951458]
+
+
+avgPercent=27.442221183399752, medianPercent=25.15351109322401, invested=303000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 16.011182895689913, altman > 3.65000016162947, sector in [Technology, Unknown, Real estate], investmentScore > 5.017376621014947, revenueGrowth > 18.026953032677845]
+
+
+avgPercent=27.986746150376742, medianPercent=25.305737543842266, invested=195000.0, beat=32 / 33, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 19.108659348449933, dividendYield < 4.6298911557504585, roic > 18.712922812770977, icr > 27.031885806356318, altman > 7.956241143401487, sector in [Real estate, Other, Technology]]
+
+
+avgPercent=27.91463621556808, medianPercent=25.682595689085396, invested=446000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Technology], fiveYrRoic > 14.773786074307264, profitableYears > 1.55492686580406, icr > 8.517704375027677, revenueGrowth > 9.910840922499997, dtoe < 3.5502082975289166]
+
+
+avgPercent=27.3714380204482, medianPercent=26.50035230213772, invested=412000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 8.571343421830617, smoothEquity5yr > 16.20457424567099, altman > 9.376320729156545, profitableYears > 0.7323447611478442, sector in [Technology, Other, Unknown], icr > 7.374900952738146]
+
+
+avgPercent=28.483143242778176, medianPercent=25.893210259097344, invested=455000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, dividendYield < 5.0049923020529254, altman > 7.459556973544329, sector in [Energy, Communication services, Other, Technology], pietrosky > 2.05981952359888, smoothEps5yr > 51.13256987601426, fiveYrRoic > 15.325482937015858]
+
+
+avgPercent=26.345668072841903, medianPercent=28.260183370247628, invested=397000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, altman > 9.552820815943486, dtoe < 3.2726543313913163, icr > 9.827772370419872, smoothEquity5yr > 40.88386622270025, opCMargin > 19.102558034737875, sector in [Technology, Unknown]]
+
+
+avgPercent=27.973106653616142, medianPercent=26.99123127850558, invested=213000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEquity5yr > 78.29174522514616, profitableYears > 9.853959203994561, dividendPayoutRatio < 29.413965272573183, smoothEps5yr > 7.9137981106019435, fiveYrRoic > 19.440377720215253]
+
+
+avgPercent=29.709522157136135, medianPercent=25.42823092374926, invested=302000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, roe > 23.186117579107275, shareCountGrowth < 9.232422446386444, dividendYield < 2.5425575200496775, fiveYrRoic > 16.922584100503165, smoothEquity5yr > 37.771487105230015, revenueGrowth > 19.558855706749945]
+
+
+avgPercent=27.94364117655319, medianPercent=27.241074436026437, invested=524000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, altman > 1.6066836420674933, fiveYrRoic > 18.370104329364658, revenueGrowth > 11.736284151148146, investmentScore > 4.08413545174101, sector in [Financials, Consumer defensive, Energy, Technology], profitableYears > 4.636758348455185]
+
+
+avgPercent=28.947663070790075, medianPercent=26.508422497923934, invested=356000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, ltl5Fcf < 5.133539734978581, profitableYears > 4.15667992515476, fiveYrRoic > 19.425010749175048, revenueGrowth > 7.125447646086913, investmentScore > 3.428650669805587, sector in [Technology]]
+
+
+avgPercent=26.6429798435981, medianPercent=28.824799329684538, invested=358000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, smoothEquity5yr > 52.721580632126106, pietrosky > 4.857853834011721, revenueGrowth > 16.415261021424005, sector in [Technology, Industrials, Materials, Unknown], fiveYrRoic > 13.600901854656374, altman > 3.2547805133276158]
+
+
+avgPercent=29.481156677819026, medianPercent=26.88652647819987, invested=281000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Technology, Other], smoothEquity5yr > 20.789072602892556, fiveYrRoic > 19.433397990486153, revenueGrowth > 5.1825696072829945, dividendPayoutRatio < 41.791470501495084, smoothEps5yr > 50.53397517057356]
+
+
+avgPercent=32.24530350118413, medianPercent=24.849128489248272, invested=147000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, pietrosky > 4.229695895725511, fYrPe < 39.64639194385671, smoothEquity5yr > 67.82173042547305, altman > 7.878055189345179, profitableYears > 4.626771373468964, sector in [Other, Materials, Communication services]]
+
+
+avgPercent=28.35597009230581, medianPercent=28.77485864719178, invested=316000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, altman > 9.088980623182545, fiveYrRoic > 13.51020496869767, dtoe < 1.074148462678993, revenueGrowth > 10.412843885153727, opCMargin > 21.589952794510967, dividendPayoutRatio > 0.9414076054839082]
+
+
+avgPercent=30.59416853555694, medianPercent=27.93576231739774, invested=237000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, investmentScore > 0.1690060563723561, smoothEps5yr > 44.95725326326533, altman > 9.390272080151624, sector in [Consumer cyclical, Other, Technology], fiveYrRoic > 18.202229877881095]
+
+
+avgPercent=31.334939901046408, medianPercent=29.75566383925694, invested=256000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, dividendYield < 8.275106731843572, profitableYears > 2.191401994112147, ltl5Fcf < 6.950919523148961, revenueGrowth > 19.33396230361833, fiveYrRoic > 19.91387181222475, sector in [Financials, Energy, Technology, Utilities]]
+
+
+avgPercent=30.541233681837817, medianPercent=31.29961380236179, invested=344000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, sector in [Technology, Energy, Other], revenueGrowth > 16.27420194360145, smoothEquity5yr > 58.52864450010363, fiveYrRoic > 17.711203125884225]
+
+
+avgPercent=32.02851972312646, medianPercent=30.606999780175336, invested=212000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 15.484002294680565, sector in [Energy, Technology], icr > 24.79183628753333, revenueGrowth > 13.295938048768912, profitableYears > 3.5048631826425902]
+
+
+avgPercent=33.9266607722069, medianPercent=30.37997540176911, invested=249000.0, beat=36 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, profitableYears > 3.938982579381245, fiveYrRoic > 18.128927328595864, sector in [Technology], pfcfCheapestYears < 2.6284280443040386, revenueGrowth > 12.413334005295196]
+
+
+avgPercent=33.3957039426152, medianPercent=31.785537156912014, invested=219000.0, beat=35 / 36, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, trailingPeg > 0.2523296597766225, revenueGrowth > 18.98811376475284, fiveYrRoic > 18.69816858854065, altman > 7.502344840403169, roe > 20.55651550538413, shareCountGrowth < 7.440545484337669]
+
+
+avgPercent=35.2442114223657, medianPercent=30.96518258105978, invested=155000.0, beat=31 / 31, 2015->2025
+screenerOperations=[marketCapUsd > 100.0, revenueGrowth > 14.540262485216454, fiveYrRoic > 17.417438853420656, dividendYield < 7.833600409548492, icr > 5.384538734328801, altman > 7.53369298645463, sector in [Other, Technology]]
+

@@ -1,0 +1,265 @@
+    private static final List<String> EXCHANGES = List.of("NASDAQ", "NYSE");
+    private static final double MINIMUM_MARKET_CAP = 100.0;
+
+    private static final YearIntervalGeneratorStrategy INTERVAL_GENERATOR_STRATEGY = new IntervalBasedRandomYearGeneratorStrategy(new YearRange(2004, 2005), new YearRange(2021, 2022));
+
+    private static final double MINIMUM_BEAT_PERCENT = 95.0;
+    private static final double MINIMUM_INVEST_COUNT_PERCENT = 85.0;
+
+    private static final double MINIMUM_TRANSACTION_COUNT_AVG_QUARTER = 4;
+    private static final double MAXIMUM_TRANSACTION_COUNT_AVG_QUARTER = 40;
+
+    private static final int MIN_PARAMS = 4;
+    private static final int MAX_PARAMS = 10;
+
+    private static final int RESULT_QUEUE_SIZE = 60;
+
+    // Test what if this program was run on date, or null for latest date
+    private static final LocalDate TEST_RUN_ON_DATE = null; // LocalDate.of(INTERVAL_GENERATOR_STRATEGY.getYearRange().end, 1, 1); // or null
+
+    private static final List<String> EXCLUDED_STOCKS = List.of();
+    private static final List<RandomParam> PARAMS = getAllParams();
+    
+
+[ IDXX(32), MEDP(31), MANH(31), MA(30), FIX(29), V(27), LRCX(27), CRVL(27), FICO(26), NFLX(26), NSSC(26), ASML(25), KLAC(25), ANET(25), CTAS(24), EME(24), GOOG(24), FTNT(24), GOOGL(24), TSM(22), USLM(21), MSFT(21), IESC(20), MTD(20), NVDA(19), STRL(19), ROL(19), APPF(19), RACE(19), BKNG(19), MNST(19), TPL(18), META(18), UI(18), MPWR(18), MSCI(17), AAPL(17), NOW(17), PCTY(17), APH(16), MELI(15), EXLS(15), CDNS(15), QLYS(15), BMI(14), RMD(14), INTU(14), CMG(13), INOD(13), CHWY(13), VRSK(13), IDCC(13), SII(12), ADSK(12), DOCU(12), RELX(12), VEEV(12), SPOT(11), MCO(11), PEGA(11), ORLY(11), CARG(11), CHKP(10), DECK(10), ISRG(10), NVMI(10), GWW(10), ABMD(10), LOPE(10), FTIEX(10), COST(10), INCY(9), TJX(9), CLS(9), NBIX(9), DSGX(9), ERIE(9), ADBE(9), DXCM(9), LSCC(8), RDVT(8), ODFL(8), TTD(8), CODA(8), SCCO(8), CORT(8), AVGO(8), WING(7), WINA(7), ALXN(7), DT(7), IRMD(7), PBT(7), EXEL(7), AGX(7), MCK(7), EXPO(7), BLBD(7), JKHY(7), DDOG(7), PRTAX(7), AWI(7), LLY(7), ANSS(7), PANW(7), ETSY(7), XLNX(7), AU(6), WDFC(6), FAST(6), YUM(6), LQDT(6), WST(6), AMAT(6), SPSC(6), AMD(6), AGYS(6), CERN(6), PGNY(6), HUBS(6), LII(6), TW(6), PODD(6), PTC(6), WAT(6), SHOP(6), GFI(6), QCOM(6), ULTA(6), NVR(6), CLMB(6), AVGOP(6), MIME(5), PAC(5), CW(5), CHE(5), ADP(5), DY(5), PAYC(5), CVLT(5), POWL(5), MTBCP(5), AMK(5), ATRS(5), HEI-A(5), EXPE(5), PH(5), JBL(5), TAYD(5), VICR(5), VRTX(5), APHKX(5), VLEOX(5), KNSL(5), HEI(5), IHG(5), TRAK(5), EAT(5), MSB(5), FIZZ(5), TXRH(5), GRMN(5), HMY(5), TER(4), AVID(4), GMED(4), VITL(4), ATGE(4), AMZN(4), EA(4), RDWR(4), EW(4), FN(4), VWTR(4), PAYS(4), VRT(4), HWM(4), IT(4), AIT(4), ROST(4), MU(4), NAGE(4), GDDY(4), ZIXI(4), TYL(4), HZNP(4), TT(4), CCRD(4), CRUS(4), CSWI(4), MSI(4), CRWD(4), LECO(4), DCI(4), FWONA(4), FWONK(4), CCB(4), RMBS(4), WDAY(4), REVG(3), MTBC(3), HALO(3), ZTS(3), SFM(3), TCMD(3), PLMR(3), MKTX(3), CHT(3), WPM(3), INFY(3), AEM(3), BGY(3), ONTO(3), SPNS(3), CRAI(3), WSM(3), LULU(3), RAVN(3), ERF(3), FTI(3), PINS(3), WWE(3), COR(3), DRD(3), ZIOP(3), LOGI(3), REAX(3), LZ(3), CDHAX(3), SNPS(3), CRM(3), FFIV(3), PM(3), STX(3), RSI(3), BSY(3), HUBB(3), NTNX(3), RL(3), EXTR(3), IBP(3), PFPT(3), KGC(3), LSTR(3), SGHC(3), TEAM(3), EVRI(3), UPWK(3), MLI(3), TECH(3), ALKS(3), ECOM(3), MDXG(3), COLL(3), PCOM(3), AZO(3), BLKB(3), GGG(3), FROG(3), CIEN(3), DBX(3), ESTC(3), HLI(3), GLBE(3), UTHR(3), SPGI(3), SBR(3), NYT(3), CCJ(3), CVCO(2), VCEL(2), B(2), AXON(2), BDJ(2), AEIS(2), PCYG(2), RDY(2), CL(2), CO(2), EGAN(2), UFPT(2), ITRI(2), VIVO(2), PAY(2), SLCT(2), WIRE(2), QRVO(2), FC(2), MZTI(2), ISSC(2), AGI(2), HSTM(2), ADMA(2), TME(2), PAYX(2), PEN(2), SKY(2), CLR(2), CLX(2), RMNI(2), DCBO(2), FSM(2), FSS(2), CGNX(2), AUPH(2), MITK(2), ACLS(2), SONO(2), EVER(2), MAR(2), MTBCO(2), TPC(2), DPZ(2), ESE(2), ACMR(2), CHRW(2), CVNA(2), ETN(2), NEX(2), GNTX(2), MDB(2), IRWD(2), SIGA(2), MO(2), XPEL(2), PFIE(2), YELP(2), CTMX(2), PAAS(2), EXPD(2), KEYS(2), ARPO(2), FTDR(2), VIAV(2), APP(2), CTS(2), BSX-PA(2), AMGN(2), DUOL(2), ILMN(2), EPAC(2), EPAM(2), VRSN(2), TXN(2), MCRI(2), LIN(2), CALX(2), REGN(2), YETI(2), ERII(2), OSPN(2), COKE(2), DRNA(2), OMCL(2), RVLV(2), ITCI(2), AXP(2), GWRE(2), ENFN(2), ACTEX(2), WDC(2), LWAY(2), ZM(2), AZN(2), ZS(2), MRVL(2), MRO(2), LNTH(2), KOF(2), CPRX(2), CPRT(2), ANTM(2), LRN(2), TREX(2), SAFM(2), SAN(2), WIX(2), TDC(2), BMRN(2), CXDO(2), AZPN(2), CCU(2), ALTR(2), ALTM(2), TEO(2), MXL(1), TRIP(1), ATEN(1), HNP(1), BBL(1), CGEN(1), COUP(1), UHT(1), AA(1), AOHAX(1), ABBV(1), HURN(1), FACT-UN(1), AP(1), IQV(1), ]
+
+[ marketCapUsd>(60), fYrPe>(17), fiveYrRoic>(13), altman>(13), roic>(13), dividendPayoutRatio<(11), investmentScore>(10), smoothRevenue5yr>(10), pe>(10), redFlags<(9), dividendYield<(9), starFlags>(8), fYrPFcf>(7), shareCountGrowth<(7), pietrosky>(7), fvCalculatorMoS<(6), revSD>(6), smoothEquity5yr>(6), ideal10yrRevCorrelation>(6), stockCompensationPerMkt<(5), shareCountGrowth2yr<(5), marketCapUsd<(5), roa<(5), fcfMargin>(5), cape>(5), assetTurnoverRatio>(5), peExMnS>(4), fcfGrowth2yr<(4), ptb>(4), currentRatio>(4), ]
+
+avgPercent=19.282523800080366, medianPercent=17.42544670020003, invested=1104000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, roic > 38.35226450071035, dividendYield < 0.31282733616732283, equityGrowth2yr > 6.091815237214668, price10Gr > 5.6066813593720255, fcfMargin > -2.432235413983501, yellowFlags < 9.901167339689955, pe > 10.81243876728395]
+
+
+avgPercent=18.462412102037536, medianPercent=18.252653720926617, invested=1006000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, epsSD > 0.6506811724698967, smoothFcf5yr > 7.783750368614928, altman > 5.2289048037581916, currentRatio < 1.505905658997834, dividendPayoutRatio < 23.93755491612066, profitableYears > 3.3953797888002426]
+
+
+avgPercent=19.335843939761755, medianPercent=17.43319261748868, invested=1704000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, assetTurnoverRatio > 1.2773600681873742, redFlags < 0.1263898483470216, pts > 1.914950330711338, dividendPayoutRatio < 55.98252110021917]
+
+
+avgPercent=18.86081462187739, medianPercent=17.92513597542429, invested=2335000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, smoothRevenue5yr > 76.06697716881384, smoothEps5yr > 12.31586928834395, pe > 19.81217171511178, assetTurnoverRatio > 0.02810146033975619, roa > 12.891578409198917, dividendPayoutRatio < 82.6697012222467, roe > 17.836800128786866]
+
+
+avgPercent=19.02801601704591, medianPercent=17.783294020893734, invested=2401000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, dividendYield < 0.3731017726925001, fvCalculatorMoS < 408.4695569808854, marketCapUsd < 400689.6393132048, fiveYrRoic > 19.194305944829782]
+
+
+avgPercent=18.870520635471035, medianPercent=17.94848527422619, invested=2164000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, price5Gr > -10.605927466128055, pietrosky > 1.396793949398444, fYrPe > 31.208210053412593, profitableYears > 5.601251611334749, roic > 31.561553870847508, epsGrowth2yr < 40.76036559759449]
+
+
+avgPercent=18.613200036412515, medianPercent=18.240782929475575, invested=1425000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, trailingPeg < 1.5726238343059566, altman > 5.916617444499406, marketCapUsd < 3493472.061265562, fcfGrowth > 33.352999698006464, ltl5Fcf < 2.0172382311468127]
+
+
+avgPercent=19.040914562964456, medianPercent=18.205356640957902, invested=469000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, dividendYield < 0.683078484442543, epsGrExRnd < 49.41853765736163, roic > 49.48400543760408, stockCompensationPerMkt < 2.9088818551144446, opCMargin < 34.16164255838441, smoothRevenue5yr > 60.261683925146855, smoothEps5yr > 78.80961159580953]
+
+
+avgPercent=18.896469540567228, medianPercent=18.3569763081608, invested=2132000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, epsGrowth < 74.10789344582648, investmentScore > 5.1202857882812145, roa < 46.27496099137578, greenFlags > 3.1161364914906597, dividendPayoutRatio < 0.6759975790011508, pe > 27.523567008360278]
+
+
+avgPercent=18.880389063349767, medianPercent=18.382354463243765, invested=565000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, opCMargin > 33.57523315297493, ltl5Fcf < 4.951382232907758, fYrPe > 35.38226150607737, smoothEquity5yr > 59.4838545943835, pietrosky > 5.702048773620224, fYrPFcf > 17.427983406687552]
+
+
+avgPercent=18.80977160876444, medianPercent=18.45747069805965, invested=1827000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, pe < 44.52922266273625, equityGrowth > -4.893916813839865, altman > 8.532218035672631, opCMargin > 10.991988498835777, shareCountGrowth2yr < -0.8941321358178023]
+
+
+avgPercent=19.31781154711238, medianPercent=18.04090049462077, invested=1795000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fYrPe > 41.13627435615742, investmentScore < 9.843888865266226, tpr < 0.6977696423890671, starFlags > 3.974163182602801]
+
+
+avgPercent=18.722506246078538, medianPercent=18.698801332956847, invested=2038000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, peCheapestYears < 2.6402873273825374, epsGrExRnd > 9.352411931206323, smoothFcf5yr > 2.0320055934540338, cape > 42.11788552154568, marketCapUsd < 2038850.9833154192, investmentScore > 7.085983528101323]
+
+
+avgPercent=18.87570560687456, medianPercent=18.682732972383654, invested=2005000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, roic > 30.172897015709932, priceToGrossProfit > 0.9570178297440797, pe > 22.07165115840452, fcfMargin > 17.984115621370908]
+
+
+avgPercent=19.391513383557186, medianPercent=18.36237149056663, invested=888000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, pe < 40.49642007172766, shareCountGrowth2yr < -1.2595559400786076, smoothEquity5yr > 36.945842358947885, epsGrExRnd < 38.99650670945479, fYrPe > 33.43066189923298, trailingPeg > 0.307118560998419]
+
+
+avgPercent=18.866929430621045, medianPercent=18.928656580057357, invested=976000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fcfGrowth2yr < 94.54203086585011, revenueGrowth < 78.22975171040467, cape > 50.92280410993216, roic > 20.147316141270316, shareCountGrowth < -1.906617026830208]
+
+
+avgPercent=19.27883971912238, medianPercent=18.57205285081527, invested=1712000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, trailingPeg < 1.2207672669291212, peCheapestYears < 13.31205354410739, rota < 48.561103381096764, roa > 12.16904744793438, stockCompensationPerMkt < 1.2863836094901882, fYrPe > 28.904325849817635]
+
+
+avgPercent=20.664829912739002, medianPercent=17.25551290632612, invested=857000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, altman > 8.552527916624092, peExMnS < 22.114291818145322, ideal10yrRevCorrelation > 0.9804764574578352, fcf_yield < 9.384540195451859]
+
+
+avgPercent=19.87175055268269, medianPercent=18.08040557555728, invested=759000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, evRevenueCheapestYears < 12.329015321166235, altman > 6.133138745515965, pietrosky > 5.141813647009408, trailingPeg > 1.2133339941403798, ideal10yrRevCorrelation > 0.6097796538492627, dividendYield < 2.066672620813299, revSD > 0.44125715509973895, tpr > 1.0492949462339347]
+
+
+avgPercent=19.101841847894885, medianPercent=18.85068590802945, invested=1580000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, redFlags < 6.057259740721034, fYrPe > 25.211989090376363, fvCalculatorMoS < 647.5705460983268, currentRatio < 1.7860319924149295, roic > 41.41722189702927, fcf_yield > 1.352375093156989]
+
+
+avgPercent=18.713552227230593, medianPercent=19.24659393700059, invested=1429000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, epsGrowth < 64.7400610521908, investmentScore > 7.543204983606564, peExRnd > 18.08457205097772, marketCapUsd < 1886230.9561089627, priceToGrossProfit > 1.5740302623672517, tpr > -0.28152290717761064]
+
+
+avgPercent=19.292138246757116, medianPercent=18.676179856899, invested=1714000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, roa > 10.371274186052574, rota > 36.130530178317954, cape > 41.431989756968946, redFlags < 7.399120580864467]
+
+
+avgPercent=19.466466202128416, medianPercent=18.544776416915298, invested=1046000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, smoothFcf5yr > 36.483706871817624, rota < 41.30433698288009, dividendPayoutRatio < 29.395785018623727, altman > 5.651164031630994, equityGrowth2yr > 20.41993196552848]
+
+
+avgPercent=19.341950765188955, medianPercent=18.75128500945289, invested=1427000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, evRevenueCheapestYears < 13.519468205521063, shareCountGrowth < 4.987248846893738, stockCompensationPerMkt < 2.924944572105038, shareCountGrowth2yr < 1.288728483190976, roa > 16.84257395810556, pe > 21.04902188062579]
+
+
+avgPercent=19.205933916781724, medianPercent=18.88744218310221, invested=787000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, evRevenueCheapestYears < 4.960161744444486, smoothFcf5yr > 72.29901918236261, pietrosky > 2.6044389468022744, fYrPe > 32.45534624538891, smoothRevenue5yr > 44.64608947327181, ltl5Fcf < 6.251617807959745, fYrPFcf > 16.69125620779303, dividendPayoutRatio < 93.63525635453857, smoothEps5yr > 75.08514593701098]
+
+
+avgPercent=20.509955385021687, medianPercent=17.691605775400788, invested=2327000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, roa < 47.33898930989494, fcfGrowth2yr > 48.41856990238446, altman > 7.154439949809465, revenueGrowth2yr > 10.602520265419766]
+
+
+avgPercent=19.32070447336288, medianPercent=18.95912830138382, invested=2446000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, opMargin < 29.647836811569157, starFlags > 1.0265198084391636, altman > 7.170012084970247, fcf_yield < 13.168992847385201, fvCalculatorMoS < 137.08785202294996, fiveYrRoic > 8.549434899098753, roe < 27.743250417597576, pietrosky > 3.0960736100965267]
+
+
+avgPercent=19.35775045860695, medianPercent=18.940635549330697, invested=1091000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, smoothRevenue5yr > 98.8132174468671, dividendYield < 0.945423028918082, rota > 13.59853257754857, roe < 45.028900424216936, evFcfCheapestYears < 7.360363663150487]
+
+
+avgPercent=19.654819436823583, medianPercent=18.669282456648716, invested=2367000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fYrPFcf > 29.381717737690167, fiveYrRoic > 12.700578459270538, yellowFlags < 8.456690408074707, revSD > 0.24870397371192132]
+
+
+avgPercent=19.39074635816753, medianPercent=19.13184950361868, invested=756000.0, beat=62 / 63, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, revenueGrowth < 51.52141740024835, fiveYrRoic > 11.092280849062773, equityGrowth2yr < 10.217882905829757, shareCountGrowth < -1.6776895362419992, investmentScore > 7.6045241013157]
+
+
+avgPercent=19.48226586046209, medianPercent=19.144651129615696, invested=1335000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, smoothRevenue5yr > 84.36479070775486, smoothEquity5yr > 3.112932910509847, marketCapUsd < 197670.75014599247, fiveYrRoic > 14.412194044676117, roa < 21.46850912503626, fvCalculatorMoS < 538.3551574309251, fYrPe > 24.32855927631864]
+
+
+avgPercent=19.764751352035116, medianPercent=18.897949413564398, invested=1170000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, price5Gr > -1.7373804157775723, investmentScore > 7.482151240870025, opCMargin > -3.1245099943599888, revSD > 0.11543639411657747, peExRnd > 21.946713373039973]
+
+
+avgPercent=19.87752103538584, medianPercent=18.79908868997695, invested=1673000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, pe > 25.26661734271401, pietrosky > 5.100412496261144, starFlags > 3.081599058562418, roic > 25.92081276738404]
+
+
+avgPercent=19.642203107426045, medianPercent=19.233177267172685, invested=1181000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, currentRatio > 0.170396713090341, priceToGrossProfit > 1.9499658209934185, revenueGrowth < 74.9882059542168, starFlags > 4.830186642338755, peExMnS < 43.29367763492916, fcfMargin > 10.76207204192847, fYrPFcf > 28.855617420534696]
+
+
+avgPercent=20.1115597026396, medianPercent=18.83386223847556, invested=1929000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, altman > 6.583637588734651, ebitdaMargin > -3.7307645909260856, shareCountGrowth < 5.1540778415914765, roa < 21.951402301499527, redFlags < 0.3343300322367937, peExMnS > 29.179125549643704]
+
+
+avgPercent=19.762638370417292, medianPercent=19.3255054513102, invested=808000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, revSD > 0.4659519371822425, stockCompensationPerMkt < 2.215348305085982, fiveYrRoic > 8.742243012988196, dtoe < 2.2590139725236, fYrPe > 27.670827180195356, dividendPayoutRatio < 54.7939927055686, fcfGrowth > 35.792845066440684]
+
+
+avgPercent=19.565101528971713, medianPercent=19.56268186620442, invested=1689000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, dtoe < 2.7341137044809587, roic > 34.88980364740856, pe > 27.841437147232934, fcfGrowth2yr < 68.49621759978217, investmentScore > 5.572487522906301]
+
+
+avgPercent=19.38968460039906, medianPercent=19.977748633498706, invested=958000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fYrPe > 32.616627767309694, pe > 37.46276525924285, peExRnd < 25.124421682786775, redFlags < 9.486208224464539, fcfGrowth2yr < 22.459756630029027]
+
+
+avgPercent=20.2755974409021, medianPercent=19.192567733954835, invested=1051000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, ideal10yrRevCorrelation > 0.6047509196389178, starFlags > 3.0046743974599477, pe > 18.721873784418612, dtoe < 1.0982021785511522, fYrPe > 44.34580619829003]
+
+
+avgPercent=19.846062564646804, medianPercent=19.673748360634402, invested=818000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, pfcfCheapestYears < 7.082560189628769, ptb > 0.8106153953424813, fiveYrRoic > 7.829428225642683, peExMnS > 30.22733462358971, roic > 30.17495605491577]
+
+
+avgPercent=20.229169803152484, medianPercent=19.331703402959644, invested=796000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, dividendYield < 1.0287973985932075, profitableYears > 7.571608509068684, ptb > 1.5632321035944872, pfcfCheapestYears < 10.128728915358431, ideal10yrRevCorrelation > 0.5739247093121148, roic > 45.0069939694871, assetTurnoverRatio > 1.2584572851679385]
+
+
+avgPercent=19.936878651975082, medianPercent=19.75015486149434, invested=1252000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, pts > 1.4661446966209184, fYrPe > 29.56035484650206, icr > 26.454619961282834, shareCountGrowth2yr < -0.2916353571681718, epsGrExRnd < 48.203374201045534]
+
+
+avgPercent=20.289256559902004, medianPercent=19.763969872577626, invested=1104000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fvCalculatorMoS < 647.6080239437849, roic > 20.69024304531263, cape > 68.98623361145832, fiveYrRoic > 5.948532182735889, smoothRevenue5yr > 20.029843080690203, smoothEquity5yr > 64.3580158526128, ebitdaMargin > 6.548262151482177]
+
+
+avgPercent=20.560853932096407, medianPercent=19.912554410544825, invested=787000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, epsGrExMnS > 22.372854003741992, fYrPe > 34.358039048093545, smoothEquity5yr > 11.34108618325821, starFlags > 4.355681256941989]
+
+
+avgPercent=20.703580840993233, medianPercent=19.827006075364405, invested=612000.0, beat=60 / 63, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, starFlags > 4.7911661322754, currentRatio > 0.2512964508518074, stockCompensationPerMkt < 1.1573964219807626, price5Gr > -4.292108522537873, greenFlags > 3.590797285153605, fYrPe > 44.845184710925565]
+
+
+avgPercent=20.327405698299263, medianPercent=20.312189997114928, invested=1407000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fcfGrowth > 9.427530965235867, fYrPFcf > 14.804885432953402, shareCountGrowth2yr < 1.2210140420029454, dividendYield < 1.0527888811810238, fiveYrRoic > 12.526460145400481]
+
+
+avgPercent=21.033637732112506, medianPercent=19.651870201570265, invested=1975000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, dividendYield < 7.2447851026644114, ideal10yrRevCorrelation > 0.37020615014706737, peExMnS > 18.437660511410193, peExRnd < 16.05281190105689, pts > 1.7051787618330487]
+
+
+avgPercent=20.952689717187667, medianPercent=19.874411321061537, invested=680000.0, beat=60 / 63, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, shareCountGrowth < 3.321018916418673, pe > 24.531423589815926, fiveYrRoic > 15.656155540336854, rota > 3.552630191716187, epsGrExMnS < 34.392549480084384]
+
+
+avgPercent=21.494362431518535, medianPercent=19.586530395175373, invested=572000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, peCheapestYears < 2.400297581516912, peExMnS > 21.67815585033932, dividendPayoutRatio < 109.76989912053735, starFlags > 0.6386233333067326, investmentScore > 8.033122232582592, roa < 40.97446156879825]
+
+
+avgPercent=21.213276017169584, medianPercent=20.03992263013359, invested=1394000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, dtoe < 2.565604235682873, dividendPayoutRatio < 7.774577564061507, redFlags < 0.43739351782393965, altman > 7.028192398695599, assetTurnoverRatio > 0.6784074634882782, rota > 4.919060879637203, opMargin < 23.140353023977767, epsGrowth < 23.644199363813613]
+
+
+avgPercent=21.861140377067553, medianPercent=19.444613198977013, invested=1025000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, currentRatio > 0.8720258157959377, altman > 8.928983418523043, epsGrExRnd > 12.58149094868039, fcfMargin > 14.820039916242429, shareCountGrowth < 2.7475457941495414, revenueGrowth2yr > 14.851570574889273]
+
+
+avgPercent=20.259811824744457, medianPercent=21.228937763171494, invested=1334000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, redFlags < 4.201260260796259, cape > 60.45958367765919, roic > 26.467426106581787, smoothRevenue5yr > 92.38754119741168, fYrPFcf > 22.890545790330396]
+
+
+avgPercent=21.03280827535397, medianPercent=20.67295991734637, invested=811000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fYrPFcf > 28.558127121083803, fiveYrRoic > 19.305763677801725, revenueGrowth < 96.68360946277947, epsGrExMnS < 48.977574982531316, revSD > 0.42836549996929785]
+
+
+avgPercent=22.898210418422217, medianPercent=18.931007147381074, invested=571000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, redFlags < 8.7465498478209, epsGrExRnd > 21.809924835215323, assetTurnoverRatio < 0.9515899124077669, epsGrowth2yr < 56.99337659307295, smoothRevenue5yr > 97.96298787063775, dividendPayoutRatio < 44.37074046599067, altman > 3.335482567340261]
+
+
+avgPercent=21.122600234008136, medianPercent=20.821273577832056, invested=1307000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fcfGrowth2yr < 87.13202260430191, ptb > 0.9145988253402402, fYrPe > 45.41106016773139, investmentScore > 6.73333277790398]
+
+
+avgPercent=21.37219196407895, medianPercent=21.41355244458294, invested=1183000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fYrPe > 30.611989541484952, dividendPayoutRatio < 24.33806772922123, investmentScore > 7.60096274560783, smoothEquity5yr > 14.192306786479625]
+
+
+avgPercent=21.43646458108568, medianPercent=21.409248673631588, invested=438000.0, beat=62 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fcfMargin > 26.861681324404373, pietrosky > 4.436880607085719, ideal10yrRevCorrelation > 0.18503330979730892, shareCountGrowth < -1.4585115923093372, assetTurnoverRatio > 0.15688978228419392, greenFlags > 2.35709123476037, altman > 3.9908434390404626, opMargin > 29.705040836695204]
+
+
+avgPercent=21.553267716298762, medianPercent=22.066732590845504, invested=692000.0, beat=63 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, investmentScore > 7.844673216360601, smoothRevenue5yr > 5.957192053279325, fYrPe > 33.02451473415242, pe < 44.48674556046173, fcfGrowth < 54.39150356420518, ptb > 0.36679617116214447]
+
+
+avgPercent=23.741012808428405, medianPercent=20.27235065900326, invested=661000.0, beat=61 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, fiveYrRoic > 16.09032739924297, peCheapestYears < 8.467050121995339, fvCalculatorMoS < 118.74002432339026, revSD > 0.4775483879364233, roic > 44.04162485314573, dividendYield < 0.657308153953553]
+
+
+avgPercent=23.51951527822189, medianPercent=22.727359438286076, invested=349000.0, beat=64 / 64, 2004->2021
+screenerOperations=[marketCapUsd > 100.0, redFlags < 1.6357450212684366, currentRatio > 0.23004756222882428, equityGrowth > 2.763684220712026, fiveYrRoic > 14.262281285568445, smoothRevenue5yr > 98.9522906206069, peExRnd > 5.665747474703253]

@@ -51,6 +51,14 @@ public class RatioCalculator {
         return result;
     }
 
+    public static Double calculatePriceToEarningsRatio(FinancialsTtm financialsTtm, double latestPrice) {
+        double result = latestPrice / financialsTtm.incomeStatementTtm.eps;
+        if (!Double.isFinite(result)) {
+            return null;
+        }
+        return result;
+    }
+
     public static Double calculatePriceToOpCashflowRatio(Double price, FinancialsTtm data) {
         double opcashFlowPerShare = (double) data.cashFlowTtm.operatingCashFlow / data.incomeStatementTtm.weightedAverageShsOut;
         double result = price / opcashFlowPerShare;

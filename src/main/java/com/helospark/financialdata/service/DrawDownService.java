@@ -66,7 +66,9 @@ public class DrawDownService {
     }
 
     public static Optional<Double> getLowQualityDrawdownAt(CompanyFinancials company, LocalDate actualDate) {
-        var list = company.financials.stream().map(a -> new HistoricalPriceElement(a.date, a.price)).collect(Collectors.toList());
+        var list = new ArrayList<>(company.financials.stream().map(a -> new HistoricalPriceElement(a.date, a.price)).collect(Collectors.toList()));
+
+        list.add(0, new HistoricalPriceElement(company.latestPriceDate, company.latestPrice));
 
         List<SimpleDateDataElement> drawDownChart = getDrawdownChart(list);
 
