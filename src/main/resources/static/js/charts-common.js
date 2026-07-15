@@ -16,6 +16,15 @@ var constColorPaletteLine = [
   "rgba(200,0,200,0.8)",
   "rgba(100,100,100,0.8)",
 ];
+var constColorPaletteStackedBar = [
+  "rgba(0,0,255,1.0)",
+  "rgba(255,0,0,1.0)",
+  "rgba(75,200,32,1.0)",
+  "rgba(200,200,0,1.0)",
+  "rgba(0,200,200,1.0)",
+  "rgba(200,0,200,1.0)",
+  "rgba(100,100,100,1.0)",
+];
 
 function createCheckbox(label) {
   var checkbox = document.createElement("input");
@@ -377,6 +386,7 @@ function createChart(urlPath, title, chartOptions) {
   var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
   var continousTooltipCagr = chartOptions.continousTooltipCagr !== undefined ? chartOptions.continousTooltipCagr : false;
   var stacked = chartOptions.stacked !== undefined ? chartOptions.stacked : false;
+  var stackedBar = chartOptions.stackedBar !== undefined ? chartOptions.stackedBar : false;
   
   if (!addStockPrefix) {
     stockToLoad = "";
@@ -385,8 +395,11 @@ function createChart(urlPath, title, chartOptions) {
   var colorPaletteLine = constColorPaletteLine;
   var colorPalette = constColorPalette;
   
-  if (type == "bar") {
+  if (type == "bar" && !stackedBar) {
     colorPalette = ["rgba(0,0,255,0.6)","rgba(255,0,0,0.6)",];
+  }
+  if (stackedBar) {
+    colorPalette = constColorPaletteStackedBar;
   }
   
   var additionalLabelsAtEnd = chartOptions.additionalLabelsAtEnd === undefined ? [] : chartOptions.additionalLabelsAtEnd;
@@ -426,7 +439,7 @@ function createChart(urlPath, title, chartOptions) {
                     item = items[0]
                     var resultArray = [];
 
-                    if (stacked) {
+                    if (stacked || stackedBar) {
                       var total = 0.0;
                       
                       for (index = 0; index < chart.data.datasets.length; index++) {
@@ -503,9 +516,19 @@ function createChart(urlPath, title, chartOptions) {
     chartConfig.options.scales.y.stacked = true;
     chartConfig.data.datasets[0].fill = '-1';
   }
+  if (stackedBar) {
+    chartConfig.options.scales.x.stacked = true;
+    chartConfig.options.scales.y.stacked = true;
+    console.log(chartConfig);
+  }
   
   if (chartOptions.guidanceHorizontalLine !== undefined) {
     chartConfig.guidanceHorizontalLine = chartOptions.guidanceHorizontalLine;
+  }
+  
+  if (stackedBar) {
+    console.log("********************************");
+    console.log(chartConfig);
   }
   
   var chart;

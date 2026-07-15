@@ -896,6 +896,128 @@ public class FinancialsController {
 
     // stacked chart end ---
 
+    // return breakdown stacked chart start
+
+    @GetMapping("/net_income_breakdown_cagr")
+    public List<SimpleDataElement> getNetIncomeBreakdownCagr(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        if (company.financials.size() < 4) {
+            return List.of();
+        }
+
+        var latest = company.financials.get(0);
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm currentFinancial = company.financials.get(i);
+            Double growth = GrowthCalculator.calculateAnnualGrowth(currentFinancial.incomeStatementTtm.netIncome, currentFinancial.date, latest.incomeStatementTtm.netIncome, latest.date).orElse(null);
+            result.add(new SimpleDataElement(currentFinancial.date.toString(), growth));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/multiple_expansion_breakdown_cagr")
+    public List<SimpleDataElement> getMultipleExpansionBreakdownCagr(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        if (company.financials.size() < 4) {
+            return List.of();
+        }
+
+        var latest = company.financials.get(0);
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        double latestPe = latest.price / latest.incomeStatementTtm.eps;
+        double latestPs = latest.price / (latest.incomeStatementTtm.revenue / latest.incomeStatementTtm.weightedAverageShsOut);
+
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm currentFinancial = company.financials.get(i);
+
+            double currentPe = currentFinancial.price / currentFinancial.incomeStatementTtm.eps;
+            double currentPs = currentFinancial.price / (currentFinancial.incomeStatementTtm.revenue / currentFinancial.incomeStatementTtm.weightedAverageShsOut);
+
+            Double growth;
+
+            System.out.println(currentFinancial.date + " " + currentPe + " " + latestPe);
+
+            if (currentPe > 0 && latestPe > 0) {
+                growth = GrowthCalculator.calculateAnnualGrowth(currentPe, currentFinancial.date, latestPe, latest.date).orElse(null);
+            } else {
+                growth = GrowthCalculator.calculateAnnualGrowth(currentPs, currentFinancial.date, latestPs, latest.date).orElse(null);
+            }
+            result.add(new SimpleDataElement(currentFinancial.date.toString(), growth));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/share_buyback_breakdown_cagr")
+    public List<SimpleDataElement> getShareBuybackBreakdownCagr(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        if (company.financials.size() < 4) {
+            return List.of();
+        }
+
+        var latest = company.financials.get(0);
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        double latestShares = latest.incomeStatementTtm.weightedAverageShsOut;
+
+        for (int i = 1; i < company.financials.size(); ++i) {
+            FinancialsTtm currentFinancial = company.financials.get(i);
+
+            double currentShares = currentFinancial.incomeStatementTtm.weightedAverageShsOut;
+
+            Double growth = GrowthCalculator.calculateAnnualGrowth(latestShares, currentFinancial.date, currentShares, latest.date).orElse(null); // current and latest are purposefully switched to get positive result
+
+            result.add(new SimpleDataElement(currentFinancial.date.toString(), growth));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/dividend_breakdown_cagr")
+    public List<SimpleDataElement> getDividendBreakdownCagr(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        if (company.financials.size() < 4) {
+            return List.of();
+        }
+
+        double shareCount = 1.0;
+
+        List<SimpleDateDataElement> shareCountGrowthWithReinvestements = new ArrayList<>();
+        for (int i = company.financials.size() - 1; i >= 0; --i) {
+            FinancialsTtm financialsTtm = company.financials.get(i);
+            double dividendPaid = (double) -financialsTtm.cashFlow.dividendsPaid / financialsTtm.incomeStatement.weightedAverageShsOut;
+            double priceThen = financialsTtm.price;
+            shareCount += ((shareCount * dividendPaid) / priceThen);
+
+            shareCountGrowthWithReinvestements.add(new SimpleDateDataElement(financialsTtm.getDate(), shareCount));
+        }
+        Collections.reverse(shareCountGrowthWithReinvestements);
+
+        SimpleDateDataElement latestData = shareCountGrowthWithReinvestements.get(0);
+        var latest = latestData.value;
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        for (int i = 1; i < shareCountGrowthWithReinvestements.size(); ++i) {
+            SimpleDateDataElement current = shareCountGrowthWithReinvestements.get(i);
+            var currentShares = current.value;
+
+            Double growth = GrowthCalculator.calculateAnnualGrowth(currentShares, current.date, latest, latestData.date).orElse(null); // current and latest are purposefully switched to get positive result
+
+            result.add(new SimpleDataElement(current.date.toString(), growth));
+        }
+
+        return result;
+    }
+
+    // return breakdown
+
     @GetMapping("/rnd_to_revenue")
     public List<SimpleDataElement> getRndToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
         return getIncomeData(stock, quarterly, endDate,

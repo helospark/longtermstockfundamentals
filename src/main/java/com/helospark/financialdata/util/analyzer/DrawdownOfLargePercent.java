@@ -12,7 +12,7 @@ import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.SymbolAtGlanceProvider;
 import com.helospark.financialdata.util.glance.AtGlanceData;
 
-public class DrawdownOf90Percent implements StockScreeners {
+public class DrawdownOfLargePercent implements StockScreeners {
     private static final int DRAWDOWN_THRESOLHOLD = 70;
 
     private static int recoveryCompanyCount = 0;
@@ -28,7 +28,7 @@ public class DrawdownOf90Percent implements StockScreeners {
         //                .map(a -> a.symbol)
         //                .collect(Collectors.toCollection(() -> new TreeSet<>()));
 
-        new DrawdownOf90Percent().analyze(symbols);
+        new DrawdownOfLargePercent().analyze(symbols);
     }
 
     @Override

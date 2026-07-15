@@ -747,6 +747,33 @@ createChartInternal("/financials/return_with_reinvested_dividend", "Total return
     "label": "price"
   }
 ]});
+
+
+createChartInternal("/financials/net_income_breakdown_cagr", "Return CAGR breakdown", {
+  unit: '%',
+  label: 'Income growth',
+  tooltip: 'Breakdown of the CAGR per component',
+  stackedBar: true,
+  type: "bar",
+  suggestedMax: 40,
+  suggestedMin: -30,
+  additionalCharts: [
+   {
+    "url": "/financials/multiple_expansion_breakdown_cagr",
+    "label": "Multiple expansion"
+   },
+   {
+    "url": "/financials/share_buyback_breakdown_cagr",
+    "label": "Buyback"
+   },
+   {
+    "url": "/financials/dividend_breakdown_cagr",
+    "label": "Dividends"
+   }
+ ]});
+
+
+
 createChartInternal("/financials/price_growth_rate", "Price growth", {type: 'bar', quarterlyEnabled: false, unit: '%'}, defaultEnabled=false);
 createChartInternal("/financials/price_with_dividends_growth_rate", "Returns (with dividends reinvested)", {type: 'bar', quarterlyEnabled: false, unit: '%'});
 createChartInternal("/financials/price_growth_rate_xyr_moving_avg", "Returns x year interval", {
