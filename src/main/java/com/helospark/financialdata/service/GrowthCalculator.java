@@ -413,4 +413,24 @@ public class GrowthCalculator {
         return now < 0 && then > 0 || now > 0 && then < 0;
     }
 
+    public static Optional<Double> calculateAnnualGrowthInLogSpace(double oldValue, LocalDate oldDate, double newValue, LocalDate newDate) {
+        double daysDiff = Math.abs(ChronoUnit.DAYS.between(newDate, oldDate) / 365.0);
+
+        if (newValue > 0 && oldValue > 0 || newValue < 0 && oldValue < 0) {
+            double resultPercent = calculatePercentChangeInLogSpace(newValue, oldValue, daysDiff);
+
+            if (!Double.isFinite(resultPercent)) {
+                return Optional.empty();
+            }
+
+            return Optional.of(resultPercent);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private static double calculatePercentChangeInLogSpace(double now, double then, double distance) {
+        return Math.log(now / then) / distance;
+    }
+
 }

@@ -349,15 +349,16 @@ createChartInternal("/financials/marketing_per_operating_expense", "Operating ex
 ]});
 
 createSeparatorInternal("Price ratios")
-createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
-createChartInternal("/financials/price_to_op_cash_ratio", "Price to operating cash flow ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/pe_ratio", "PE ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true, dropOutliers: true});
+createChartInternal("/financials/price_to_op_cash_ratio", "Price to operating cash flow ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true, dropOutliers: true});
 createChartInternal("/financials/cape_ratio", "CAPE ratio", {suggestedMin: -5, suggestedMax: 100, quarterlyEnabled: false, avgEnabled: true}, defaultEnabled=false);
-createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
-createChartInternal("/financials/pfcf_compensation_adjusted_ratio", "Price to compensation adjusted FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/pfcf_ratio", "Price to FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true, dropOutliers: true});
+createChartInternal("/financials/pfcf_compensation_adjusted_ratio", "Price to compensation adjusted FCF ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true, dropOutliers: true});
 createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
   suggestedMin: -5,
   suggestedMax: 50,
   quarterlyEnabled: false,
+  dropOutliers: true,
   label: 'PE ratio excluding R&D', additionalCharts: [
     {
       "url": "/financials/pe_excl_marketing_ratio",
@@ -368,8 +369,8 @@ createChartInternal("/financials/pe_excl_rnd_ratio", "PE ratio excluding", {
       "label": "PE excluding amortization and depreciation"
     }
   ]});
-createChartInternal("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true}, defaultEnabled=false);
-createChartInternal("/financials/price_to_sales", "Price to sales ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true});
+createChartInternal("/financials/price_to_gross_profit", "Price to gross profit ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true, dropOutliers: true}, defaultEnabled=false);
+createChartInternal("/financials/price_to_sales", "Price to sales ratio", {suggestedMin: -5, suggestedMax: 50, quarterlyEnabled: false, avgEnabled: true, dropOutliers: true});
 createChartInternal("/financials/accrual_ratio", "Accrual ratio", {
   quarterlyEnabled: false,
   tooltip: 'Small or negative are better. Formula: (netIncome - FCF) / totalAssets',
@@ -757,6 +758,7 @@ createChartInternal("/financials/net_income_breakdown_cagr", "Return CAGR breakd
   type: "bar",
   suggestedMax: 40,
   suggestedMin: -30,
+  turnLogSpaceToCagr: true,
   additionalCharts: [
    {
     "url": "/financials/multiple_expansion_breakdown_cagr",

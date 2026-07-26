@@ -307,6 +307,80 @@ function createDropdown() {
     return dropdown;
 }
 
+function logSpaceToCagr(k) {
+  // Math: CAGR = e^K - 1
+  const cagr = Math.exp(k) - 1;
+  const percentage = cagr * 100;
+
+  return percentage;  
+}
+
+function formatNumber(num) {
+  if (isNaN(num) || num === null) return "0.00";
+
+  var decimals = 2;
+  
+  var absNum = Math.abs(num);
+  
+  if (absNum >= 1000) {
+    decimals = 0;
+  } else if (absNum <= 2.0) {
+    decimals = 4;
+  } else {
+    decimals = 2;
+  }
+
+
+  // Format using 'fr-FR' which uses non-breaking spaces for thousands
+  const parts = new Intl.NumberFormat('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: decimals,
+  }).formatToParts(num);
+
+  return parts
+    .map(part => {
+      if (part.type === 'decimal') return '.';
+      if (part.type === 'group') return ' ';
+      return part.value;
+    })
+    .join('');
+}
+
+function getFilteredMinMax(values, outlierMultiplier = 100) {
+  if (!values || values.length === 0) return { min: 0, max: 0 };
+  
+  // 1. Sort a copy of the values numerically
+  const sorted = [...values].filter(v => typeof v === 'number' && !isNaN(v)).sort((a, b) => a - b);
+  if (sorted.length === 0) return { min: 0, max: 0 };
+  if (sorted.length < 4) return { min: sorted[0], max: sorted[sorted.length - 1] };
+
+  // 2. Calculate Median and IQR (Interquartile Range)
+  const q1 = sorted[Math.floor(sorted.length * 0.25)];
+  const q3 = sorted[Math.floor(sorted.length * 0.75)];
+  const iqr = q3 - q1;
+
+  // 3. Estimate the typical baseline magnitude of the dataset
+  // We use Median absolute value to avoid skewed averages from extreme spikes
+  const median = sorted[Math.floor(sorted.length * 0.5)];
+  const typicalMagnitude = Math.abs(median) || Math.abs(q3) || 1;
+
+  // 4. Define extreme threshold (e.g., 100x the typical scale or extreme IQR)
+  const maxAllowed = Math.max(q3 + (1.5 * iqr), typicalMagnitude * outlierMultiplier);
+  const minAllowed = Math.min(q1 - (1.5 * iqr), -typicalMagnitude * outlierMultiplier);
+
+  // 5. Filter dataset to compute the final Min and Max for your slider
+  const validValues = sorted.filter(v => v >= minAllowed && v <= maxAllowed);
+
+  // Fallback in case filtering was too aggressive
+  if (validValues.length === 0) {
+    return { min: sorted[0], max: sorted[sorted.length - 1] };
+  }
+
+  return {
+    min: validValues[0],
+    max: validValues[validValues.length - 1]
+  };
+}
 
 function createChart(urlPath, title, chartOptions) {
   var canvas =document.createElement("canvas");
@@ -387,6 +461,7 @@ function createChart(urlPath, title, chartOptions) {
   var continousTooltipCagr = chartOptions.continousTooltipCagr !== undefined ? chartOptions.continousTooltipCagr : false;
   var stacked = chartOptions.stacked !== undefined ? chartOptions.stacked : false;
   var stackedBar = chartOptions.stackedBar !== undefined ? chartOptions.stackedBar : false;
+  var turnLogSpaceToCagr = chartOptions.turnLogSpaceToCagr !== undefined ? chartOptions.turnLogSpaceToCagr : false;
   
   if (!addStockPrefix) {
     stockToLoad = "";
@@ -446,6 +521,10 @@ function createChart(urlPath, title, chartOptions) {
                         total += chart.data.datasets[index].data[item.dataIndex];
                       }
                     
+                      if (turnLogSpaceToCagr) {
+                        total = logSpaceToCagr(total);
+                      }
+                    
                       resultArray.push("Total: " + total.toFixed(2) + "" + unit);
                     }
                     
@@ -454,7 +533,20 @@ function createChart(urlPath, title, chartOptions) {
                 label: (item, t) => {
                     var resultArray = [];
                     plugin.lastElement = {label: item.label, data: item.raw, dataset: item.dataset.label, canvas: item.chart.canvas}
-                    resultArray.push(`${item.dataset.label}: ${item.formattedValue}${unit}`);
+                    
+                    var valueToPrint = item.raw;
+                    
+                    if (turnLogSpaceToCagr) {
+                      valueToPrint = logSpaceToCagr(item.raw);
+                    } else {
+                      if (item.raw.y !== undefined) {
+                        valueToPrint = item.raw.y;
+                      } else {
+                        valueToPrint = item.raw;
+                      }
+                    }
+                    
+                    resultArray.push(`${item.dataset.label}: ${formatNumber(valueToPrint)}${unit}`);
                     
                     if (plugin.cagr.init !== undefined && plugin.cagr.init === true && plugin.lastElement.dataset === plugin.downElement.dataset) {
                        var multipleX = plugin.cagr.change / 100.0 + 1.0;
@@ -526,11 +618,6 @@ function createChart(urlPath, title, chartOptions) {
     chartConfig.guidanceHorizontalLine = chartOptions.guidanceHorizontalLine;
   }
   
-  if (stackedBar) {
-    console.log("********************************");
-    console.log(chartConfig);
-  }
-  
   var chart;
   if (!isLazyLoading) {
     chart = new Chart(canvas, chartConfig);
@@ -553,7 +640,7 @@ function createChart(urlPath, title, chartOptions) {
   startAtZero = true;
   var startAtZeroButton=document.createElement("button");
   startAtZeroButton.innerHTML = "Zero based";
-  startAtZeroButton.className="floatleft";
+  startAtZeroButton.className="floatleft pressed";
   startAtZeroButton.onclick=function() {
       isCurrentlyEnabled = (chart.options.scales.y.originalMin !== undefined);
 
@@ -638,16 +725,21 @@ function createChart(urlPath, title, chartOptions) {
       orientation: "vertical",
       min: 0,
       max: 500,
+      step: 0.0001,
       values: [ 0, 500 ],
       slide: function( event, ui ) {
           var start = ui.values[0],
           end = ui.values[1];
+          
+    console.log(title + ": " + start + " " + end);
           
           chart.options.scales.y.min = start;
           chart.options.scales.y.max = end;
           chart.update();
       }
     });
+    
+    
     $(slider).on("slide", function() {
       var selection = $(this).slider("value");
     });
@@ -669,12 +761,21 @@ function createChart(urlPath, title, chartOptions) {
       return ((elemTop <= docViewBottom) && (elemBottom >= docViewTop));
   }
   
+  function isZeroBased() {
+    return startAtZeroButton.classList.contains("pressed");
+  }
+  
   function setStartZeroBased(isCurrentlyEnabled) {
       if (isCurrentlyEnabled) {
         startAtZeroButton.classList.remove("pressed");
       } else {
         startAtZeroButton.classList.add("pressed");
       }
+      
+      console.log("################");
+      console.log(chart.options.scales.y.min);
+      console.log(chart.options.scales.y.max);
+      
       if (isCurrentlyEnabled) {
         slider.slider('values', 0, chart.options.scales.y.originalMin);
         slider.slider('values', 1, chart.options.scales.y.originalMax);
@@ -701,6 +802,7 @@ function createChart(urlPath, title, chartOptions) {
         yValues.length = 0;
         
         numberOfAdditionalCharts = chartOptions.additionalCharts !== undefined ? chartOptions.additionalCharts.length + 1 : 1;
+        var dropOutliers = chartOptions.dropOutliers !== undefined ? chartOptions.dropOutliers : false;
         while (chart.data.datasets.length < numberOfAdditionalCharts) {
           chart.data.datasets.unshift({});
         }
@@ -741,8 +843,14 @@ function createChart(urlPath, title, chartOptions) {
                       for (index = 0; index < additionalLabelsAtEnd.length; index++) {
                           xValues.push(additionalLabelsAtEnd[index]);
                       }
-                      max = Math.max.apply(Math, yValues);
-                      min = Math.min.apply(Math, yValues);
+                      if (dropOutliers) {
+                        var minMax = getFilteredMinMax(yValues, 15);
+                        max = minMax.max;
+                        min = minMax.min;
+                      } else {
+                        max = Math.max.apply(Math, yValues);
+                        min = Math.min.apply(Math, yValues);
+                      }
                   
                       if (min < 0) {
                         min *= 1.04;
@@ -755,6 +863,9 @@ function createChart(urlPath, title, chartOptions) {
                       }
                       if (max > 0) {
                         max *= 1.04;
+                      }
+                      if (min > 0 && isZeroBased()) {
+                        min = 0;
                       }
                       if (Math.abs(max - min) < 0.001) {
                          center = min;
@@ -869,10 +980,16 @@ function createChart(urlPath, title, chartOptions) {
                           if (chartOptions.suggestedMinOfMax !== undefined && chartOptions.suggestedMinOfMax > maxValueToSet) {
                              maxValueToSet = chartOptions.suggestedMinOfMax;
                           }
+                          if (!isNaN(min)) {
+                            slider.slider("option", "min", minValueToSet);
+                          }
+                          if (!isNaN(max)) {
+                            slider.slider("option", "max", maxValueToSet);
+                          }
                           
   
                           
-                      console.log(url + " " + min + " " + max + " " + minValueToSet + " " + maxValueToSet);
+                      console.log(localUri + " " + min + " " + max + " " + minValueToSet + " " + maxValueToSet);
                           if (minValueToSet >= maxValueToSet) {
                              minValueToSet = maxValueToSet + 1.0;
                           }

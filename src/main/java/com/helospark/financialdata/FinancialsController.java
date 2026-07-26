@@ -911,7 +911,12 @@ public class FinancialsController {
 
         for (int i = 1; i < company.financials.size(); ++i) {
             FinancialsTtm currentFinancial = company.financials.get(i);
-            Double growth = GrowthCalculator.calculateAnnualGrowth(currentFinancial.incomeStatementTtm.netIncome, currentFinancial.date, latest.incomeStatementTtm.netIncome, latest.date).orElse(null);
+            Double growth;
+            if (currentFinancial.incomeStatementTtm.netIncome > 0 && latest.incomeStatementTtm.netIncome > 0) {
+                growth = GrowthCalculator.calculateAnnualGrowthInLogSpace(currentFinancial.incomeStatementTtm.netIncome, currentFinancial.date, latest.incomeStatementTtm.netIncome, latest.date).orElse(null);
+            } else {
+                growth = GrowthCalculator.calculateAnnualGrowthInLogSpace(currentFinancial.incomeStatementTtm.revenue, currentFinancial.date, latest.incomeStatementTtm.revenue, latest.date).orElse(null);
+            }
             result.add(new SimpleDataElement(currentFinancial.date.toString(), growth));
         }
 
@@ -930,22 +935,20 @@ public class FinancialsController {
         List<SimpleDataElement> result = new ArrayList<>();
 
         double latestPe = latest.price / latest.incomeStatementTtm.eps;
-        double latestPs = latest.price / (latest.incomeStatementTtm.revenue / latest.incomeStatementTtm.weightedAverageShsOut);
+        double latestPs = latest.price / ((double) latest.incomeStatementTtm.revenue / latest.incomeStatementTtm.weightedAverageShsOut);
 
         for (int i = 1; i < company.financials.size(); ++i) {
             FinancialsTtm currentFinancial = company.financials.get(i);
 
             double currentPe = currentFinancial.price / currentFinancial.incomeStatementTtm.eps;
-            double currentPs = currentFinancial.price / (currentFinancial.incomeStatementTtm.revenue / currentFinancial.incomeStatementTtm.weightedAverageShsOut);
+            double currentPs = currentFinancial.price / ((double) currentFinancial.incomeStatementTtm.revenue / currentFinancial.incomeStatementTtm.weightedAverageShsOut);
 
             Double growth;
 
-            System.out.println(currentFinancial.date + " " + currentPe + " " + latestPe);
-
             if (currentPe > 0 && latestPe > 0) {
-                growth = GrowthCalculator.calculateAnnualGrowth(currentPe, currentFinancial.date, latestPe, latest.date).orElse(null);
+                growth = GrowthCalculator.calculateAnnualGrowthInLogSpace(currentPe, currentFinancial.date, latestPe, latest.date).orElse(null);
             } else {
-                growth = GrowthCalculator.calculateAnnualGrowth(currentPs, currentFinancial.date, latestPs, latest.date).orElse(null);
+                growth = GrowthCalculator.calculateAnnualGrowthInLogSpace(currentPs, currentFinancial.date, latestPs, latest.date).orElse(null);
             }
             result.add(new SimpleDataElement(currentFinancial.date.toString(), growth));
         }
@@ -971,7 +974,7 @@ public class FinancialsController {
 
             double currentShares = currentFinancial.incomeStatementTtm.weightedAverageShsOut;
 
-            Double growth = GrowthCalculator.calculateAnnualGrowth(latestShares, currentFinancial.date, currentShares, latest.date).orElse(null); // current and latest are purposefully switched to get positive result
+            Double growth = GrowthCalculator.calculateAnnualGrowthInLogSpace(latestShares, currentFinancial.date, currentShares, latest.date).orElse(null); // current and latest are purposefully switched to get positive result
 
             result.add(new SimpleDataElement(currentFinancial.date.toString(), growth));
         }
@@ -1008,7 +1011,7 @@ public class FinancialsController {
             SimpleDateDataElement current = shareCountGrowthWithReinvestements.get(i);
             var currentShares = current.value;
 
-            Double growth = GrowthCalculator.calculateAnnualGrowth(currentShares, current.date, latest, latestData.date).orElse(null); // current and latest are purposefully switched to get positive result
+            Double growth = GrowthCalculator.calculateAnnualGrowthInLogSpace(currentShares, current.date, latest, latestData.date).orElse(null); // current and latest are purposefully switched to get positive result
 
             result.add(new SimpleDataElement(current.date.toString(), growth));
         }
@@ -1229,7 +1232,7 @@ public class FinancialsController {
     }
 
     private double calculateYearsAgo(LocalDate date) {
-        return Math.abs(ChronoUnit.DAYS.between(date, LocalDate.now()) / 365.0);
+        return Math.abs(ChronoUnit.DAYS.between(date, CommonConfig.NOW) / 365.0);
     }
 
     private double calculateYearsDiff(LocalDate date, LocalDate laterDate) {
@@ -1312,7 +1315,7 @@ public class FinancialsController {
         List<SimpleDataElement> result = new ArrayList<>();
         for (int i = 4; i < company.size(); ++i) {
             SimpleDateDataElement element = company.get(i);
-            double yearsAgo = calculateYearsAgo(element.getDate());
+            double yearsAgo = calculateYearsDiff(element.getDate(), company.get(0).date);
             double growth = GrowthCalculator.calculateGrowth(now, element.value, yearsAgo);
             result.add(new SimpleDataElement(element.date.toString(), growth));
         }
