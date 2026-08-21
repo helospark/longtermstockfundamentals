@@ -1,5 +1,7 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,7 +15,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.text.StringEscapeUtils;
-import org.joda.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.domain.CompanyFinancials;
+import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.DeleteFromWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
@@ -65,6 +67,8 @@ public class WatchlistService {
     private LatestPriceProvider latestPriceProvider;
     @Autowired
     private MessageCompresser messageCompresser;
+    @Autowired
+    private PortfolioTransactionRepository portfolioTransactionRepository;
 
     // Only for single server setup
     Cache<String, Optional<Watchlist>> watchlistCache = Caffeine.newBuilder()
@@ -320,6 +324,7 @@ public class WatchlistService {
         } else {
             elementToUpdate = elements.get(index);
         }
+        int previouslyOwnedShares = elementToUpdate.ownedShares;
         elementToUpdate.notes = escapeSymbols(request.notes);
         elementToUpdate.symbol = request.symbol;
         elementToUpdate.tags = escapeSymbols(stripTags(request.tags));
@@ -336,6 +341,26 @@ public class WatchlistService {
             elementToUpdate.moats = request.moats;
         }
 
+        if (previouslyOwnedShares != request.ownedShares) {
+            int changeAmount = request.ownedShares - previouslyOwnedShares;
+            double latestPriceInTrandingCurrency = latestPriceProvider.provideLatestPrice(request.symbol);
+            double changeValue = changeAmount * latestPriceInTrandingCurrency;
+            String currency = request.symbol.startsWith("CASH.") ? request.symbol.replaceAll("CASH.", "") : readCurrencyFromFinancials(request);
+            double changeValueUsd = DataLoader.convertFx(changeValue, currency, "USD", LocalDate.now(), false).orElse(changeValue);
+
+            PortfolioTransaction transaction = new PortfolioTransaction();
+            transaction.setUserEmail(email);
+            transaction.setTransactionDateTime(LocalDateTime.now().toString());
+            transaction.setSymbol(request.symbol);
+            transaction.setAmountChange((double) changeAmount);
+            transaction.setTransactionValue(changeValue);
+            transaction.setTransactionValueUsd(changeValueUsd);
+            transaction.setCurrency(currency);
+            transaction.setSharePrice(latestPriceInTrandingCurrency);
+
+            portfolioTransactionRepository.saveTransaction(transaction);
+        }
+
         Watchlist toInsert = new Watchlist();
         toInsert.setEmail(email);
         toInsert.setWatchlistRaw(messageCompresser.createCompressedValue(elements));
@@ -344,6 +369,14 @@ public class WatchlistService {
 
         watchlistRepository.save(toInsert);
         watchlistCache.invalidate(email);
+    }
+
+    public String readCurrencyFromFinancials(AddToWatchlistRequest request) {
+        Profile profile = DataLoader.readFinancials(request.symbol).profile;
+        if (profile == null || profile.currency == null) {
+            return "USD";
+        }
+        return profile.currency;
     }
 
     private List<String> stripTags(List<String> tags) {

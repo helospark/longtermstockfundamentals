@@ -106,10 +106,10 @@ function showScoreboardModal() {
 
         let label = { text: 'CORRECT', badge: 'bg-success' };
 
-        if (score.actual > 15 && score.guess < 10) {
+        if (score.actual > 15 && score.guess < 10 || (score.actual > 10 && (score.actual - score.guess) > 10)) {
             label = { text: 'OMISSION', badge: 'bg-warning text-dark' };
             omissionCount++;
-        } else if ((score.actual < -5 && score.guess > 0) || (score.actual < 5 && score.guess > 15)) {
+        } else if ((score.actual < -5 && score.guess > 0) || (score.actual < 5 && score.guess > 15) || (score.actual < 0 && score.guess > 7)) {
             label = { text: 'COMMISSION', badge: 'bg-danger' };
             commissionCount++;
         } else if (diff <= 3) {

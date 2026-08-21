@@ -17,6 +17,7 @@ import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.TimeToLiveSpecification;
 import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.UpdateTimeToLiveRequest;
+import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import com.helospark.financialdata.management.payment.repository.StripeUserMapping;
 import com.helospark.financialdata.management.payment.repository.UserLastPayment;
 import com.helospark.financialdata.management.screener.repository.Screener;
@@ -28,6 +29,7 @@ import com.helospark.financialdata.management.user.repository.UserRepository;
 import com.helospark.financialdata.management.user.repository.ViewedStocks;
 import com.helospark.financialdata.management.watchlist.repository.JobLastRunData;
 import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistory;
+import com.helospark.financialdata.management.watchlist.repository.PortfolioTransaction;
 import com.helospark.financialdata.management.watchlist.repository.Watchlist;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistExpectationHistory;
 
@@ -59,6 +61,7 @@ public class DynamoDbInitializer {
         createTableWithProvisioning("Watchlist", Watchlist.class, 5L, 5L);
         createTable("WatchlistExpectationHistory", WatchlistExpectationHistory.class);
         createTable("Screener", Screener.class);
+        createTable("PortfolioTransactionT", PortfolioTransaction.class);
 
         if (wasUserTableCreated || userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
             User user = new User();
@@ -116,13 +119,10 @@ public class DynamoDbInitializer {
             tableRequest.setBillingMode("PAY_PER_REQUEST");
             amazonDynamoDB.createTable(tableRequest);
 
-            for (int i = 0; i < 10; ++i) {
-                if (doesTableExist(tableName)) {
-                    break;
-                } else {
-                    System.out.println("Waiting for " + tableName + " table to be created");
-                    exceptionlessSleep(1);
-                }
+            try {
+                TableUtils.waitUntilExists(amazonDynamoDB, tableName);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
             return true;
         } else {
