@@ -227,10 +227,13 @@ public class DcfCalculator {
     }
 
     public static Optional<Double> doDcfReverseDcfAnalysis(CompanyFinancials company, CalculatorParameters calculatorParameters) {
+        return doDcfReverseDcfAnalysis(company, calculatorParameters, 0.0);
+    }
+
+    public static Optional<Double> doDcfReverseDcfAnalysis(CompanyFinancials company, CalculatorParameters calculatorParameters, double offsetYear) {
         int count = 0;
         double lowerBound = -100.0;
         double upperBound = 100.0;
-        double offsetYear = 0.0;
 
         if (company.financials.size() < 10) {
             return Optional.empty();

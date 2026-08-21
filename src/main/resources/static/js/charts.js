@@ -312,6 +312,7 @@ createChartInternal("/financials/eps_excl_rnd", "EPS excluding research and deve
 ]}, defaultEnabled=false);
 createChartInternal("/financials/pfcf", "FCF per share", {});
 createChartInternal("/financials/ebitda_per_share", "EBITDA per share", {}, defaultEnabled=false);
+createChartInternal("/financials/operating_cash_flow_plus_rnd_per_share", "Operating cashflow + R&D per share", {});
 
 
 createSeparatorInternal("Margins")
@@ -402,6 +403,7 @@ createChartInternal("/financials/p2b_ratio", "Price to Book ratio", {
   suggestedMin: 0,
   suggestedMax: 15,
   quarterlyEnabled: false,
+  dropOutliers: true,
   label: "price / book value",
   avgEnabled: true
 });
@@ -416,7 +418,8 @@ createChartInternal("/financials/short_term_coverage_ratio", "Operating cash flo
 createChartInternal("/financials/short_term_assets_to_total_debt", "Short term assets to total debt", {quarterlyEnabled: false});
 createChartInternal("/financials/altmanz", "Altman Z score", {
   quarterlyEnabled: false,
-  avgEnabled: true
+  avgEnabled: true,
+  dropOutliers: true
 
 });
 createChartInternal("/financials/interest_coverage", "EBIT / interest", {unit: 'x'});
@@ -538,6 +541,7 @@ createChartInternal("/financials/stock_compensation_per_net_income", "Stock comp
 createChartInternal("/financials/stock_compensation_per_fcf", "Stock compensation / FCF", {suggestedMin: -2, unit: '%'});
 createChartInternal("/financials/stock_compensation_per_net_revenue", "Stock compensation / revenue", {suggestedMin: 0, unit: '%', avgEnabled: true});
 createChartInternal("/financials/stock_compensation_per_market_cap", "Stock compensation / market cap", {suggestedMin: 0, unit: '%', avgEnabled: true});
+createChartInternal("/financials/reinvestment_rate", "Reinvestment rate", {unit: '%', avgEnabled: true, suggestedMax: 100, suggestedMin: -30});
 createChartInternal("/financials/capex_to_revenue", "CAPEX to revenue", {unit: '%', label: "CAPEX to revenue",  additionalCharts: [
   {
     "url": "/financials/rnd_to_revenue",
@@ -750,15 +754,44 @@ createChartInternal("/financials/return_with_reinvested_dividend", "Total return
 ]});
 
 
+createChartInternal("/financials/price_with_dividends_growth_rate#1", "Expected returns", {
+  label: "Actual return",
+  quarterlyEnabled: false,
+  tooltip: 'Shows expected returns vs actual returns',
+  unit: '%',
+  suggestedMax: 50,
+  suggestedMin: -25,
+  additionalCharts: [
+  {
+    "url": "/financials/expected_return_by_roic",
+    "label": "Expected return by ROIC formula"
+  },
+  {
+    "url": "/financials/expected_return_by_addition",
+    "label": "Expected return by Bogle formula"
+  },
+  {
+    "url": "/financials/expected_return_by_dcf",
+    "label": "Expected return by DCF"
+  }
+]
+});
+
+
 createChartInternal("/financials/net_income_breakdown_cagr", "Return CAGR breakdown", {
   unit: '%',
   label: 'Income growth',
   tooltip: 'Breakdown of the CAGR per component',
   stackedBar: true,
   type: "bar",
-  suggestedMax: 40,
-  suggestedMin: -30,
+  suggestedMax: 0.6,
+  suggestedMin: -0.6,
   turnLogSpaceToCagr: true,
+  guidanceHorizontalLine: {
+    yValue: 0,
+    lineWidth: 1,
+    color: 'red'
+  },
   additionalCharts: [
    {
     "url": "/financials/multiple_expansion_breakdown_cagr",

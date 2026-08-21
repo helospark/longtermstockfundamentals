@@ -422,6 +422,10 @@ public class DataLoader {
                     incomeStatement.get(i).grossProfit *= 1000;
                     incomeStatement.get(i).interestExpense *= 1000;
                 }
+                if (incomeStatement.get(i).date.equals(LocalDate.of(2026, 6, 30)) && incomeStatement.get(i).revenue < 0) {
+                    incomeStatement.get(i).revenue = 3_441_000_000L;
+                    incomeStatement.get(i).netIncome = 25_000_000L;
+                }
             }
             for (int i = 0; i < balanceSheet.size(); ++i) {
                 if (balanceSheet.get(i).date.equals(LocalDate.of(2024, 12, 31)) && balanceSheet.get(i).totalStockholdersEquity < 5000000L) {
@@ -438,6 +442,22 @@ public class DataLoader {
                     balanceSheet.get(i).intangibleAssets *= 1000;
                     balanceSheet.get(i).goodwillAndIntangibleAssets *= 1000;
                     balanceSheet.get(i).goodwill *= 1000;
+                }
+                if (balanceSheet.get(i).date.equals(LocalDate.of(2026, 6, 30))) {
+                    balanceSheet.get(i).totalStockholdersEquity = 2_987_000_000L;
+                    balanceSheet.get(i).totalDebt = 3_203_000_000L;
+                    balanceSheet.get(i).longTermDebt = 2_452_000_000L;
+                    balanceSheet.get(i).shortTermDebt = 751_000_000L;
+                    balanceSheet.get(i).totalAssets = 12_371_000_000L;
+                    balanceSheet.get(i).totalLiabilities = 5_228_000_000L;
+                    balanceSheet.get(i).totalCurrentAssets = 3_253_000_000L;
+                    balanceSheet.get(i).totalCurrentLiabilities = 4_121_000_000L;
+
+                }
+            }
+            for (int i = 0; i < cashFlow.size(); ++i) {
+                if (cashFlow.get(i).date.equals(LocalDate.of(2026, 6, 30))) {
+                    cashFlow.get(i).freeCashFlow = 12_000_000L;
                 }
             }
         }

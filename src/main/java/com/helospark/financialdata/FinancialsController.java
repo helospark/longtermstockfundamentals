@@ -34,6 +34,7 @@ import com.helospark.financialdata.flags.FlagProvider;
 import com.helospark.financialdata.service.AltmanZCalculator;
 import com.helospark.financialdata.service.CapeCalculator;
 import com.helospark.financialdata.service.DataLoader;
+import com.helospark.financialdata.service.DataSmoother;
 import com.helospark.financialdata.service.DcfCalculator;
 import com.helospark.financialdata.service.DividendCalculator;
 import com.helospark.financialdata.service.DrawDownService;
@@ -72,6 +73,11 @@ public class FinancialsController {
     @GetMapping("/eps_excl_rnd")
     public List<SimpleDataElement> getEpsExcludingRnd(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
         return getIncomeData(stock, quarterly, endDate, financialsTtm -> RatioCalculator.calculateEpsExRnd(financialsTtm));
+    }
+
+    @GetMapping("/operating_cash_flow_plus_rnd_per_share")
+    public List<SimpleDataElement> getOcfPlusRnd(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        return getIncomeData(stock, quarterly, endDate, financialsTtm -> (double) operatingCashFlowPlusRnd(financialsTtm) / financialsTtm.incomeStatementTtm.weightedAverageShsOut);
     }
 
     @GetMapping("/eps_excl_marketing")
@@ -817,6 +823,18 @@ public class FinancialsController {
         return getIncomeData(stock, quarterly, endDate, financialsTtm -> toPercent(RoicCalculator.calculateRoic(financialsTtm)));
     }
 
+    @GetMapping("/reinvestment_rate")
+    public List<SimpleDataElement> getReinvestmentRate(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (var financial : company.financials) {
+            double reinvestmentRate = RoicCalculator.calculateReinvestmentRate(financial) * 100.0;
+            result.add(new SimpleDataElement(financial.date.toString(), reinvestmentRate));
+        }
+        return result;
+    }
+
     @GetMapping("/investment_score")
     public List<SimpleDataElement> getInvestScore(@PathVariable("stock") String stock, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
         CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
@@ -1019,7 +1037,95 @@ public class FinancialsController {
         return result;
     }
 
-    // return breakdown
+    // end of return breakdown
+
+    // expected return breakdown
+
+    @GetMapping("/expected_return_by_roic")
+    public List<SimpleDataElement> getExpectedReturnByRoic(@PathVariable("stock") String stock, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        List<SimpleDataElement> reinvestmentRates = new ArrayList<>();
+        List<SimpleDataElement> roices = new ArrayList<>();
+        for (var financial : company.financials) {
+            double reinvestmentRate = RoicCalculator.calculateReinvestmentRate(financial) * 100.0;
+            double roic = RoicCalculator.calculateRoic(financial);
+            reinvestmentRates.add(new SimpleDataElement(financial.date.toString(), reinvestmentRate));
+            roices.add(new SimpleDataElement(financial.date.toString(), roic));
+        }
+        List<SimpleDataElement> smoothReinvestmentRates = DataSmoother.smoothSMA(reinvestmentRates, 4);
+        List<SimpleDataElement> smoothRoices = DataSmoother.smoothSMA(roices, 4);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        for (int i = 0; i < smoothRoices.size(); ++i) {
+            SimpleDataElement currentRoic = smoothRoices.get(i);
+            SimpleDataElement currentReinvestment = smoothReinvestmentRates.get(i);
+
+            Double expectedReturn = null;
+
+            if (currentRoic.value != null && currentReinvestment.value != null) {
+                expectedReturn = currentRoic.value * currentReinvestment.value;
+            }
+
+            result.add(new SimpleDataElement(currentRoic.date, expectedReturn));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/expected_return_by_addition")
+    public List<SimpleDataElement> getExpectedReturnByAddition(@PathVariable("stock") String stock, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        List<SimpleDataElement> growthRates = new ArrayList<>();
+        List<SimpleDataElement> shareChanges = new ArrayList<>();
+        for (var financial : company.financials) {
+            double yearsAgo = calculateYearsAgo(financial.date);
+            Double growthRate = GrowthCalculator.getMedianRevenueGrowth(company.financials, 3, yearsAgo).orElse(null);
+            Double shareChangeRate = GrowthCalculator.getShareCountGrowthInInterval(company.financials, 3, yearsAgo).orElse(null);
+            growthRates.add(new SimpleDataElement(financial.date.toString(), growthRate));
+            shareChanges.add(new SimpleDataElement(financial.date.toString(), shareChangeRate));
+        }
+        List<SimpleDataElement> smoothGrowth = DataSmoother.smoothSMA(growthRates, 3);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+
+        for (int i = 0; i < smoothGrowth.size(); ++i) {
+            Double currentGrowth = smoothGrowth.get(i).value;
+            var financial = company.financials.get(i);
+            double dividendYield = DividendCalculator.getDividendYield(company, i);
+            Double shareChange = shareChanges.get(i).value;
+
+            Double expectedReturn = null;
+
+            if (shareChange != null && currentGrowth != null) {
+                expectedReturn = currentGrowth + (-shareChange) + dividendYield;
+            }
+
+            result.add(new SimpleDataElement(financial.date.toString(), expectedReturn));
+        }
+
+        return result;
+    }
+
+    @GetMapping("/expected_return_by_dcf")
+    public List<SimpleDataElement> getExpectedReturnByDcf(@PathVariable("stock") String stock, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        List<SimpleDataElement> result = new ArrayList<>();
+        for (var financial : company.financials) {
+            double yearsAgo = calculateYearsAgo(financial.date);
+            var params = DcfCalculator.fillCalculatorParameters(company, yearsAgo, 10.0);
+            Optional<Double> dcfCagr = DcfCalculator.doDcfReverseDcfAnalysis(company, params, yearsAgo);
+
+            result.add(new SimpleDataElement(financial.getDate().toString(), dcfCagr.orElse(null)));
+        }
+
+        return result;
+    }
+
+    // end of expected return breakdown
 
     @GetMapping("/rnd_to_revenue")
     public List<SimpleDataElement> getRndToRevenue(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {

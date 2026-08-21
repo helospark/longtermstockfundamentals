@@ -155,7 +155,18 @@ public class ViewController {
 
                 companyDateLimited = DataLoader.readFinancials(stock, randomDate);
 
+                if (companyDateLimited.profile == null) {
+                    continue;
+                }
+
                 if (selection.equals(StockSourceSelection.US_HEADQUARTER) && !"US".equals(companyDateLimited.profile.country)) {
+                    continue;
+                }
+
+                if (companyDateLimited.financials.size() < 10) {
+                    continue;
+                }
+                if (startYear - companyDateLimited.financials.get(0).date.getYear() > 2) { // company has not reported for 2 years, probably delisted or bankrupt already
                     continue;
                 }
 
@@ -184,7 +195,7 @@ public class ViewController {
             Locale countryLocale = new Locale("", companyDateLimited.profile.country);
             countryName = countryLocale.getDisplayCountry();
         }
-        String sector = orUnknown(companyDateLimited.profile.sector);
+        String sector = orUnknown(companyDateLimited.profile.sector) + " (" + orUnknown(companyDateLimited.profile.industry) + ")";
         String companyName = orUnknown(companyDateLimited.profile.companyName);
         var stockGameData = new StockGameData(randomDate, cagr, sector, companyName, countryName);
 

@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Optional;
 
 import com.helospark.financialdata.CommonConfig;
+import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.FinancialsTtm;
+import com.helospark.financialdata.domain.IncomeStatement;
 
 public class RoicCalculator {
 
@@ -65,6 +67,42 @@ public class RoicCalculator {
         double newInvestedCapital = (newData.balanceSheet.totalStockholdersEquity + newData.balanceSheet.totalDebt);
 
         return Optional.of((newNopat - oldNopat) / (newInvestedCapital - oldInvestedCapital));
+    }
+    //
+    //    public static double calculateReinvestmentRate(FinancialsTtm financialsTtm) {
+    //        IncomeStatement incomeStatement = financialsTtm.incomeStatementTtm;
+    //        CashFlow cashflowStatement = financialsTtm.cashFlowTtm;
+    //
+    //        double netIncome = incomeStatement.netIncome;
+    //        double rnd = incomeStatement.researchAndDevelopmentExpenses;
+    //        double adjustedNetIncome = netIncome + rnd;
+    //        double dividends = -cashflowStatement.dividendsPaid;
+    //        double buybacks = -cashflowStatement.commonStockRepurchased;
+    //        double changeInCash = cashflowStatement.cashAtEndOfPeriod - cashflowStatement.cashAtBeginningOfPeriod;
+    //
+    //        return (adjustedNetIncome - dividends - buybacks - changeInCash) / adjustedNetIncome;
+    //    }
+
+    public static double calculateReinvestmentRate(FinancialsTtm financialsTtm) {
+        IncomeStatement incomeStatement = financialsTtm.incomeStatementTtm;
+        CashFlow cashflowStatement = financialsTtm.cashFlowTtm;
+
+        double netIncome = incomeStatement.netIncome;
+        double rnd = incomeStatement.researchAndDevelopmentExpenses;
+
+        double dividends = Math.abs(cashflowStatement.dividendsPaid);
+        double buybacks = Math.abs(cashflowStatement.commonStockRepurchased);
+        double changeInCash = cashflowStatement.cashAtEndOfPeriod - cashflowStatement.cashAtBeginningOfPeriod;
+
+        double cashReinvestment = netIncome - dividends - buybacks - changeInCash;
+        double totalReinvestment = cashReinvestment + rnd;
+        double adjustedNetIncome = netIncome + rnd;
+
+        if (adjustedNetIncome <= 0) {
+            return 0.0;
+        }
+
+        return totalReinvestment / adjustedNetIncome;
     }
 
     public static double calculateNOPAT(FinancialsTtm financialsTtm) {

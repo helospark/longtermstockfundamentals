@@ -147,7 +147,7 @@
       var stock = document.getElementById("stock").innerText;
       $('html').addClass('waiting');
 
-      fetch('/download?stock=' + stock + '&forced=true', {
+      fetch('/download?stock=' + stock + '&force=true', {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

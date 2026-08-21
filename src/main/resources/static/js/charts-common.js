@@ -383,6 +383,7 @@ function getFilteredMinMax(values, outlierMultiplier = 100) {
 }
 
 function createChart(urlPath, title, chartOptions) {
+  urlPath = urlPath.split('#')[0];
   var canvas =document.createElement("canvas");
   canvas.style='width:100%;max-height:400px'
   

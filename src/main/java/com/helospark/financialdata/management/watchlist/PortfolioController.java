@@ -423,7 +423,7 @@ public class PortfolioController {
                         result.totalRevGrowth += orZero(() -> ownedValue * revenueGrowth);
                         result.totalAltman += orZero(() -> ownedValue * atGlance.altman);
                         result.totalOpMargin += orZero(() -> ownedValue * atGlance.opMargin);
-                        result.totalRoic += orZero(() -> ownedValue * atGlance.roic);
+                        result.totalRoic += orZero(() -> atGlance.roic < 100 ? ownedValue * atGlance.roic : 0.0);
                         result.totalFcfRoic += orZero(() -> ownedValue * atGlance.fiveYrRoic);
                         result.totalRoe += orZero(() -> ownedValue * atGlance.roe);
                         result.totalGrossMargin += orZero(() -> ownedValue * atGlance.grMargin);
