@@ -18,6 +18,7 @@ import com.amazonaws.services.dynamodbv2.model.TimeToLiveSpecification;
 import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.UpdateTimeToLiveRequest;
 import com.amazonaws.services.dynamodbv2.util.TableUtils;
+import com.helospark.financialdata.management.chartorder.ChartOrder;
 import com.helospark.financialdata.management.payment.repository.StripeUserMapping;
 import com.helospark.financialdata.management.payment.repository.UserLastPayment;
 import com.helospark.financialdata.management.screener.repository.Screener;
@@ -62,6 +63,7 @@ public class DynamoDbInitializer {
         createTable("WatchlistExpectationHistory", WatchlistExpectationHistory.class);
         createTable("Screener", Screener.class);
         createTable("PortfolioTransactionT", PortfolioTransaction.class);
+        createTable("ChartOrder", ChartOrder.class);
 
         if (wasUserTableCreated || userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
             User user = new User();

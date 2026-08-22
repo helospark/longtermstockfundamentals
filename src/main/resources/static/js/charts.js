@@ -195,61 +195,133 @@ function getCurrentlySavedCustomizedCharts() {
   }
 }
 
+async function loadAndShowUIPreferencesModal() {
+    try {
+        const response = await fetch('/chart-order');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const chartOrderMap = await response.json();
 
-function customizeCharts() {  
-  var modalHtml=`<div>Select and reorder charts</div><hr/><ul id="customizer-list">`;
-  
-  var currentCharts = getCurrentlySavedCustomizedCharts();
-  
-  for (let i = 0; i < currentCharts.length; i++) {
-    var currentChart = findInArrayById(allCharts, currentCharts[i].id);
-    if (currentChart == null) {
-      console.log(currentCharts[i].id);
-      continue;
+        customizeChartsWithOptions(chartOrderMap);
+
+    } catch (error) {
+        console.error('Failed to load chart orders:', error);
+        alert('Could not retrieve UI options from the server.');
     }
-    var currentSetting = currentCharts[i];
-    if (currentSetting !== null) {
-      var isChecked = currentSetting.enabled;
-      modalHtml+=`
-          <li>
-            <div class="form-check" style="${currentChart.separator && i>0 ? 'margin-top: 30px' : ''}">
-              <input class="form-check-input" name="customize-${i}" type="checkbox" value="${currentChart.id}" ${isChecked ? 'checked' : ''}>
-              <label style="margin-left:8px" class="form-check-label" for="customize-${i}">
-                ${currentChart.title}
-              </label>
-            </div>
-          </li>
-      `;
-    }
-    
-  }
-  modalHtml+=`</ul>`;
-  
-  
-  
-  $("#generic-large-modal .modal-content").html(
-  `
-      <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalScrollableTitle">Customize charts</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        ${modalHtml}
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onClick="resetCustomizedData()">Reset</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary" onClick="saveCustomizedData()">Save changes</button>
-      </div>`
-  
-  );
-  $("#generic-large-modal").modal("show");
-  Sortable.create($("#customizer-list").get(0), {});
 }
 
-function saveCustomizedData() {
+function customizeChartsWithOptions(chartOrderMap) {
+        const keys = Object.keys(chartOrderMap || {});
+        
+        let optionsHtml = '<option value="" selected disabled>-- Select a UI Preference --</option>';
+        keys.forEach(name => {
+            optionsHtml += `<option value="${encodeURIComponent(name)}">${name}</option>`;
+        });
+        
+        const savedPreferenceName = localStorage.getItem('lastSelectedUIPreference') || 'Custom UI';
+
+        var modalHtml=`<div>Select and reorder charts</div><hr/>`
+        modalHtml += `
+          <div class="row g-2 mb-3">
+                      <div class="col-md-6">
+                          <label for="uiPreferenceSelect" class="form-label fw-bold">Load Saved Preference:</label>
+                          <select id="uiPreferenceSelect" class="form-select">
+                              ${optionsHtml}
+                          </select>
+                      </div>
+                      <div class="col-md-6">
+                          <label for="uiPreferenceNameInput" class="form-label fw-bold">Preference Name:</label>
+                          <input type="text" 
+                                 id="uiPreferenceNameInput" 
+                                 class="form-control" 
+                                 maxlength="30" 
+                                 placeholder="e.g. Dark Minimal" 
+                                 value="${savedPreferenceName}">
+                      </div>
+                  </div>
+        `;
+        
+        
+        var currentCharts = getCurrentlySavedCustomizedCharts();
+        modalHtml += generateChartCustomizationForm(currentCharts);
+        
+        $("#generic-large-modal .modal-content").html(
+              `
+                  <div class="modal-header">
+                    <h5 class="modal-title">Customize charts</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    ${modalHtml}
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" id="deleteCustomizedChartButton" class="btn btn-danger" data-bs-dismiss="modal" onClick="deleteCustomizedData()">Delete</button>
+                    <button type="button" class="btn btn-warning" data-bs-dismiss="modal" onClick="resetCustomizedData()">Reset to default</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onClick="saveCustomizedData(false)">Save</button>
+                    <button type="button" class="btn btn-primary" onClick="saveCustomizedData(true)">Save & Reload</button>
+                  </div>`
+         );
+        
+        
+        $("#generic-large-modal").modal("show");
+        Sortable.create($("#customizer-list").get(0), {});
+        
+        updateDeleteButtonState();
+        $('#uiPreferenceSelect').off('change').on('change', function () {
+            const selectedName = decodeURIComponent($(this).val());
+            const selectedJsonValue = chartOrderMap[selectedName];
+
+            if (selectedJsonValue) {
+                $('#uiPreferenceNameInput').val(selectedName);
+                localStorage.setItem('lastSelectedUIPreference', selectedName);
+            
+            
+                var currentCharts = JSON.parse(selectedJsonValue);
+                var newHtml = generateChartCustomizationForm(currentCharts);
+                $("#generic-large-modal").find("#customizer-list").replaceWith(newHtml);
+            }
+            updateDeleteButtonState();
+        });
+        $('#uiPreferenceNameInput').off('input keyup').on('input keyup', function () {
+            updateDeleteButtonState();
+        });
+}
+
+function generateChartCustomizationForm(currentCharts) {
+    modalHtml = `<ul id="customizer-list">`;
+      for (let i = 0; i < currentCharts.length; i++) {
+        var currentChart = findInArrayById(allCharts, currentCharts[i].id);
+        if (currentChart == null) {
+          console.log(currentCharts[i].id);
+          continue;
+        }
+        var currentSetting = currentCharts[i];
+        if (currentSetting !== null) {
+          var isChecked = currentSetting.enabled;
+          modalHtml+=`
+              <li>
+                <div class="form-check" style="${currentChart.separator && i>0 ? 'margin-top: 30px' : ''}">
+                  <input class="form-check-input" name="customize-${i}" type="checkbox" value="${currentChart.id}" ${isChecked ? 'checked' : ''}>
+                  <label style="margin-left:8px" class="form-check-label" for="customize-${i}">
+                    ${currentChart.title}
+                  </label>
+                </div>
+              </li>
+          `;
+        }
+        
+      }
+      modalHtml+=`</ul>`;
+      
+      return modalHtml;
+}
+
+async function saveCustomizedData(shouldReload) {
   var resultMap = [];
-  checkboxes = $("#customizer-list input").each(function() {
+  $("#customizer-list input").each(function() {
     resultMap.push({id:$(this).attr("value"), enabled:$(this).is(':checked')});
   });
   console.log("Saving");
@@ -259,14 +331,116 @@ function saveCustomizedData() {
   
   localStorage.setItem("customizedCharts", dataToSave);
   
-  $("#generic-large-modal").modal("hide");
-  location.reload();
+  await saveUIPreference(resultMap);
+  
+  if (shouldReload) {
+    $("#generic-large-modal").modal("hide");
+    location.reload();
+  }
+}
+
+async function saveUIPreference(resultMap) {
+    const preferenceName = $('#uiPreferenceNameInput').val().trim();
+    
+    if (!preferenceName) {
+        alert('Please enter a name for your UI preference before saving.');
+        $('#uiPreferenceNameInput').focus();
+        return;
+    }
+
+    if (preferenceName.length > 30) {
+        alert('Preference name must be 30 characters or fewer.');
+        return;
+    }
+
+    const payload = {
+        name: preferenceName,
+        order: resultMap
+    };
+
+    try {
+        const response = await fetch('/chart-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned status ${response.status}`);
+        }
+
+        localStorage.setItem('lastSelectedUIPreference', preferenceName);
+    } catch (error) {
+        console.error('Error saving UI preference:', error);
+        alert('Failed to save UI preference. Please try again.');
+    }
 }
 
 function resetCustomizedData() {
   localStorage.removeItem("customizedCharts");
   $("#generic-large-modal").modal("hide");
   location.reload();
+}
+
+function updateDeleteButtonState() {
+    const currentInputName = $('#uiPreferenceNameInput').val().trim();
+    const $deleteBtn = $('#deleteCustomizedChartButton');
+
+    if (!currentInputName) {
+        $deleteBtn.prop('disabled', true);
+        return;
+    }
+
+    let matchedOptionText = null;
+    $('#uiPreferenceSelect option').each(function () {
+        const optionText = $(this).text().trim();
+        if (optionText.toLowerCase() === currentInputName.toLowerCase()) {
+            matchedOptionText = optionText;
+            return false; // Break jQuery loop
+        }
+    });
+
+    const existsInDropdown = matchedOptionText !== null;
+    const isBuiltIn = existsInDropdown && matchedOptionText.toLowerCase().includes('(built-in)');
+
+    $deleteBtn.prop('disabled', !existsInDropdown || isBuiltIn);
+}
+
+async function deleteCustomizedData() {
+    const preferenceName = $('#uiPreferenceNameInput').val().trim();
+
+    if (!preferenceName) {
+        alert('Please select a preference to delete.');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete the preference "${preferenceName}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/chart-order?name=${encodeURIComponent(preferenceName)}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned status ${response.status}`);
+        }
+
+        if (localStorage.getItem('lastSelectedUIPreference') === preferenceName) {
+            localStorage.removeItem('lastSelectedUIPreference');
+        }
+
+        if (typeof loadAndShowUIPreferencesModal === 'function') {
+            loadAndShowUIPreferencesModal();
+        }
+
+    } catch (error) {
+        console.error('Error deleting UI preference:', error);
+        alert('Failed to delete UI preference. Please try again.');
+    }
 }
 
 function renderChart(allCharts, id) {
