@@ -14,11 +14,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,6 +33,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.domain.BalanceSheet;
 import com.helospark.financialdata.domain.CashFlow;
 import com.helospark.financialdata.domain.DateAware;
@@ -37,12 +42,21 @@ import com.helospark.financialdata.domain.HistoricalPrice;
 import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.IncomeStatement;
 import com.helospark.financialdata.service.DataLoader;
+import com.helospark.financialdata.service.Helpers;
+import com.helospark.financialdata.util.StockDataDownloader.DownloadDateData;
 
 public class YahooStockDataDownloader {
+    private static final boolean ENABLE_FILE_CACHE = true;
+    private static final boolean ENABLE_DEBUG_LOG = true;
     static List<Pair> incomeStatementMapping = new ArrayList<>();
     static List<Pair> balanceSheetMapping = new ArrayList<>();
     static List<Pair> cashFlowStatementMapping = new ArrayList<>();
     static RestTemplate restTemplate = new RestTemplate();
+
+    static Cache<String, String> cache = Caffeine.newBuilder()
+            .expireAfterWrite(2, TimeUnit.MINUTES)
+            .maximumSize(25)
+            .build();
 
     static void put(List<Pair> list, String key, FieldMapping mapping) {
         list.add(new Pair(key, mapping));
@@ -74,7 +88,7 @@ public class YahooStockDataDownloader {
         put(incomeStatementMapping, "quarterlyDilutedAverageShares", new FieldMapping("weightedAverageShsOutDil"));
 
         put(balanceSheetMapping, "quarterlyCashAndCashEquivalents", new FieldMapping("cashAndCashEquivalents"));
-        put(balanceSheetMapping, "quarterlyCashCashEquivalentsAndShortTermInvestments", new FieldMapping("shortTermInvestments"));
+        put(balanceSheetMapping, "quarterlyOtherShortTermInvestments", new FieldMapping("shortTermInvestments"));
         put(balanceSheetMapping, "quarterlyCashCashEquivalentsAndShortTermInvestments", new FieldMapping("cashAndShortTermInvestments"));
         put(balanceSheetMapping, "quarterlyReceivables", new FieldMapping("netReceivables"));
         put(balanceSheetMapping, "quarterlyInventory", new FieldMapping("inventory"));
@@ -82,7 +96,7 @@ public class YahooStockDataDownloader {
         put(balanceSheetMapping, "quarterlyCurrentAssets", new FieldMapping("totalCurrentAssets"));
         put(balanceSheetMapping, "quarterlyNetPPE", new FieldMapping("propertyPlantEquipmentNet"));
         put(balanceSheetMapping, "quarterlyGoodwill", new FieldMapping("goodwill"));
-        put(balanceSheetMapping, "quarterlyGoodwillAndOtherIntangibleAssets", new FieldMapping("intangibleAssets"));
+        put(balanceSheetMapping, "quarterlyOtherIntangibleAssets", new FieldMapping("intangibleAssets"));
         put(balanceSheetMapping, "quarterlyGoodwillAndOtherIntangibleAssets", new FieldMapping("goodwillAndIntangibleAssets"));
         put(balanceSheetMapping, "quarterlyInvestmentsAndAdvances", new FieldMapping("longTermInvestments"));
         put(balanceSheetMapping, "quarterlyNonCurrentDeferredTaxesAssets", new FieldMapping("taxAssets"));
@@ -93,12 +107,12 @@ public class YahooStockDataDownloader {
         put(balanceSheetMapping, "quarterlyPayables", new FieldMapping("accountPayables"));
         put(balanceSheetMapping, "quarterlyCurrentDebt", new FieldMapping("shortTermDebt"));
         put(balanceSheetMapping, "quarterlyTotalTaxPayable", new FieldMapping("taxPayables"));
-        put(balanceSheetMapping, "quarterlyNonCurrentDeferredRevenue", new FieldMapping("deferredRevenue"));
+        put(balanceSheetMapping, "quarterlyCurrentDeferredRevenue", new FieldMapping("deferredRevenue"));
         put(balanceSheetMapping, "quarterlyOtherCurrentLiabilities", new FieldMapping("otherCurrentLiabilities"));
         put(balanceSheetMapping, "quarterlyCurrentLiabilities", new FieldMapping("totalCurrentLiabilities"));
         put(balanceSheetMapping, "quarterlyLongTermDebt", new FieldMapping("longTermDebt"));
         put(balanceSheetMapping, "quarterlyTotalRevenue", new FieldMapping("deferredRevenueNonCurrent"));
-        put(balanceSheetMapping, "quarterlyCurrentDeferredTaxesLiabilities", new FieldMapping("deferredTaxLiabilitiesNonCurrent"));
+        put(balanceSheetMapping, "quarterlyNonCurrentDeferredTaxesLiabilities", new FieldMapping("deferredTaxLiabilitiesNonCurrent"));
         put(balanceSheetMapping, "quarterlyOtherNonCurrentLiabilities", new FieldMapping("otherNonCurrentLiabilities"));
         put(balanceSheetMapping, "quarterlyTotalNonCurrentLiabilitiesNetMinorityInterest", new FieldMapping("totalNonCurrentLiabilities"));
         put(balanceSheetMapping, "quarterlyOtherNonCurrentLiabilities", new FieldMapping("otherLiabilities"));
@@ -107,31 +121,31 @@ public class YahooStockDataDownloader {
         put(balanceSheetMapping, "quarterlyPreferredStock", new FieldMapping("preferredStock"));
         put(balanceSheetMapping, "quarterlyCommonStock", new FieldMapping("commonStock"));
         put(balanceSheetMapping, "quarterlyRetainedEarnings", new FieldMapping("retainedEarnings"));
-        //put(balanceSheetMapping, "quarterlyTotalRevenue", new FieldMapping("accumulatedOtherComprehensiveIncomeLoss"));
-        put(balanceSheetMapping, "quarterlyOtherEquityAdjustments", new FieldMapping("othertotalStockholdersEquity"));
+        put(balanceSheetMapping, "quarterlyGainsLossesNotAffectingRetainedEarnings", new FieldMapping("accumulatedOtherComprehensiveIncomeLoss"));
+        put(balanceSheetMapping, "quarterlyAdditionalPaidInCapital", new FieldMapping("othertotalStockholdersEquity"));
         put(balanceSheetMapping, "quarterlyStockholdersEquity", new FieldMapping("totalStockholdersEquity"));
-        // put(balanceSheetMapping, "quarterlyTotalRevenue", new FieldMapping("totalLiabilitiesAndStockholdersEquity"));
+        put(balanceSheetMapping, "quarterlyTotalAssets", new FieldMapping("totalLiabilitiesAndStockholdersEquity"));
         put(balanceSheetMapping, "quarterlyMinorityInterest", new FieldMapping("minorityInterest"));
         put(balanceSheetMapping, "quarterlyTotalEquityGrossMinorityInterest", new FieldMapping("totalEquity"));
-        // put(balanceSheetMapping, "quarterlyTotalRevenue", new FieldMapping("totalLiabilitiesAndTotalEquity"));
+        put(balanceSheetMapping, "quarterlyTotalAssets", new FieldMapping("totalLiabilitiesAndTotalEquity"));
         put(balanceSheetMapping, "quarterlyInvestmentsAndAdvances", new FieldMapping("totalInvestments"));
         put(balanceSheetMapping, "quarterlyTotalDebt", new FieldMapping("totalDebt"));
         put(balanceSheetMapping, "quarterlyNetDebt", new FieldMapping("netDebt"));
 
         put(cashFlowStatementMapping, "quarterlyNetIncomeFromContinuingOperations", new FieldMapping("netIncome"));
-        put(cashFlowStatementMapping, "quarterlyDepreciationAndAmortization", new FieldMapping("depreciationAndAmortization"));
+        put(cashFlowStatementMapping, "quarterlyReconciledDepreciation", new FieldMapping("depreciationAndAmortization")); // quarterlyDepreciationAndAmortization
         put(cashFlowStatementMapping, "quarterlyDeferredIncomeTax", new FieldMapping("deferredIncomeTax"));
         put(cashFlowStatementMapping, "quarterlyStockBasedCompensation", new FieldMapping("stockBasedCompensation"));
         put(cashFlowStatementMapping, "quarterlyChangeInWorkingCapital", new FieldMapping("changeInWorkingCapital"));
         put(cashFlowStatementMapping, "quarterlyChangesInAccountReceivables", new FieldMapping("accountsReceivables"));
         put(cashFlowStatementMapping, "quarterlyChangeInInventory", new FieldMapping("inventory"));
         put(cashFlowStatementMapping, "quarterlyChangeInPayablesAndAccruedExpense", new FieldMapping("accountsPayables"));
-        put(cashFlowStatementMapping, "quarterlyChangeInOtherWorkingCapital", new FieldMapping("otherWorkingCapital"));
-        put(cashFlowStatementMapping, "quarterlyOtherNonCashItems", new FieldMapping("otherNonCashItems"));
+        put(cashFlowStatementMapping, "quarterlyChangeInWorkingCapital", new FieldMapping("otherWorkingCapital"));
+        put(cashFlowStatementMapping, "quarterlyOperatingGainsLosses", new FieldMapping("otherNonCashItems"));
         put(cashFlowStatementMapping, "quarterlyOperatingCashFlow", new FieldMapping("netCashProvidedByOperatingActivities"));
         put(cashFlowStatementMapping, "quarterlyPurchaseOfPPE", new FieldMapping("investmentsInPropertyPlantAndEquipment"));
         put(cashFlowStatementMapping, "quarterlyPurchaseOfBusiness", new FieldMapping("acquisitionsNet"));
-        //put(cashFlowStatementMapping, "quarterlyCashAndCashEquivalents", new FieldMapping("purchasesOfInvestments"));
+        put(cashFlowStatementMapping, "quarterlyNetInvestmentPurchaseAndSale", new FieldMapping("purchasesOfInvestments"));
         put(cashFlowStatementMapping, "quarterlySaleOfInvestment", new FieldMapping("salesMaturitiesOfInvestments"));
         put(cashFlowStatementMapping, "quarterlyNetOtherInvestingChanges", new FieldMapping("otherInvestingActivites"));
         put(cashFlowStatementMapping, "quarterlyInvestingCashFlow", new FieldMapping("netCashUsedForInvestingActivites"));
@@ -141,7 +155,7 @@ public class YahooStockDataDownloader {
         put(cashFlowStatementMapping, "quarterlyCashDividendsPaid", new FieldMapping("dividendsPaid"));
         put(cashFlowStatementMapping, "quarterlyFinancingCashFlow", new FieldMapping("otherFinancingActivites"));
         put(cashFlowStatementMapping, "quarterlyCashFlowFromContinuingFinancingActivities", new FieldMapping("netCashUsedProvidedByFinancingActivities"));
-        //put(cashFlowStatementMapping, "quarterlyCashAndCashEquivalents", new FieldMapping("effectOfForexChangesOnCash"));
+        put(cashFlowStatementMapping, "quarterlyEffectOfExchangeRateChanges", new FieldMapping("effectOfForexChangesOnCash"));
         put(cashFlowStatementMapping, "quarterlyCashAndCashEquivalents", new FieldMapping("netChangeInCash"));
         put(cashFlowStatementMapping, "quarterlyEndCashPosition", new FieldMapping("cashAtEndOfPeriod"));
         put(cashFlowStatementMapping, "quarterlyBeginningCashPosition", new FieldMapping("cashAtBeginningOfPeriod"));
@@ -151,12 +165,12 @@ public class YahooStockDataDownloader {
     }
 
     public static void main(String[] args) throws Exception {
-        String symbol = "UNH";
+        String symbol = "GOOG";
 
-        downloadDataFromYahoo(symbol);
+        downloadDataFromYahoo(symbol, false);
     }
 
-    public static void downloadDataFromYahoo(String symbol) throws Exception {
+    public static DownloadDateData downloadDataFromYahoo(String symbol, boolean downloadToRealFile) throws Exception {
         StatementMetadata metadata = readStatementMetadata(symbol);
         List<IncomeStatement> incomeStatements = new ArrayList<>();
         List<BalanceSheet> balanceSheets = new ArrayList<>();
@@ -177,53 +191,130 @@ public class YahooStockDataDownloader {
         List<BalanceSheet> originalBalanceSheet = DataLoader.readFinancialFile(symbol, "balance-sheet.json", BalanceSheet.class);
         List<IncomeStatement> originalIncomeStatement = DataLoader.readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
         List<CashFlow> originalCashFlow = DataLoader.readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
-        List<HistoricalPriceElement> originalHistoricalPrices = DataLoader.readHistoricalPriceNoCache(symbol);
 
-        IncomeStatement realIncomeStatement = originalIncomeStatement.get(1);
-
-        for (var field : IncomeStatement.class.getFields()) {
-            Object val1 = field.get(incomeStatement);
-            Object val2 = field.get(realIncomeStatement);
-            System.out.println(field.getName() + "\n" + val1 + "\n" + val2 + "\n\n");
+        if (ENABLE_DEBUG_LOG) {
+            printDebugData(originalIncomeStatement, incomeStatement, originalBalanceSheet, balanceSheet, originalCashFlow, cashFlowStatement);
         }
 
-        System.out.println();
-        System.out.println("--------------------");
-        System.out.println();
-
-        BalanceSheet realBalanceSheet = originalBalanceSheet.get(1);
-
-        for (var field : BalanceSheet.class.getFields()) {
-            Object val1 = field.get(balanceSheet);
-            Object val2 = field.get(realBalanceSheet);
-            System.out.println(field.getName() + "\n" + val1 + "\n" + val2 + "\n\n");
-        }
-
-        System.out.println();
-        System.out.println("--------------------");
-        System.out.println();
-
-        CashFlow realCashFlow = originalCashFlow.get(1);
-
-        for (var field : CashFlow.class.getFields()) {
-            Object val1 = field.get(cashFlowStatement);
-            Object val2 = field.get(realCashFlow);
-            System.out.println(field.getName() + "\n" + val1 + "\n" + val2 + "\n\n");
-        }
-
-        var prices = downloadPrices(symbol);
+        //        System.out.println("Splits: " + prices.splits);
 
         List<IncomeStatement> resultIncomeStatements = merge(incomeStatements, originalIncomeStatement);
         List<CashFlow> resultCashFlowStatements = merge(cashFlows, originalCashFlow);
         List<BalanceSheet> resultBalanceSheetstatements = merge(balanceSheets, originalBalanceSheet);
+
+        HistoricalPrice priceResult = downloadPricesFromYahoo(symbol, downloadToRealFile);
+
+        if (downloadToRealFile) {
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/income-statement.json"), resultIncomeStatements);
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/cash-flow.json"), resultCashFlowStatements);
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/balance-sheet.json"), resultBalanceSheetstatements);
+
+        } else {
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/income-statement-2.json"), resultIncomeStatements);
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/cash-flow-2.json"), resultCashFlowStatements);
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/balance-sheet-2.json"), resultBalanceSheetstatements);
+        }
+
+        return new DownloadDateData(resultIncomeStatements.get(0).getDate(), LocalDate.now(), priceResult.historical.get(0).date, 90);
+    }
+
+    public static HistoricalPrice downloadPricesFromYahoo(String symbol, boolean downloadToRealFile) throws Exception {
+        List<HistoricalPriceElement> originalHistoricalPrices = DataLoader.readHistoricalPriceNoCache(symbol);
+        LocalDate priceReadStartDate = LocalDate.now().minus(5, YEARS);
+        if (originalHistoricalPrices.size() > 0) {
+            priceReadStartDate = originalHistoricalPrices.get(0).date.plusDays(1);
+        }
+        var prices = downloadPrices(symbol, priceReadStartDate);
         List<HistoricalPriceElement> resultPrices = merge(prices.prices.historical, originalHistoricalPrices);
         HistoricalPrice resultHistoricalPrices = new HistoricalPrice();
         resultHistoricalPrices.historical = resultPrices;
 
-        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/income-statement-2.json"), resultIncomeStatements);
-        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/cash-flow-2.json"), resultCashFlowStatements);
-        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/balance-sheet-2.json"), resultBalanceSheetstatements);
-        StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/historical-price-2.json"), resultHistoricalPrices);
+        if (downloadToRealFile) {
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/historical-price.json"), resultHistoricalPrices);
+        } else {
+            StockDataDownloader.objectMapper.writeValue(new File(BASE_FOLDER + "/fundamentals/" + symbol + "/historical-price-2.json"), resultHistoricalPrices);
+        }
+
+        return resultHistoricalPrices;
+    }
+
+    public static void printDebugData(List<IncomeStatement> originalIncomeStatement, IncomeStatement incomeStatement, List<BalanceSheet> originalBalanceSheet, BalanceSheet balanceSheet, List<CashFlow> originalCashFlow, CashFlow cashFlowStatement)
+            throws IllegalAccessException {
+        int indexInOriginal = Helpers.findIndexWithOrBeforeDate(originalCashFlow, cashFlowStatement.getDate());
+
+        IncomeStatement realIncomeStatement = originalIncomeStatement.get(indexInOriginal);
+
+        for (var field : IncomeStatement.class.getFields()) {
+            Object val1 = field.get(incomeStatement);
+            Object val2 = field.get(realIncomeStatement);
+            System.out.println(field.getName() + "\n" + formatAsNumber(val1) + "\n" + formatAsNumber(val2) + "\n\n");
+        }
+
+        System.out.println();
+        System.out.println("--------------------");
+        System.out.println();
+
+        BalanceSheet realBalanceSheet = originalBalanceSheet.get(indexInOriginal);
+
+        for (var field : BalanceSheet.class.getFields()) {
+            Object val1 = field.get(balanceSheet);
+            Object val2 = field.get(realBalanceSheet);
+            System.out.println(field.getName() + "\n" + formatAsNumber(val1) + "\n" + formatAsNumber(val2) + "\n\n");
+        }
+
+        System.out.println();
+        System.out.println("--------------------");
+        System.out.println();
+
+        CashFlow realCashFlow = originalCashFlow.get(indexInOriginal);
+
+        for (var field : CashFlow.class.getFields()) {
+            Object val1 = field.get(cashFlowStatement);
+            Object val2 = field.get(realCashFlow);
+            System.out.println(field.getName() + "\n" + formatAsNumber(val1) + "\n" + formatAsNumber(val2) + "\n\n");
+        }
+    }
+
+    private static String formatAsNumber(Object val) {
+        if (val == null) {
+            return "null";
+        }
+
+        if (val instanceof Long) {
+            long rawValue = (Long) val;
+            long absValue = Math.abs(rawValue);
+
+            // Thresholds in absolute values
+            double trillion = 1_000_000_000_000.0;
+            double billion = 1_000_000_000.0;
+            double million = 1_000_000.0;
+
+            String suffix = "";
+            double divisor = 1.0;
+
+            if (absValue >= trillion) {
+                suffix = "T";
+                divisor = trillion;
+            } else if (absValue >= billion) {
+                suffix = "B";
+                divisor = billion;
+            } else if (absValue >= million) {
+                suffix = "M";
+                divisor = million;
+            }
+
+            if (!suffix.isEmpty()) {
+                double formattedVal = rawValue / divisor;
+                String formattedStr = String.format(java.util.Locale.US, "%.2f%s", formattedVal, suffix);
+                return String.format("%d (%s)", rawValue, formattedStr);
+            }
+
+            // If it's a Long but less than 1 million, return its standard toString
+            return String.valueOf(rawValue);
+        }
+
+        // Default for non-Long objects
+        return val.toString();
     }
 
     //    private static <T extends DateAware> List<T> merge(List<T> incomeStatements, List<T> originalIncomeStatement) {
@@ -251,15 +342,17 @@ public class YahooStockDataDownloader {
         }
 
         for (T element : elementsToAdd) {
-            sortedMap.put(element.getDate(), element);
+            if (!sortedMap.containsKey(element.getDate())) {
+                sortedMap.put(element.getDate(), element);
+            }
         }
 
         return new ArrayList<>(sortedMap.values());
     }
 
-    private static PriceToCurrencyPair downloadPrices(String symbol) throws JsonMappingException, JsonProcessingException, FileNotFoundException, IOException {
-        String url = getPricesUrl(symbol);
-        String cacheKey = "prices2";
+    private static PriceToCurrencyPair downloadPrices(String symbol, LocalDate priceReadStartDate) throws JsonMappingException, JsonProcessingException, FileNotFoundException, IOException {
+        String url = getPricesUrl(symbol, priceReadStartDate);
+        String cacheKey = "prices";
 
         JsonNode dataDeserialized = readUrlToTree(symbol, url, cacheKey);
 
@@ -294,16 +387,55 @@ public class YahooStockDataDownloader {
         HistoricalPrice historicalPrice = new HistoricalPrice();
         historicalPrice.historical = prices;
 
-        return new PriceToCurrencyPair(currency, historicalPrice);
+        List<StockSplit> splits = parseSplits(data);
+
+        return new PriceToCurrencyPair(currency, historicalPrice, splits);
     }
 
-    private static String getPricesUrl(String symbol) {
+    public static List<StockSplit> parseSplits(JsonNode data) {
+        if (data == null) {
+            return Collections.emptyList();
+        }
+
+        JsonNode splitsNode = data.at("/events/splits");
+        if (splitsNode.isMissingNode() || !splitsNode.isObject()) {
+            return Collections.emptyList();
+        }
+
+        List<StockSplit> splitsList = new ArrayList<>();
+
+        splitsNode.fields().forEachRemaining(entry -> {
+            JsonNode splitObj = entry.getValue();
+
+            if (splitObj.has("date") && splitObj.has("numerator") && splitObj.has("denominator")) {
+                long epochSeconds = splitObj.get("date").asLong();
+                double numerator = splitObj.get("numerator").asDouble();
+                double denominator = splitObj.get("denominator").asDouble();
+
+                LocalDate date = Instant.ofEpochSecond(epochSeconds)
+                        .atZone(ZoneId.of("UTC"))
+                        .toLocalDate();
+
+                double ratio = denominator != 0 ? numerator / denominator : 0.0;
+
+                splitsList.add(new StockSplit(date, ratio));
+            }
+        });
+
+        return splitsList;
+    }
+
+    private static String getPricesUrl(String symbol, LocalDate priceReadStartDate) {
         String result = "https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?period1={startDate}&period2={endDate}&interval=1d&"
-                + "includePrePost=true&events=div|split|earn&lang=en-US&region=US&source=cosaic";
+                + "includePrePost=true&events=split&lang=en-US&region=US&source=cosaic";
 
         LocalDateTime currentDateTime = LocalDateTime.now();
         Instant currentDate = currentDateTime.toInstant(ZoneOffset.ofHours(0));
-        Instant previousDate = currentDateTime.minus(5, YEARS).toInstant(ZoneOffset.ofHours(0));
+        Instant previousDate = priceReadStartDate.atStartOfDay().toInstant(ZoneOffset.ofHours(0));
+
+        if (Math.abs(ChronoUnit.DAYS.between(priceReadStartDate, LocalDate.now())) < 1) {
+            previousDate = currentDate.minus(1, ChronoUnit.DAYS);
+        }
 
         result = result.replace("{symbol}", symbol);
         result = result.replace("{endDate}", String.valueOf(currentDate.toEpochMilli() / 1000L));
@@ -374,6 +506,14 @@ public class YahooStockDataDownloader {
 
         IncomeStatement incomeStatement = readIncomeStatement(date, dataDeserialized, multiplier);
 
+        // additional calc
+        incomeStatement.grossProfitRatio = (double) incomeStatement.grossProfit / incomeStatement.revenue;
+        incomeStatement.ebitdaratio = (double) incomeStatement.ebitda / incomeStatement.revenue;
+        incomeStatement.operatingIncomeRatio = (double) incomeStatement.operatingIncome / incomeStatement.revenue;
+        incomeStatement.netIncomeRatio = (double) incomeStatement.netIncome / incomeStatement.revenue;
+        incomeStatement.incomeBeforeTaxRatio = (double) incomeStatement.incomeBeforeTax / incomeStatement.revenue;
+        // end of
+
         incomeStatement.date = LocalDate.parse(date);
         incomeStatement.reportedCurrency = currency;
 
@@ -401,6 +541,9 @@ public class YahooStockDataDownloader {
         JsonNode dataDeserialized = readUrlToTree(symbol, url, cacheKey);
 
         CashFlow incomeStatement = readCashFlow(date, dataDeserialized, multiplier);
+
+        incomeStatement.netChangeInCash = (incomeStatement.cashAtEndOfPeriod - incomeStatement.cashAtBeginningOfPeriod);
+
         incomeStatement.date = LocalDate.parse(date);
         incomeStatement.reportedCurrency = currency;
         return incomeStatement;
@@ -410,7 +553,8 @@ public class YahooStockDataDownloader {
         String fileName = "/tmp/yahoo-" + cacheKey + "-" + symbol + ".json";
         String fileContent = "";
         File file = new File(fileName);
-        if (file.exists()) {
+        System.out.println("Reading " + cacheKey);
+        if (file.exists() && ENABLE_FILE_CACHE) {
             try (FileInputStream fis = new FileInputStream(file)) {
                 fileContent = new String(fis.readAllBytes());
             }
@@ -418,8 +562,10 @@ public class YahooStockDataDownloader {
             String uri = url;
             fileContent = callWithRestTemplate(uri, symbol);
 
-            try (FileOutputStream fos = new FileOutputStream(file)) {
-                fos.write(fileContent.getBytes());
+            if (ENABLE_FILE_CACHE) {
+                try (FileOutputStream fos = new FileOutputStream(file)) {
+                    fos.write(fileContent.getBytes());
+                }
             }
         }
 
@@ -482,6 +628,11 @@ public class YahooStockDataDownloader {
             if (node != null) {
                 JsonNode lastElement = null;
                 for (var asd : node) {
+                    if (asd.get("asOfDate") == null) {
+                        System.out.println(key + ".asOfDate is null");
+                        continue;
+                    }
+
                     if (asd.get("asOfDate").asText().equals(date)) {
                         lastElement = asd;
                     }
@@ -498,17 +649,22 @@ public class YahooStockDataDownloader {
     }
 
     public static String callWithRestTemplate(String uri, String symbol) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("user-agent", "Mozilla/5.0 (Linux; Android 10; SM-G996U Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Mobile Safari/537.36");
-        headers.set("Accept", "application/json");
-        headers.set("origin", "https://finance.yahoo.com");
-        headers.set("referer", "https://finance.yahoo.com/quote/" + symbol + "/financials/?guccounter=1");
-        headers.set("accept-language", "en-US,en;q=0.9");
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+        return cache.get(uri, uri2 -> {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("user-agent", "Mozilla/5.0 (Linux; Android 10; SM-G996U Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Mobile Safari/537.36");
+            headers.set("Accept", "application/json");
+            headers.set("origin", "https://finance.yahoo.com");
+            headers.set("referer", "https://finance.yahoo.com/quote/" + symbol + "/financials/?guccounter=1");
+            headers.set("accept-language", "en-US,en;q=0.9");
+            HttpEntity<String> entity = new HttpEntity<>(headers);
 
-        HttpEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+            System.out.println("Calling " + uri.substring(0, Math.min(uri.length(), 200)));
 
-        return response.getBody();
+            HttpEntity<String> response = restTemplate.exchange(uri, HttpMethod.GET, entity, String.class);
+
+            return response.getBody();
+        });
+
     }
 
     private static String getCashFlowUri(String symbol) {
@@ -618,7 +774,7 @@ public class YahooStockDataDownloader {
     }
 
     public static String getBalanceSheetUri(String symbol) {
-        String result = "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/UNH?merge=false&padTimeSeries=true&period1=493590046&period2=1756580399&type=quarterlyTreasurySharesNumber,"
+        String result = "https://query1.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/{symbol}?merge=false&padTimeSeries=true&period1=493590046&period2={currentTimestamp}&type=quarterlyTreasurySharesNumber,"
                 + "quarterlyPreferredSharesNumber,quarterlyOrdinarySharesNumber,quarterlyShareIssued,quarterlyNetDebt,quarterlyTotalDebt,quarterlyTangibleBookValue,quarterlyInvestedCapital,quarterlyWorkingCapital,"
                 + "quarterlyNetTangibleAssets,quarterlyCapitalLeaseObligations,quarterlyCommonStockEquity,quarterlyPreferredStockEquity,quarterlyTotalCapitalization,quarterlyTotalEquityGrossMinorityInterest,"
                 + "quarterlyMinorityInterest,quarterlyStockholdersEquity,quarterlyOtherEquityInterest,quarterlyGainsLossesNotAffectingRetainedEarnings,quarterlyOtherEquityAdjustments,quarterlyFixedAssetsRevaluationReserve,"
@@ -737,15 +893,17 @@ public class YahooStockDataDownloader {
     static class PriceToCurrencyPair {
         String currency;
         HistoricalPrice prices;
+        List<StockSplit> splits;
 
-        public PriceToCurrencyPair(String currency, HistoricalPrice prices) {
+        public PriceToCurrencyPair(String currency, HistoricalPrice prices, List<StockSplit> splits) {
             this.currency = currency;
             this.prices = prices;
+            this.splits = splits;
         }
 
         @Override
         public String toString() {
-            return "PriceToCurrencyPair [currency=" + currency + ", prices=" + prices + "]";
+            return "PriceToCurrencyPair [currency=" + currency + ", prices=" + prices + ", splits=" + splits + "]";
         }
 
     }
@@ -762,6 +920,22 @@ public class YahooStockDataDownloader {
         @Override
         public String toString() {
             return "StatementMetadata [availableDates=" + availableDates + ", reportingCurrency=" + reportingCurrency + "]";
+        }
+
+    }
+
+    static class StockSplit {
+        public LocalDate date;
+        public double ratio;
+
+        public StockSplit(LocalDate date, double ratio) {
+            this.date = date;
+            this.ratio = ratio;
+        }
+
+        @Override
+        public String toString() {
+            return "StockSplit [date=" + date + ", ratio=" + ratio + "]";
         }
 
     }

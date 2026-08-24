@@ -158,6 +158,38 @@
         location.reload();
       });
   }
+  
+  function downloadNewDataYh() {
+      var stock = document.getElementById("stock").innerText;
+      $('html').addClass('waiting');
+
+      fetch('/download-yh?stock=' + stock + '&force=true', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }).then(data => {
+        $("html").removeClass("waiting");
+        location.reload();
+      });
+  }
+
+  function downloadPriceYh() {
+      var stock = document.getElementById("stock").innerText;
+      $('html').addClass('waiting');
+
+      fetch('/download-price-yh?stock=' + stock + '&force=true', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      }).then(data => {
+        $("html").removeClass("waiting");
+        location.reload();
+      });
+  }
 
   function addToWatchlistWithStock(stock) {
     fetch('/watchlist/' + stock, {

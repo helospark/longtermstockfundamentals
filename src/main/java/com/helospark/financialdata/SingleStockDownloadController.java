@@ -54,6 +54,20 @@ public class SingleStockDownloadController {
         return StockDataDownloader.downloadOneStock(stock, symbolAtGlanceProvider, forceRenew);
     }
 
+    @GetMapping("/download-yh")
+    public void downloadYahoo(@RequestParam("stock") String stock, HttpServletRequest request, @RequestParam(name = "force", required = false) boolean forceRenew) {
+        ensureOnlyAdminAccess(request);
+        latestPriceProvider.removeFromCache(List.of(stock));
+        StockDataDownloader.downloadMultiStockYahoo(List.of(stock), symbolAtGlanceProvider);
+    }
+
+    @GetMapping("/download-price-yh")
+    public void downloadPriceYahoo(@RequestParam("stock") String stock, HttpServletRequest request, @RequestParam(name = "force", required = false) boolean forceRenew) {
+        ensureOnlyAdminAccess(request);
+        latestPriceProvider.removeFromCache(List.of(stock));
+        StockDataDownloader.downloadMultiStockYahooPrices(List.of(stock), symbolAtGlanceProvider);
+    }
+
     @GetMapping("/refresh-portfolio")
     public void refreshPortfolio(HttpServletRequest request) {
         ensureOnlyAdminAccess(request);
@@ -61,6 +75,17 @@ public class SingleStockDownloadController {
         List<String> symbols = getStocks(request);
 
         StockDataDownloader.downloadMultiStock(symbols, symbolAtGlanceProvider);
+
+        latestPriceProvider.removeFromCache(symbols);
+    }
+
+    @GetMapping("/refresh-portfolio-prices")
+    public void refreshPortfolioPrices(HttpServletRequest request) {
+        ensureOnlyAdminAccess(request);
+
+        List<String> symbols = getStocks(request);
+
+        StockDataDownloader.downloadMultiStockPrices(symbols, symbolAtGlanceProvider);
 
         latestPriceProvider.removeFromCache(symbols);
     }

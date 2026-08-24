@@ -31,7 +31,7 @@ public class IncomeStatement implements DateAware, Serializable {
     public long totalOtherIncomeExpensesNet; //-237000000,
     public long incomeBeforeTax; //24657000000,
     @NoTtmNeeded
-    public long incomeBeforeTaxRatio; //0.27352295165620216,
+    public double incomeBeforeTaxRatio; //0.27352295165620216,
     public long incomeTaxExpense; //3936000000,
     public long netIncome; //20721000000,
     @NoTtmNeeded

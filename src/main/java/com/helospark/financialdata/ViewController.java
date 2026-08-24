@@ -583,7 +583,7 @@ public class ViewController {
                 }
 
                 if (company.profile.currency.equals("GBp")) {
-                    latestPriceInTradingCurrency /= 100.0;
+                    //    latestPriceInTradingCurrency /= 100.0;
                 }
 
                 Optional<Double> priceInReportCurrency = DataLoader.convertFx(latestPriceInTradingCurrency, company.profile.currency, company.profile.reportedCurrency, LocalDate.now(), false);

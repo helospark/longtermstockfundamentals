@@ -257,10 +257,9 @@ function customizeChartsWithOptions(chartOrderMap) {
                     ${modalHtml}
                   </div>
                   <div class="modal-footer">
-                    <button type="button" id="deleteCustomizedChartButton" class="btn btn-danger" data-bs-dismiss="modal" onClick="deleteCustomizedData()">Delete</button>
-                    <button type="button" class="btn btn-warning" data-bs-dismiss="modal" onClick="resetCustomizedData()">Reset to default</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onClick="saveCustomizedData(false)">Save</button>
+                    <button type="button" id="deleteCustomizedChartButton" class="btn btn-danger" data-bs-dismiss="modal" onClick="deleteCustomizedData()">Delete</button>
+                    <!--<button type="button" class="btn btn-warning" data-bs-dismiss="modal" onClick="resetCustomizedData()">Reset to default</button> -->
                     <button type="button" class="btn btn-primary" onClick="saveCustomizedData(true)">Save & Reload</button>
                   </div>`
          );

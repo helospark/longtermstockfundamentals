@@ -210,6 +210,16 @@
               Download data
             </a>
           </div>
+          <div style="float:right; margin-right:10px;">
+            <a th:if="${loginAccountType == 'ADMIN'}" class="btn btn-dark" href="#" onclick="downloadNewDataYh()" role="button">
+              Download Yh
+            </a>
+          </div>
+          <div style="float:right; margin-right:10px;">
+            <a th:if="${loginAccountType == 'ADMIN'}" class="btn btn-dark" href="#" onclick="downloadPriceYh()" role="button">
+              Update Price
+            </a>
+          </div>
         </div>
       </div>
    </div>

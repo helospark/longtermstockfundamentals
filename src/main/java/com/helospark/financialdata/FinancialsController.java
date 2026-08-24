@@ -768,6 +768,13 @@ public class FinancialsController {
     @GetMapping("/detailed_price")
     public List<SimpleDataElement> getDetailedPrice(@PathVariable("stock") String stock, @RequestParam(name = "quarterly", required = false) boolean quarterly, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
         List<HistoricalPriceElement> prices = DataLoader.readHistoricalPrice(stock, 500, endDate);
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+
+        if (company.financials.size() > 0 && company.latestPriceDate.compareTo(prices.get(0).getDate()) > 0) {
+            var prices2 = new ArrayList<>(prices);
+            prices2.add(0, new HistoricalPriceElement(company.latestPriceDate, company.latestPrice));
+            prices = prices2;
+        }
 
         return prices.stream()
                 .map(a -> new SimpleDataElement(a.date.toString(), a.close))
