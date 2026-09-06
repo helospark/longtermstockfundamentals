@@ -13,6 +13,7 @@ import com.helospark.financialdata.CommonConfig;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.DateAware;
 import com.helospark.financialdata.domain.FinancialsTtm;
+import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.SimpleDateDataElement;
 
 public class GrowthCalculator {
@@ -277,6 +278,22 @@ public class GrowthCalculator {
         return Optional.of(resultPercent);
     }
 
+    public static Optional<Double> getPriceGrowthWithReinvestedDividendsGrowthNonCagr(CompanyFinancials company, double years, double offset) {
+        List<SimpleDateDataElement> result = ReturnWithDividendCalculator.getPriceWithDividendsReinvested(company);
+
+        int oldIndex = findIndexWithOrBeforeDate(result, CommonConfig.NOW.minusMonths((long) (years * 12.0)));
+        int newIndex = findIndexWithOrBeforeDate(result, CommonConfig.NOW.minusMonths((long) (offset * 12.0)));
+
+        if (oldIndex >= result.size() || oldIndex == -1 || newIndex == -1) {
+            return Optional.empty();
+        }
+
+        var oldValue = result.get(oldIndex);
+        var newValue = result.get(newIndex);
+
+        return Optional.of((newValue.value / oldValue.value - 1.0) * 100.0);
+    }
+
     private static double calculateYearsDifference(DateAware financialsNow, DateAware financialThen) {
         return Math.abs(ChronoUnit.DAYS.between(financialsNow.getDate(), financialThen.getDate()) / 365.0);
     }
@@ -431,6 +448,20 @@ public class GrowthCalculator {
 
     private static double calculatePercentChangeInLogSpace(double now, double then, double distance) {
         return Math.log(now / then) / distance;
+    }
+
+    public static Optional<Double> calculateGrowthNonCagr(List<HistoricalPriceElement> detailedPrice, LocalDate now, LocalDate earlierDate) {
+        int oldIndex = findIndexWithOrBeforeDate(detailedPrice, earlierDate);
+        int newIndex = findIndexWithOrBeforeDate(detailedPrice, now);
+
+        if (oldIndex >= detailedPrice.size() || oldIndex == -1 || newIndex >= detailedPrice.size() || newIndex == -1) {
+            return Optional.empty();
+        }
+
+        HistoricalPriceElement nowFinancialTtm = detailedPrice.get(newIndex);
+        HistoricalPriceElement thenFinancialTtm = detailedPrice.get(oldIndex);
+
+        return Optional.of(((nowFinancialTtm.close / thenFinancialTtm.close) - 1.0) * 100.0);
     }
 
 }

@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.FinancialsTtm;
+import com.helospark.financialdata.domain.HistoricalPriceElement;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
@@ -52,6 +53,8 @@ import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 public class PortfolioController {
+    private static final boolean ENABLE_SHORT_RANGE_RETURNS = false;
+
     private static final String HIDDEN_INDICATOR = "---";
     private static final Logger LOGGER = LoggerFactory.getLogger(PortfolioController.class);
     private static final String MARKET_CAP = "MarketCap";
@@ -216,7 +219,12 @@ public class PortfolioController {
                 OPERATING_MARGIN,
                 REVENUE_GROWTH, EPS_GROWTH, FCF_YIELD, MOAT_SCORE, INVESTMENT_SCORE);
 
-        result.returnsColumns = List.of(SYMBOL_COL, NAME_COL, OWNED_SHARES, "1 year", "2 year", "3 year", "5 year", "8 year", "10 year", "12 year", "15 year", "20 year");
+        result.returnsColumns = new ArrayList<>(List.of(SYMBOL_COL, NAME_COL, OWNED_SHARES, "1 month", "YTD", "1 year", "2 year", "3 year", "5 year", "8 year", "10 year", "12 year", "15 year", "20 year"));
+
+        if (!ENABLE_SHORT_RANGE_RETURNS) {
+            result.returnsColumns.remove("1 month");
+            result.returnsColumns.remove("YTD");
+        }
 
         result.portfolio = new ArrayList<>();
         result.returnsPortfolio = new ArrayList<>();
@@ -298,6 +306,10 @@ public class PortfolioController {
                 double ownedValue = latestPriceInUsd * currentElement.ownedShares;
                 Map<String, String> portfolioElement = new HashMap<>();
                 Optional<Double> moat = MoatScoreCalculator.calculate(currentElement.moats);
+                List<HistoricalPriceElement> detailedPrice = null;
+                if (ENABLE_SHORT_RANGE_RETURNS) {
+                    detailedPrice = DataLoader.readHistoricalPrice(ticker, 500);
+                }
 
                 double fcfYield = isCurrency ? 0.0
                         : (DataLoader.convertFx(atGlance.fcfPerShare, data.profile.reportedCurrency, "USD", now, false).orElse(atGlance.fcfPerShare) / atGlance.latestStockPriceUsd) * 100.0;
@@ -342,6 +354,12 @@ public class PortfolioController {
                 returnsElement.put(OWNED_SHARES, hidePrice ? HIDDEN_INDICATOR : watchlistService.formatString(ownedValue));
                 returnsElement.put(SYMBOL_RAW, ticker);
 
+                if (ENABLE_SHORT_RANGE_RETURNS) {
+                    double oneMonthReturn = calculatePriceGrowth(detailedPrice, now, now.minusMonths(1));
+                    double ytdReturn = calculatePriceGrowth(detailedPrice, now, LocalDate.of(now.getYear(), 1, 1));
+                    returnsElement.put("1 month", formatStringWithThresholdsPercentAsc(oneMonthReturn, -5, 0, 8, 11, 20));
+                    returnsElement.put("YTD", formatStringWithThresholdsPercentAsc(ytdReturn, -5, 0, 8, 11, 20));
+                }
                 double oneYearReturn = calculateReturnMonthAgo(data, now, 1 * 12);
                 double twoYearReturn = calculateReturnMonthAgo(data, now, 2 * 12);
                 double threeYearReturn = calculateReturnMonthAgo(data, now, 3 * 12);
@@ -630,17 +648,17 @@ public class PortfolioController {
         }
     }
 
-    private double calculateReturnMonthAgo(CompanyFinancials data, LocalDate now, int monthAgo) {
-        return calculateReturnMonthAgo(data, now, monthAgo, true);
-    }
-
-    public double calculateReturnMonthAgo(CompanyFinancials data, LocalDate now, int monthAgo, boolean annualized) {
+    public double calculateReturnMonthAgo(CompanyFinancials data, LocalDate now, int monthAgo) {
         int element = Helpers.findIndexWithOrBeforeDate(data.financials, now.minusMonths(monthAgo));
         if (element == -1) {
             return Double.NaN;
         }
 
         return GrowthCalculator.getPriceGrowthWithReinvestedDividendsGrowth(data, monthAgo / 12.0, 0).orElse(Double.NaN);
+    }
+
+    private double calculatePriceGrowth(List<HistoricalPriceElement> detailedPrice, LocalDate now, LocalDate earlierDate) {
+        return GrowthCalculator.calculateGrowthNonCagr(detailedPrice, now, earlierDate).orElse(Double.NaN);
     }
 
     private String convertToCap(double marketCapUsd) {

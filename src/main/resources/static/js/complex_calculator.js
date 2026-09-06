@@ -112,7 +112,8 @@
         maxEps = currentMax;
       }
       maxEps *= 1.05;
-      if (!isNaN(maxEps)) {
+      console.log("AAASSD: " + chart.originalOptions.suggestedMax);
+      if (!isNaN(maxEps) && chart.originalOptions.suggestedMax === undefined) {
         chart.options.scales.y.max = maxEps;
       }
       chart.update();
@@ -153,7 +154,7 @@
             currentMargin = startMargin - ((startMargin - endMargin) * i) / (years - 1);
             currentShareChange = startShareChange - ((startShareChange - endShareChange) * i) / (years - 1);
             payoutRatio = startPayoutRatio - ((startPayoutRatio - endPayoutRatio) * i) / (years - 1);
-            multiple = startMultiple - ((startMultiple - endMultiple) * (i + 1)) / (years);
+            multiple = startMultiple - ((startMultiple - endMultiple) * (i + 1)) / (years - 1);
 
             previousRevenue = previousRevenue * currentGrowth;
             previousShareCount = previousShareCount * currentShareChange;
@@ -535,6 +536,8 @@
            quarterlyEnabled: false,
            lazyLoading: false,
            continousTooltipCagr: true,
+           suggestedMin: -5,
+           suggestedMax: 60
        });
      } else if (calculatorType === 'fcf') {
       peChart = createChart("/financials/pfcf_ratio", "Price to FCF ratio", {
@@ -545,6 +548,8 @@
            quarterlyEnabled: false,
            lazyLoading: false,
            continousTooltipCagr: true,
+           suggestedMin: -5,
+           suggestedMax: 60
        });
      } else if (calculatorType === 'adjusted_fcf') {
           peChart = createChart("/financials/pfcf_compensation_adjusted_ratio", "Price to adjusted FCF ratio", {
@@ -555,6 +560,8 @@
             quarterlyEnabled: false,
             lazyLoading: false,
             continousTooltipCagr: true,
+            suggestedMin: -5,
+            suggestedMax: 60
           });
      }
 
@@ -570,6 +577,8 @@
            quarterlyEnabled: false,
            lazyLoading: false,
            continousTooltipCagr: true,
+           suggestedMin: -5,
+           suggestedMax: 150
        });
      } else if (calculatorType === 'fcf') {
       totalPayoutChart = createChart("/financials/total_payout_ratio_fcf", "Total payout ratio", {
@@ -580,6 +589,8 @@
            quarterlyEnabled: false,
            lazyLoading: false,
            continousTooltipCagr: true,
+           suggestedMin: -5,
+           suggestedMax: 150
        });
      } else if (calculatorType === 'adjusted_fcf') {
           totalPayoutChart = createChart("/financials/total_payout_ratio_fcf_compensation_adjusted", "Total payout ratio", {
@@ -590,6 +601,8 @@
             quarterlyEnabled: false,
             lazyLoading: false,
             continousTooltipCagr: true,
+            suggestedMin: -5,
+            suggestedMax: 150
           });
      }
 

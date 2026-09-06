@@ -98,6 +98,8 @@ function showScoreboardModal() {
     let correctCount = 0;
     let omissionCount = 0;
     let commissionCount = 0;
+    let overperformerCorrectCount = 0;
+    let overperformerCount = 0;
     const diffs = [];
 
     const processedScores = scores.map((score, index) => {
@@ -106,10 +108,10 @@ function showScoreboardModal() {
 
         let label = { text: 'CORRECT', badge: 'bg-success' };
 
-        if (score.actual > 15 && score.guess < 10 || (score.actual > 10 && (score.actual - score.guess) > 10)) {
+        if (score.actual >= 13 && score.guess < 10 || (score.actual > 10 && (score.actual - score.guess) > 10)) {
             label = { text: 'OMISSION', badge: 'bg-warning text-dark' };
             omissionCount++;
-        } else if ((score.actual < -5 && score.guess > 0) || (score.actual < 5 && score.guess > 15) || (score.actual < 0 && score.guess > 7)) {
+        } else if ((score.actual < -5 && score.guess > 5) || (score.actual < 6 && score.guess >= 13) || (score.actual < 0 && score.guess > 7)) {
             label = { text: 'COMMISSION', badge: 'bg-danger' };
             commissionCount++;
         } else if (diff <= 3) {
@@ -118,14 +120,59 @@ function showScoreboardModal() {
         } else {
             correctCount++;
         }
+        
+        if (score.actual >= 13) {
+            overperformerCount++;
+            if (score.guess >= 13) {
+                overperformerCorrectCount++;
+            }
+        }
 
         return { ...score, diff, label, originalIndex: index };
     });
+    
+    const highConfidence = scores.filter(score => 
+        score.guess > 10 && 
+        typeof score.totalReturns === 'number' && 
+        !isNaN(score.totalReturns) &&
+        score.originalDate
+    );
+    
+    let portfolioCagr = 0;
+    
+    if (highConfidence.length > 0) {
+        const now = new Date();
+        let totalEndValue = 0; 
+        let totalYears = 0;
+    
+        highConfidence.forEach(score => {
+            // totalReturns is expressed as a percentage (e.g. 50 = 50% gain -> multiplier 1.5)
+            const returnMultiplier = 1 + (score.totalReturns / 100);
+            totalEndValue += returnMultiplier;
+    
+            // Holding period in years
+            const startDate = new Date(score.originalDate);
+            const yearsHeld = (now - startDate) / (1000 * 60 * 60 * 24 * 365.25);
+            totalYears += Math.max(yearsHeld, 0.08); // Floor at ~1 month to avoid division by zero
+        });
+    
+        const averageYears = totalYears / highConfidence.length;
+        const portfolioGrowthMultiplier = totalEndValue / highConfidence.length;
+    
+        if (averageYears > 0) {
+            portfolioCagr = (Math.pow(portfolioGrowthMultiplier, 1 / averageYears) - 1) * 100;
+        }
+    }
+    
+    const displayPortfolioCagr = highConfidence.length > 0 
+        ? `${portfolioCagr.toFixed(2)}%` 
+        : 'N/A';
 
     const totalGames = scores.length;
     const rightPercent = totalGames > 0 ? (((accurateCount + correctCount) / totalGames) * 100).toFixed(1) : 0;
     const omissionPercent = totalGames > 0 ? ((omissionCount / totalGames) * 100).toFixed(2) : "0.00";
     const commissionPercent = totalGames > 0 ? ((commissionCount / totalGames) * 100).toFixed(2) : "0.00";
+    const overperformerCorrectPercent = overperformerCount > 0 ? ((overperformerCorrectCount / overperformerCount) * 100).toFixed(2) : "0.00";
     
     // Median Wrongness calculation
     diffs.sort((a, b) => a - b);
@@ -143,28 +190,40 @@ function showScoreboardModal() {
         </div>
         <div class="modal-body">
             <div class="row text-center mb-3 g-2">
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="p-2 border rounded bg-light">
                         <small class="text-muted d-block">Right Rate</small>
                         <strong class="fs-5 text-success">${rightPercent}%</strong>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="p-2 border rounded bg-light">
-                        <small class="text-muted d-block">Median Error</small>
-                        <strong class="fs-5">${medianWrongness}%</strong>
+                        <small class="text-muted d-block">Overperformer correct</small>
+                        <strong class="fs-5 text-success">${overperformerCorrectPercent}%</strong>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="p-2 border rounded bg-light">
                         <small class="text-muted d-block">Omissions</small>
                         <strong class="fs-5 text-warning">${omissionPercent}%</strong>
                     </div>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <div class="p-2 border rounded bg-light">
                         <small class="text-muted d-block">Commissions</small>
                         <strong class="fs-5 text-danger">${commissionPercent}%</strong>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="p-2 border rounded bg-light">
+                        <small class="text-muted d-block">Median Error</small>
+                        <strong class="fs-5">${medianWrongness}%</strong>
+                    </div>
+                </div>
+                <div class="col-6 col-md-2">
+                    <div class="p-2 border rounded bg-light">
+                        <small class="text-muted d-block">Total returns</small>
+                        <strong class="fs-5">${displayPortfolioCagr}</strong>
                     </div>
                 </div>
             </div>

@@ -98,7 +98,7 @@ public class Sp500MetricCalculator {
             CompanyFinancials financials = localCache.get(cons.symbol);
 
             if (financials == null || financials.financials.size() <= index) {
-                System.out.println(cons.symbol + " has empty financials");
+                //                System.out.println(cons.symbol + " has empty financials");
                 continue;
             }
             FinancialsTtm currentElement = financials.financials.get(index);

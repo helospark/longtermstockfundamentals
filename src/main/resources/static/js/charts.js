@@ -951,6 +951,37 @@ createChartInternal("/financials/price_with_dividends_growth_rate#1", "Expected 
 });
 
 
+createChartInternal("/financials/price_growth_rate_xyr_moving_avg_at_starting_date", "Expected returns vs x yr returns", {
+  label: "Actual x year return",
+  quarterlyEnabled: false,
+  tooltip: 'Shows expected returns vs actual returns',
+  unit: '%',
+  suggestedMax: 50,
+  suggestedMin: -25,
+  slider: {
+    id: "price_xyr_growth",
+    parameterName: "year",
+    min: 1,
+    max: 15,
+    default: 10
+  },
+  additionalCharts: [
+  {
+    "url": "/financials/expected_return_by_roic",
+    "label": "Expected return by ROIC formula"
+  },
+  {
+    "url": "/financials/expected_return_by_addition",
+    "label": "Expected return by Bogle formula"
+  },
+  {
+    "url": "/financials/expected_return_by_dcf",
+    "label": "Expected return by DCF"
+  }
+]
+});
+
+
 createChartInternal("/financials/net_income_breakdown_cagr", "Return CAGR breakdown", {
   unit: '%',
   label: 'Income growth',

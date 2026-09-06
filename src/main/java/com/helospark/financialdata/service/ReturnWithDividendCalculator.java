@@ -1,6 +1,7 @@
 package com.helospark.financialdata.service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -60,6 +61,13 @@ public class ReturnWithDividendCalculator {
         } else {
             return Optional.empty();
         }
+    }
+
+    public static Optional<Double> getTotalReturnBetween(CompanyFinancials company, LocalDate startDate, LocalDate endDate) {
+        Optional<Double> cagr = getCagrBetween(company, startDate, endDate);
+        double daysDiff = Math.abs(ChronoUnit.DAYS.between(startDate, endDate) / 365.0);
+
+        return cagr.map(c -> (Math.pow(1.0 + (c / 100.0), daysDiff) - 1.0) * 100.0);
     }
 
 }

@@ -1478,6 +1478,31 @@ public class FinancialsController {
         return result;
     }
 
+    @GetMapping("/price_growth_rate_xyr_moving_avg_at_starting_date")
+    public List<SimpleDataElement> get10YrsPriceGrowthRateMovingAvg(@PathVariable("stock") String stock, @RequestParam(name = "year", defaultValue = "10") int yearInterval, @RequestParam(name = "endDate", required = false) LocalDate endDate) {
+        CompanyFinancials company = DataLoader.readFinancials(stock, endDate);
+        List<SimpleDataElement> result = getXyrPriceGrowthRateMovingAvg(stock, yearInterval, endDate);
+
+        for (var element : result) {
+            LocalDate date = element.getDate();
+            LocalDate newDate = date.minusYears(yearInterval);
+            element.date = newDate.toString();
+        }
+        int startOfMissingDataIndex = 0;
+
+        if (result.size() > 0) {
+            startOfMissingDataIndex = Helpers.findIndexWithOrBeforeDate(company.financials, result.get(0).getDate());
+        }
+
+        if (startOfMissingDataIndex != -1) {
+            for (int i = startOfMissingDataIndex - 1; i >= 0; --i) {
+                result.add(0, new SimpleDataElement(company.financials.get(i).getDate().toString(), null));
+            }
+        }
+
+        return result;
+    }
+
     @GetMapping("/pe_vs_growth_bubble")
     public ThreeDChart getPeVsReturnBubble(@PathVariable("stock") String stock, @RequestParam(name = "year", required = false, defaultValue = "10") int years, @RequestParam(name = "endDate", required = false) LocalDate endDate) throws IOException {
         return getBubbleWithFunctionIncludeNonNegative(stock, years, endDate, "%.2f PE -> %.2f CAGR %%", s -> getPeRatio(s, false, endDate));

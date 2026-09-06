@@ -189,6 +189,7 @@ public class ViewController {
         CompanyFinancials company = DataLoader.readFinancials(stock);
         FinancialsTtm financialsNewest = company.financials.get(0);
         double cagr = ReturnWithDividendCalculator.getCagrBetween(company, limitedFinancialsNewest.date, financialsNewest.date).orElse(0.0);
+        double totalReturn = ReturnWithDividendCalculator.getTotalReturnBetween(company, limitedFinancialsNewest.date, financialsNewest.date).orElse(0.0);
 
         String countryName = "unknown country";
         if (companyDateLimited.profile.country != null) {
@@ -197,7 +198,7 @@ public class ViewController {
         }
         String sector = orUnknown(companyDateLimited.profile.sector) + " (" + orUnknown(companyDateLimited.profile.industry) + ")";
         String companyName = orUnknown(companyDateLimited.profile.companyName);
-        var stockGameData = new StockGameData(randomDate, cagr, sector, companyName, countryName);
+        var stockGameData = new StockGameData(randomDate, cagr, sector, companyName, countryName, totalReturn);
 
         model.addAttribute("stockGame", true);
         model.addAttribute("stockGameData", stockGameData);
@@ -227,13 +228,15 @@ public class ViewController {
         public String industry;
         public String name;
         public String country;
+        public double totalReturn;
 
-        public StockGameData(LocalDate date, double cagr, String indusstry, String name, String country) {
+        public StockGameData(LocalDate date, double cagr, String indusstry, String name, String country, double totalReturn) {
             this.date = date;
             this.cagr = cagr;
             this.industry = indusstry;
             this.name = name;
             this.country = country;
+            this.totalReturn = totalReturn;
         }
 
     }

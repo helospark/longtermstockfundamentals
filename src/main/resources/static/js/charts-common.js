@@ -622,6 +622,7 @@ function createChart(urlPath, title, chartOptions) {
   var chart;
   if (!isLazyLoading) {
     chart = new Chart(canvas, chartConfig);
+    chart.originalOptions= chartOptions;
   }
   
   var button=document.createElement("button");

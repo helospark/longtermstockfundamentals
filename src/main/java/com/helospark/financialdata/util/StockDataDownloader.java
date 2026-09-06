@@ -56,6 +56,8 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.type.TypeBindings;
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.util.concurrent.RateLimiter;
 import com.helospark.financialdata.domain.ApiLayerCurrencies;
 import com.helospark.financialdata.domain.ApiLayerRates;
@@ -126,6 +128,11 @@ public class StockDataDownloader {
     static RateLimiter rateLimiter = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 60.0);
     static RateLimiter rateLimiterForFx = RateLimiter.create(RATE_LIMIT_PER_MINUTE / 30.0);
 
+    private static Cache<String, Map<String, DownloadDateData>> SYMBOL_DATE_CACHE = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .maximumSize(1)
+            .build();
+
     static RestTemplate restTemplate;
     static volatile boolean inProgress = false;
     static volatile String statusMessage = "N/A";
@@ -174,9 +181,7 @@ public class StockDataDownloader {
             newSymbols.addAll(0, nasdaqSymbols);
             Queue<String> symbolsQueue = new ConcurrentLinkedQueue<>(newSymbols);
 
-            File downloadDates = new File(DOWNLOAD_DATES);
-
-            Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+            Map<String, DownloadDateData> symbolToDates = loadDateData();
 
             statusMessage = "Downloading financial data";
             progress = 0.0;
@@ -201,7 +206,7 @@ public class StockDataDownloader {
                         ++k;
 
                         if (threadIndex == 0 && k % 100 == 0) {
-                            writeLastAttemptedFile(downloadDates, symbolToDates);
+                            writeLastAttemptedFile(symbolToDates);
                             System.out.printf("Updating cache file...");
                         }
                         if (threadIndex == 0 && k % 100 == 0) {
@@ -216,7 +221,7 @@ public class StockDataDownloader {
                 futures.get(i).join();
             }
             executor.shutdownNow();
-            writeLastAttemptedFile(downloadDates, symbolToDates);
+            writeLastAttemptedFile(symbolToDates);
         }
         if (!inProgress) {
             return;
@@ -234,11 +239,10 @@ public class StockDataDownloader {
 
     public static DownloadDateData downloadOneStock(String symbol, SymbolAtGlanceProvider symbolAtGlanceProvider, boolean forceRenew) {
         try {
-            File downloadDates = new File(DOWNLOAD_DATES);
-            Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+            Map<String, DownloadDateData> symbolToDates = loadDateData();
             var lastDownloaded = symbolToDates.remove(symbol);
             downloadStockData(symbol, symbolToDates);
-            writeLastAttemptedFile(downloadDates, symbolToDates);
+            writeLastAttemptedFile(symbolToDates);
             DataLoader.clearCache(symbol);
             DownloadDateData newDownloaded = getLastAttempt(symbol, symbolToDates);
 
@@ -270,10 +274,10 @@ public class StockDataDownloader {
                     continue;
                 }
                 File downloadDates = new File(DOWNLOAD_DATES);
-                Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+                Map<String, DownloadDateData> symbolToDates = loadDateData();
                 var lastDownloaded = symbolToDates.remove(symbol);
                 downloadStockData(symbol, symbolToDates);
-                writeLastAttemptedFile(downloadDates, symbolToDates);
+                writeLastAttemptedFile(symbolToDates);
                 DataLoader.clearCache(symbol);
                 DownloadDateData newDownloaded = getLastAttempt(symbol, symbolToDates);
 
@@ -296,26 +300,27 @@ public class StockDataDownloader {
     public static void downloadMultiStockYahoo(List<String> symbols, SymbolAtGlanceProvider symbolAtGlanceProvider) {
         LinkedHashMap<String, AtGlanceData> companies = new LinkedHashMap<>(symbolAtGlanceProvider.getSymbolCompanyNameCache());
         int currentMonth = LocalDate.now().getMonthValue();
+        Map<String, DownloadDateData> symbolToDates = loadDateData();
         try {
             for (var symbol : symbols) {
                 if (symbol.contains("CASH.")) {
                     continue;
                 }
-                File downloadDates = new File(DOWNLOAD_DATES);
-                Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
                 var lastDownloaded = symbolToDates.remove(symbol);
 
                 var result = YahooStockDataDownloader.downloadDataFromYahoo(symbol, true);
                 DownloadDateData lastAttempt = getLastAttempt(symbol, symbolToDates);
-                lastAttempt.lastAttemptedDownload = result.lastAttemptedDownload;
-                lastAttempt.lastReportDate = result.lastReportDate;
-                lastAttempt.lastPriceDownload = result.lastPriceDownload;
+                if (result != null) {
+                    lastAttempt.lastAttemptedDownload = result.lastAttemptedDownload;
+                    lastAttempt.lastReportDate = result.lastReportDate;
+                    lastAttempt.lastPriceDownload = result.lastPriceDownload;
+                }
 
-                writeLastAttemptedFile(downloadDates, symbolToDates);
+                symbolToDates.put(symbol, lastAttempt);
                 DataLoader.clearCache(symbol);
                 DownloadDateData newDownloaded = lastAttempt;
 
-                if (lastDownloaded == null || !lastDownloaded.equals(newDownloaded)) {
+                if (result != null && (lastDownloaded == null || !lastDownloaded.equals(newDownloaded))) {
                     Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
 
                     if (information.isPresent()) {
@@ -323,6 +328,7 @@ public class StockDataDownloader {
                     }
                 }
             }
+            writeLastAttemptedFile(symbolToDates);
             saveSymbolCache(companies);
             symbolAtGlanceProvider.initCache();
         } catch (Exception e) {
@@ -339,15 +345,14 @@ public class StockDataDownloader {
                 if (symbol.contains("CASH.")) {
                     continue;
                 }
-                File downloadDates = new File(DOWNLOAD_DATES);
-                Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+                Map<String, DownloadDateData> symbolToDates = loadDateData();
                 var lastDownloaded = symbolToDates.remove(symbol);
 
                 YahooStockDataDownloader.downloadPricesFromYahoo(symbol, true);
                 DownloadDateData lastAttempt = getLastAttempt(symbol, symbolToDates);
                 lastAttempt.lastPriceDownload = LocalDate.now();
 
-                writeLastAttemptedFile(downloadDates, symbolToDates);
+                writeLastAttemptedFile(symbolToDates);
                 DataLoader.clearCache(symbol);
                 DownloadDateData newDownloaded = lastAttempt;
 
@@ -384,19 +389,18 @@ public class StockDataDownloader {
                 if (symbol.contains("CASH.")) {
                     continue;
                 }
-                File downloadDates = new File(DOWNLOAD_DATES);
-                Map<String, DownloadDateData> symbolToDates = loadDateData(downloadDates);
+                Map<String, DownloadDateData> symbolToDates = loadDateData();
                 var lastDownloaded = symbolToDates.remove(symbol);
                 boolean downloaded = downloadHistoricalJsonUrlIfNeeded("fundamentals/" + symbol + "/historical-price.json", "/v3/historical-price-full/" + symbol, Map.of("serietype", "line"), 10);
                 DownloadDateData data = getLastAttempt(symbol, symbolToDates);
                 if (downloaded) {
                     data.lastPriceDownload = LocalDate.now();
                 }
-                writeLastAttemptedFile(downloadDates, symbolToDates);
+                writeLastAttemptedFile(symbolToDates);
                 DataLoader.clearCache(symbol);
                 DownloadDateData newDownloaded = data;
 
-                if (!lastDownloaded.equals(newDownloaded)) {
+                if (lastDownloaded == null || !lastDownloaded.equals(newDownloaded)) {
                     Optional<AtGlanceData> information = symbolToSearchData(symbol, 0, currentMonth);
 
                     if (information.isPresent()) {
@@ -412,17 +416,20 @@ public class StockDataDownloader {
 
     }
 
-    public static Map<String, DownloadDateData> loadDateData(File downloadDates) throws IOException, StreamReadException, DatabindException {
-        Map<String, DownloadDateData> symbolToDates = new ConcurrentHashMap<>();
-        try {
-            if (downloadDates.exists()) {
-                symbolToDates = new ConcurrentHashMap<>(objectMapper.readValue(downloadDates, new TypeReference<Map<String, DownloadDateData>>() {
-                }));
+    public static Map<String, DownloadDateData> loadDateData() {
+        return SYMBOL_DATE_CACHE.get("DATA", a -> {
+            File downloadDates = new File(DOWNLOAD_DATES);
+            Map<String, DownloadDateData> symbolToDates = new ConcurrentHashMap<>();
+            try {
+                if (downloadDates.exists()) {
+                    symbolToDates = new ConcurrentHashMap<>(objectMapper.readValue(downloadDates, new TypeReference<Map<String, DownloadDateData>>() {
+                    }));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return symbolToDates;
+            return symbolToDates;
+        });
     }
 
     private static <T> T downloadSimpleUrlCached(String urlPath, String folder, Class<T> clazz, int daysAgo) {
@@ -1090,7 +1097,7 @@ public class StockDataDownloader {
             downloadDateData.lastAttemptedDownload = now;
         }
 
-        if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 200) {
+        if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 200 && downloadDateData.lastReportDate.isAfter(LocalDate.of(1995, 1, 1))) {
             downloadNeeded.downloadPricesNeeded = false; // delisted companies
         }
 
@@ -1115,9 +1122,7 @@ public class StockDataDownloader {
             if (expectedInterval < 70) {
                 expectedInterval = 70;
             }
-            if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastAttemptedDownload)) > expectedInterval) {
-                downloadNeeded.downloadFinancials = true;
-            }
+            downloadNeeded.downloadFinancials = true;
             if (Math.abs(ChronoUnit.DAYS.between(now, downloadDateData.lastReportDate)) > 500) {
                 //   downloadFinancials = false;
             }
@@ -1252,7 +1257,8 @@ public class StockDataDownloader {
         }
     }
 
-    private static void writeLastAttemptedFile(File lastAttemptedFile, Map<String, DownloadDateData> data) {
+    private static void writeLastAttemptedFile(Map<String, DownloadDateData> data) {
+        File lastAttemptedFile = new File(DOWNLOAD_DATES);
         try (FileOutputStream fos = new FileOutputStream(lastAttemptedFile)) {
             fos.write(objectMapper.writeValueAsBytes(data));
         } catch (Exception e) {

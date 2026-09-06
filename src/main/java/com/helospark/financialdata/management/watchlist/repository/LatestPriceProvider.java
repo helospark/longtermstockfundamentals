@@ -138,10 +138,16 @@ public class LatestPriceProvider {
     }
 
     public double provideLatestPrice(String ticker) {
+        if (!ENABLE_API) {
+            return provideFileBasedPrice(ticker);
+        }
         return tickerToPriceCache.get(ticker, ticker2 -> provideApiBasedPrice(ticker2));
     }
 
     public CompletableFuture<Double> provideLatestPriceAsync(String ticker) {
+        if (!ENABLE_API) {
+            return CompletableFuture.completedFuture(provideFileBasedPrice(ticker));
+        }
         return CompletableFuture.supplyAsync(() -> tickerToPriceCache.get(ticker, ticker2 -> provideApiBasedPrice(ticker2)), threadPoolExec);
     }
 

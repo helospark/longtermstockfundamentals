@@ -48,7 +48,7 @@
             
             <p class="lead">
                 You are seeing the financial data of the stock as if the date was 
-                <b><span th:text="${stockGameData.date}">2015-01-01</span></b> for a company in 
+                <b><span id="stock-game-original-date" th:text="${stockGameData.date}">2015-01-01</span></b> for a company in 
                 <b><span th:text="${stockGameData.industry}">Technology</span></b> sector, headquartered in 
                 <b><span th:text="${stockGameData.country}">US</span></b>. 
                 After studying the financials, try to make a guess of what the CAGR of this stock is until today.
@@ -65,9 +65,10 @@
     
             <div id="revealSection" class="alert alert-info d-none" role="alert">
                 <span id="actualCagrResult" class="d-none" th:text="${#numbers.formatDecimal(stockGameData.cagr, 1, 2)}"></span>
+                <span id="totalReturnResult" class="d-none" th:text="${#numbers.formatDecimal(stockGameData.totalReturn, 1, 2)}"></span>
                 The company actually returned 
                 <strong th:text="${#numbers.formatDecimal(stockGameData.cagr, 1, 2)} + '%'">12.34%</strong> 
-                CAGR since <span th:text="${stockGameData.date}">2015-01-01</span>. 
+                CAGR (total <strong th:text="${#numbers.formatDecimal(stockGameData.totalReturn, 1, 2)} + '%'">12.34%</strong>) since <span th:text="${stockGameData.date}">2015-01-01</span>. 
                 The company is <strong th:text="${stock} + ' (' + ${stockGameData.name} + ')'">AAPL (Apple Inc.)</strong>.
             </div>
     
@@ -84,7 +85,9 @@
             function saveScoreToLocalStorage() {
                 const guessInput = document.getElementById('cagrGuess');
                 const actualSpan = document.getElementById('actualCagrResult');
+                const totalReturnSpan = document.getElementById('totalReturnResult');
                 const stockSpan = document.getElementById('stock');
+                const originalStockDateSpan = document.getElementById('stock-game-original-date');
             
                 if (!guessInput || !actualSpan || !stockSpan) {
                     console.error("Required elements for scoreboard were not found.");
@@ -92,8 +95,10 @@
                 }
             
                 const cagrGuess = parseFloat(guessInput.value);
+                const totalReturns = parseFloat(totalReturnSpan.innerText);
                 const actualReturn = parseFloat(actualSpan.textContent || actualSpan.innerText);
                 const symbol = (stockSpan.textContent || stockSpan.innerText).trim();
+                const originalStockDate = originalStockDateSpan.innerText;
             
                 if (isNaN(cagrGuess)) {
                     alert("Please enter a valid number for your guess.");
@@ -104,8 +109,10 @@
                     symbol: symbol,
                     guess: cagrGuess,
                     actual: actualReturn,
+                    totalReturns: totalReturns,
                     error: Math.abs(cagrGuess - actualReturn), // Useful for calculating accurate placement/ranking
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    originalDate: new Date(originalStockDate.trim()).toISOString()
                 };
             
                 let scoreHistory = [];

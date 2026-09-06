@@ -91,7 +91,7 @@ function renderTransactionsModal(transactions) {
             <tr>
                 <td>${formattedDate}</td>
                 <td class="fw-bold">${tx.symbol || '-'}</td>
-                <td class="text-end">${tx.sharePrice}</td>
+                <td class="text-end">${tx.sharePrice.toFixed(2)}</td>
                 <td class="text-end">${amountFormatted}</td>
                 <td class="text-end">${formatCurrencyValue(tx.transactionValue, tx.currency)}</td>
                 <td class="text-end">${formatCurrencyValue(tx.transactionValueUsd, 'USD')}</td>

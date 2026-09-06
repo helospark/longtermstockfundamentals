@@ -47,11 +47,19 @@ import com.helospark.financialdata.util.StockDataDownloader.DownloadDateData;
 
 public class YahooStockDataDownloader {
     private static final boolean ENABLE_FILE_CACHE = true;
-    private static final boolean ENABLE_DEBUG_LOG = true;
+    private static final boolean ENABLE_DEBUG_LOG = false;
     static List<Pair> incomeStatementMapping = new ArrayList<>();
     static List<Pair> balanceSheetMapping = new ArrayList<>();
     static List<Pair> cashFlowStatementMapping = new ArrayList<>();
     static RestTemplate restTemplate = new RestTemplate();
+
+    static Comparator<? super DateAware> DATE_COMPARATOR = (a, b) -> {
+        if (a.getDate() == null)
+            return 1;
+        if (b.getDate() == null)
+            return -1;
+        return b.getDate().compareTo(a.getDate());
+    };
 
     static Cache<String, String> cache = Caffeine.newBuilder()
             .expireAfterWrite(2, TimeUnit.MINUTES)
@@ -165,12 +173,21 @@ public class YahooStockDataDownloader {
     }
 
     public static void main(String[] args) throws Exception {
-        String symbol = "GOOG";
+        String symbol = "ARHVF";
 
         downloadDataFromYahoo(symbol, false);
     }
 
     public static DownloadDateData downloadDataFromYahoo(String symbol, boolean downloadToRealFile) throws Exception {
+        try {
+            return downloadDataFromYahooInternal(symbol, downloadToRealFile);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static DownloadDateData downloadDataFromYahooInternal(String symbol, boolean downloadToRealFile) throws Exception {
         StatementMetadata metadata = readStatementMetadata(symbol);
         List<IncomeStatement> incomeStatements = new ArrayList<>();
         List<BalanceSheet> balanceSheets = new ArrayList<>();
@@ -178,29 +195,33 @@ public class YahooStockDataDownloader {
 
         System.out.println(metadata);
 
+        if (metadata.availableDates.size() == 0) {
+            System.out.println("THERE IS NO DATA FOR " + symbol);
+            return null;
+        }
+
         for (var date : metadata.availableDates) {
             incomeStatements.add(readIncomeStatementFull(date, symbol, metadata.reportingCurrency));
             balanceSheets.add(readBalanceSheetFull(date, symbol, metadata.reportingCurrency));
             cashFlows.add(readCashFlowStatementFull(date, symbol, metadata.reportingCurrency));
         }
-
-        IncomeStatement incomeStatement = incomeStatements.get(incomeStatements.size() - 1);
-        BalanceSheet balanceSheet = balanceSheets.get(balanceSheets.size() - 1);
-        CashFlow cashFlowStatement = cashFlows.get(cashFlows.size() - 1);
+        Collections.sort(incomeStatements, DATE_COMPARATOR);
+        Collections.sort(balanceSheets, DATE_COMPARATOR);
+        Collections.sort(cashFlows, DATE_COMPARATOR);
 
         List<BalanceSheet> originalBalanceSheet = DataLoader.readFinancialFile(symbol, "balance-sheet.json", BalanceSheet.class);
         List<IncomeStatement> originalIncomeStatement = DataLoader.readFinancialFile(symbol, "income-statement.json", IncomeStatement.class);
         List<CashFlow> originalCashFlow = DataLoader.readFinancialFile(symbol, "cash-flow.json", CashFlow.class);
 
         if (ENABLE_DEBUG_LOG) {
-            printDebugData(originalIncomeStatement, incomeStatement, originalBalanceSheet, balanceSheet, originalCashFlow, cashFlowStatement);
+            printDebugData(originalIncomeStatement, incomeStatements, originalBalanceSheet, balanceSheets, originalCashFlow, cashFlows);
         }
 
         //        System.out.println("Splits: " + prices.splits);
 
-        List<IncomeStatement> resultIncomeStatements = merge(incomeStatements, originalIncomeStatement);
-        List<CashFlow> resultCashFlowStatements = merge(cashFlows, originalCashFlow);
-        List<BalanceSheet> resultBalanceSheetstatements = merge(balanceSheets, originalBalanceSheet);
+        List<IncomeStatement> resultIncomeStatements = mergeFinancialWithMaxIntersectionToReplace(incomeStatements, originalIncomeStatement, 1);
+        List<CashFlow> resultCashFlowStatements = mergeFinancialWithMaxIntersectionToReplace(cashFlows, originalCashFlow, 1);
+        List<BalanceSheet> resultBalanceSheetstatements = mergeFinancialWithMaxIntersectionToReplace(balanceSheets, originalBalanceSheet, 1);
 
         HistoricalPrice priceResult = downloadPricesFromYahoo(symbol, downloadToRealFile);
 
@@ -238,14 +259,18 @@ public class YahooStockDataDownloader {
         return resultHistoricalPrices;
     }
 
-    public static void printDebugData(List<IncomeStatement> originalIncomeStatement, IncomeStatement incomeStatement, List<BalanceSheet> originalBalanceSheet, BalanceSheet balanceSheet, List<CashFlow> originalCashFlow, CashFlow cashFlowStatement)
+    public static void printDebugData(List<IncomeStatement> originalIncomeStatement, List<IncomeStatement> readIncomeStatements, List<BalanceSheet> originalBalanceSheet, List<BalanceSheet> readBalanceSheets, List<CashFlow> originalCashFlow,
+            List<CashFlow> readCashFlows)
             throws IllegalAccessException {
-        int indexInOriginal = Helpers.findIndexWithOrBeforeDate(originalCashFlow, cashFlowStatement.getDate());
+        var dateToUse = readCashFlows.get(readCashFlows.size() - 1).getDate().isBefore(originalIncomeStatement.get(0).getDate()) ? readCashFlows.get(readCashFlows.size() - 1).getDate() : originalIncomeStatement.get(0).getDate();
+        int indexInOriginal = Helpers.findIndexWithOrBeforeDate(originalCashFlow, dateToUse);
+        int indexInRead = Helpers.findIndexWithOrBeforeDate(readCashFlows, dateToUse);
 
         IncomeStatement realIncomeStatement = originalIncomeStatement.get(indexInOriginal);
+        IncomeStatement readIncomeStatement = readIncomeStatements.get(indexInRead);
 
         for (var field : IncomeStatement.class.getFields()) {
-            Object val1 = field.get(incomeStatement);
+            Object val1 = field.get(readIncomeStatement);
             Object val2 = field.get(realIncomeStatement);
             System.out.println(field.getName() + "\n" + formatAsNumber(val1) + "\n" + formatAsNumber(val2) + "\n\n");
         }
@@ -255,9 +280,10 @@ public class YahooStockDataDownloader {
         System.out.println();
 
         BalanceSheet realBalanceSheet = originalBalanceSheet.get(indexInOriginal);
+        BalanceSheet readBalanceSheet = readBalanceSheets.get(indexInRead);
 
         for (var field : BalanceSheet.class.getFields()) {
-            Object val1 = field.get(balanceSheet);
+            Object val1 = field.get(readBalanceSheet);
             Object val2 = field.get(realBalanceSheet);
             System.out.println(field.getName() + "\n" + formatAsNumber(val1) + "\n" + formatAsNumber(val2) + "\n\n");
         }
@@ -267,9 +293,10 @@ public class YahooStockDataDownloader {
         System.out.println();
 
         CashFlow realCashFlow = originalCashFlow.get(indexInOriginal);
+        CashFlow readCashFlow = readCashFlows.get(indexInRead);
 
         for (var field : CashFlow.class.getFields()) {
-            Object val1 = field.get(cashFlowStatement);
+            Object val1 = field.get(readCashFlow);
             Object val2 = field.get(realCashFlow);
             System.out.println(field.getName() + "\n" + formatAsNumber(val1) + "\n" + formatAsNumber(val2) + "\n\n");
         }
@@ -317,23 +344,6 @@ public class YahooStockDataDownloader {
         return val.toString();
     }
 
-    //    private static <T extends DateAware> List<T> merge(List<T> incomeStatements, List<T> originalIncomeStatement) {
-    //        List<T> result = new ArrayList<>();
-    //
-    //        result.addAll(originalIncomeStatement);
-    //
-    //        if (originalIncomeStatement.isEmpty()) {
-    //            result.addAll(incomeStatements);
-    //            return result;
-    //        }
-    //
-    //        LocalDate latestReportDate = originalIncomeStatement.get(0).getDate();
-    //
-    //
-    //
-    //        return null;
-    //    }
-
     private static <T extends DateAware> List<T> merge(List<T> elementsToAdd, List<T> originalList) {
         TreeMap<LocalDate, T> sortedMap = new TreeMap<>(Comparator.reverseOrder());
 
@@ -350,6 +360,56 @@ public class YahooStockDataDownloader {
         return new ArrayList<>(sortedMap.values());
     }
 
+    public static <T extends DateAware> List<T> mergeFinancialWithMaxIntersectionToReplace(
+            List<T> elementsToAdd,
+            List<T> originalList,
+            int maxNumberToReplace) {
+
+        var elements2 = new ArrayList<>(elementsToAdd);
+
+        elements2.sort(DATE_COMPARATOR);
+        elementsToAdd = elements2;
+
+        int maxDaysDifference = 15;
+        List<T> mergedList = new ArrayList<>(originalList);
+
+        int replacedCount = 0;
+
+        for (T newElem : elementsToAdd) {
+            LocalDate newDate = newElem.getDate();
+            if (newDate == null)
+                continue;
+
+            int matchingIndex = -1;
+            for (int i = 0; i < mergedList.size(); i++) {
+                LocalDate existingDate = mergedList.get(i).getDate();
+                if (existingDate != null && Math.abs(ChronoUnit.DAYS.between(existingDate, newDate)) <= maxDaysDifference) {
+                    matchingIndex = i;
+                    break;
+                }
+            }
+
+            if (matchingIndex != -1) {
+                if (replacedCount < maxNumberToReplace) {
+                    mergedList.set(matchingIndex, newElem);
+                    replacedCount++;
+                }
+            } else {
+                mergedList.add(newElem);
+            }
+        }
+
+        mergedList.sort((a, b) -> {
+            if (a.getDate() == null)
+                return 1;
+            if (b.getDate() == null)
+                return -1;
+            return b.getDate().compareTo(a.getDate());
+        });
+
+        return mergedList;
+    }
+
     private static PriceToCurrencyPair downloadPrices(String symbol, LocalDate priceReadStartDate) throws JsonMappingException, JsonProcessingException, FileNotFoundException, IOException {
         String url = getPricesUrl(symbol, priceReadStartDate);
         String cacheKey = "prices";
@@ -362,8 +422,10 @@ public class YahooStockDataDownloader {
         List<Long> timestampList = new ArrayList<>();
         List<Double> pricesList = new ArrayList<>();
 
-        for (var element : timestampNode) {
-            timestampList.add(element.asLong());
+        if (timestampNode != null) {
+            for (var element : timestampNode) {
+                timestampList.add(element.asLong());
+            }
         }
 
         ArrayNode pricesNode = (ArrayNode) data.get("indicators").get("quote").get(0).get("close");
@@ -553,7 +615,9 @@ public class YahooStockDataDownloader {
         String fileName = "/tmp/yahoo-" + cacheKey + "-" + symbol + ".json";
         String fileContent = "";
         File file = new File(fileName);
-        System.out.println("Reading " + cacheKey);
+        if (ENABLE_DEBUG_LOG) {
+            System.out.println("Reading " + cacheKey);
+        }
         if (file.exists() && ENABLE_FILE_CACHE) {
             try (FileInputStream fis = new FileInputStream(file)) {
                 fileContent = new String(fis.readAllBytes());
@@ -628,12 +692,12 @@ public class YahooStockDataDownloader {
             if (node != null) {
                 JsonNode lastElement = null;
                 for (var asd : node) {
-                    if (asd.get("asOfDate") == null) {
+                    if (asd.get("asOfDate") == null && ENABLE_DEBUG_LOG) {
                         System.out.println(key + ".asOfDate is null");
                         continue;
                     }
 
-                    if (asd.get("asOfDate").asText().equals(date)) {
+                    if (asd.get("asOfDate") != null && asd.get("asOfDate").asText().equals(date)) {
                         lastElement = asd;
                     }
                 }
