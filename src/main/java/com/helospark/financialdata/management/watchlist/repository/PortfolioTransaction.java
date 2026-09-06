@@ -21,11 +21,12 @@ public class PortfolioTransaction {
     public PortfolioTransaction() {
     }
 
-    public PortfolioTransaction(String userEmail, String transactionDateTime, String symbol, Double amountChange, Double transactionValue, Double transactionValueUsd, String currency) {
+    public PortfolioTransaction(String userEmail, String transactionDateTime, String symbol, Double amountChange, Double sharePrice, Double transactionValue, Double transactionValueUsd, String currency) {
         this.userEmail = userEmail;
         this.transactionDateTime = transactionDateTime;
         this.symbol = symbol;
         this.amountChange = amountChange;
+        this.sharePrice = sharePrice;
         this.transactionValue = transactionValue;
         this.transactionValueUsd = transactionValueUsd;
         this.currency = currency;

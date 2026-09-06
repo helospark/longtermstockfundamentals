@@ -1596,7 +1596,7 @@ public class FinancialsController {
         if (xChart.size() > 0) {
             SimpleDataElement latestData = xChart.get(0);
             if (latestData.value != null) {
-                annotation = new ChartAnnotation(List.of(new ChartAnnotation.ChartLine(latestData.value, "Current value")));
+                annotation = new ChartAnnotation(List.of(new ChartAnnotation.ChartLine(latestData.value, "Current value: " + String.format("%.2f", latestData.value))));
             } else {
                 annotation = new ChartAnnotation(List.of());
             }

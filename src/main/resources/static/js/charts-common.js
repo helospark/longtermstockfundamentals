@@ -35,6 +35,8 @@ function createCheckbox(label) {
   return label;
 }
 
+window.portfolioTransactionsCache = window.portfolioTransactionsCache || {};
+
 function createSeparator(title) {
   var hrElement =document.createElement("hr");
   var hone = document.createElement("h3");
@@ -100,8 +102,97 @@ function drawVerticalLine(chart, opts, xValue, color, lineWidth) {
       ctx.lineTo(x.getPixelForValue(xValue), bottom)
       
       ctx.stroke()
+      
+      
+      if (chart.customTooltipData) {
+            drawCustomTooltip(ctx, chart.customTooltipData);
+      }
+      
     
       ctx.restore()
+}
+function drawCustomTooltip(ctx, data, bounds) {
+    ctx.save();
+    
+    const padding = 8;
+    ctx.font = '12px sans-serif';
+    const textWidth = ctx.measureText(data.text).width;
+    const boxWidth = textWidth + padding * 2;
+    const boxHeight = 26;
+    
+    // Default positioning: to the right and above the cursor
+    let x = data.x + 10;
+    let y = data.y - 30;
+
+    // Boundary constraints (fallback to full canvas width/height if chartArea isn't provided)
+    const minX = bounds?.left ?? 0;
+    const maxX = bounds?.right ?? ctx.canvas.width;
+    const minY = bounds?.top ?? 0;
+    const maxY = bounds?.bottom ?? ctx.canvas.height;
+
+    // 1. Horizontal Clamping: Flip to left of cursor if overflowing right, or clamp to left edge
+    if (x + boxWidth > maxX) {
+        x = data.x - boxWidth - 10; // Flip to left of cursor
+    }
+    if (x < minX) {
+        x = minX + 4; // Clamp to left edge with a small margin
+    }
+
+    // 2. Vertical Clamping: Flip below cursor if overflowing top, or clamp to bottom edge
+    if (y < minY) {
+        y = data.y + 15; // Flip below cursor
+    }
+    if (y + boxHeight > maxY) {
+        y = maxY - boxHeight - 4; // Clamp to bottom edge
+    }
+
+    // Background box
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, boxWidth, boxHeight, 4);
+        ctx.fill();
+    } else {
+        ctx.fillRect(x, y, boxWidth, boxHeight);
+    }
+
+    // Text rendering
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(data.text, x + padding, y + boxHeight / 2);
+    
+    ctx.restore();
+}
+
+function pointToLineDistance(px, py, x1, y1, x2, y2) {
+    const A = px - x1;
+    const B = py - y1;
+    const C = x2 - x1;
+    const D = y2 - y1;
+
+    const dot = A * C + B * D;
+    const len_sq = C * C + D * D;
+    let param = -1;
+    
+    if (len_sq !== 0) param = dot / len_sq;
+
+    let xx, yy;
+
+    if (param < 0) {
+        xx = x1;
+        yy = y1;
+    } else if (param > 1) {
+        xx = x2;
+        yy = y2;
+    } else {
+        xx = x1 + param * C;
+        yy = y1 + param * D;
+    }
+
+    const dx = px - xx;
+    const dy = py - yy;
+    
+    return Math.sqrt(dx * dx + dy * dy);
 }
 
 function calculateAvg(labels, values, interval) {
@@ -151,6 +242,7 @@ const plugin = {
         continousTooltipCagr: false
     },
     afterEvent: (chart, args, opts) => {
+      verticalLineAfterEvent(chart, args);
       const {inChartArea} = args
       const {type,x,y} = args.event
       
@@ -271,6 +363,7 @@ const plugin = {
       
         drawHorizontalLine(chart, opts, avg, color, lineWidth);
       }
+      verticalLineafterDatasetsDraw(chart, args, opts);
     }
   }
 
@@ -345,6 +438,7 @@ function formatNumber(num) {
     })
     .join('');
 }
+
 
 function getFilteredMinMax(values, outlierMultiplier = 100) {
   if (!values || values.length === 0) return { min: 0, max: 0 };
@@ -457,6 +551,7 @@ function createChart(urlPath, title, chartOptions) {
   var defaultQuarterlyEnabled = chartOptions.defaultQuarterlyEnabled === undefined ? false : chartOptions.defaultQuarterlyEnabled;
   var avgEnabled = chartOptions.avgEnabled === undefined ? false : chartOptions.avgEnabled;
   var quaterlySupported = chartOptions.quarterlyEnabled === undefined ? true : chartOptions.quarterlyEnabled;
+  var transactionHistoryEnabled = chartOptions.enableTransactionHistory === undefined ? true : chartOptions.enableTransactionHistory;
   var isSecondYAxisNeeded = chartOptions.additionalCharts !== undefined && chartOptions.additionalCharts[0].secondYAxis === true ? true : false;
   var addStockPrefix = chartOptions.addStockPrefix !== undefined ? chartOptions.addStockPrefix : true;
   var continousTooltipCagr = chartOptions.continousTooltipCagr !== undefined ? chartOptions.continousTooltipCagr : false;
@@ -676,6 +771,30 @@ function createChart(urlPath, title, chartOptions) {
     }
     underChartBar.appendChild(quarterlyButton);
   }
+  
+  var transactions = false;
+  if (transactionHistoryEnabled) {
+    var transactionsButton=document.createElement("button");
+    transactionsButton.innerHTML = "Transactions";
+    transactionsButton.className="floatleft";
+    if (quarterly) {
+      transactionsButton.classList.add("pressed");
+    }
+    transactionsButton.onclick=function() {
+        transactions = !transactions;
+        if (transactions) {
+          loadAndShowTransactions();
+          transactionsButton.classList.add("pressed");
+        } else {
+          removeTransactionLines();
+          transactionsButton.classList.remove("pressed");
+        }
+        doUpdateChart();
+    }
+    underChartBar.appendChild(transactionsButton);
+  }
+  
+  
   if (avgEnabled) {
     var dropDown = createDropdown();
     
@@ -796,6 +915,99 @@ function createChart(urlPath, title, chartOptions) {
         if (chart.options.scales.y.max < 0) {
           chart.options.scales.y.max = 0;
         }
+      }
+  }
+
+  
+  async function loadAndShowTransactions() {
+      console.log(stockToLoad + " " + chart);
+      const ticker = typeof stockToLoad !== 'undefined' ? stockToLoad : null;
+      if (!ticker || typeof chart === 'undefined' || !chart) return;
+  
+      try {
+          // Cache fetch promise so concurrent/subsequent chart loads for the same ticker hit cache
+          if (!window.portfolioTransactionsCache[ticker]) {
+              window.portfolioTransactionsCache[ticker] = fetch(`/portfolio-transactions/${encodeURIComponent(ticker)}`)
+                  .then(response => {
+                      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                      return response.json();
+                  })
+                  .catch(err => {
+                      console.error('Failed to load transactions:', err);
+                      delete window.portfolioTransactionsCache[ticker]; // Clear cache on error to allow retry
+                      return [];
+                  });
+          }
+          
+  
+          const transactions = await window.portfolioTransactionsCache[ticker];
+          console.log(transactions.length);
+          if (!transactions || !transactions.length) return;
+  
+          // Safely access or initialize the chartAnnotations.verticalLines array
+          const config = chart.config._config;
+          config.chartAnnotations = config.chartAnnotations || {};
+          config.chartAnnotations.verticalLines = config.chartAnnotations.verticalLines || [];
+  
+          // First remove any existing TRANSACTION lines to prevent duplicate rendering
+          config.chartAnnotations.verticalLines = config.chartAnnotations.verticalLines.filter(
+              line => line.type !== 'TRANSACTION'
+          );
+  
+          // Map PortfolioTransactions into vertical line annotations
+          transactions.forEach(tx => {
+              const usdValue = tx.transactionValueUsd || 0;
+              const isBuy = tx.amountChange >= 0;
+              const absoluteValue = Math.abs(usdValue).toFixed(2);
+              
+              const dateStr = new Date(tx.transactionDateTime).toISOString().split('T')[0];
+
+              // 2. Extract and format transaction values
+              const amountChange = Math.abs(tx.amountChange || 0);
+              const sharePrice = Math.abs(tx.sharePrice || 0).toFixed(2);
+              const totalValue = Math.abs(usdValue).toFixed(2);
+              
+              // 3. Format action and shares string (handling singular vs plural "share")
+              const action = isBuy ? 'Buy' : 'Sell';
+              const shareText = amountChange === 1 ? 'share' : 'shares';
+              
+              // 4. Construct enhanced description
+              // Output example: "2026-03-22: Buy 10 shares at $150.00 ($1500.00)"
+              const descriptionStr = `${dateStr}: ${action} ${amountChange} ${shareText} at $${sharePrice} ($${totalValue})`;
+              
+              const annotation = {
+                  value: new Date(tx.transactionDateTime).getTime(),
+                  description: descriptionStr,
+                  color: isBuy ? 'green' : 'red',
+                  type: 'TRANSACTION'
+              };
+              
+  
+              config.chartAnnotations.verticalLines.push(annotation);
+          });
+  
+          // Redraw chart with new transaction lines
+          if (typeof doUpdateChart === 'function') {
+              doUpdateChart();
+          }
+  
+      } catch (error) {
+          console.error('Error adding transaction lines to chart:', error);
+      }
+  }
+  
+  function removeTransactionLines() {
+      if (typeof chart === 'undefined' || !chart) return;
+  
+      const config = chart.config._config;
+      if (config?.chartAnnotations?.verticalLines) {
+          config.chartAnnotations.verticalLines = config.chartAnnotations.verticalLines.filter(
+              line => line.type !== 'TRANSACTION'
+          );
+  
+          if (typeof doUpdateChart === 'function') {
+              doUpdateChart();
+          }
       }
   }
 
@@ -1064,6 +1276,68 @@ function createChart(urlPath, title, chartOptions) {
 }
 
 
+function verticalLineafterDatasetsDraw(chart, args, opts) {
+    const annotations = chart.config._config.chartAnnotations;
+    
+    if (annotations !== undefined && annotations.verticalLines.length > 0) {
+      for (i=0; i < annotations.verticalLines.length; ++i) {
+         var annotation = annotations.verticalLines[i];
+         
+         var color = annotation.color !== undefined ? annotation.color : 'red';
+
+         drawVerticalLine(chart, opts, annotation.value, color, 1);
+      }
+    }
+}
+
+function verticalLineAfterEvent(chart, args) {
+    const annotations = chart.config._config.chartAnnotations;
+    
+    if (annotations !== undefined && annotations.verticalLines.length > 0) {
+          var anyMatch = false;
+          
+          for (var annotationIndex in annotations.verticalLines) {
+              var annotation = annotations.verticalLines[annotationIndex];
+              const { event } = args;
+              if (event.type !== 'mousemove') return;
+              
+              const mouseX = event.x;
+              const mouseY = event.y;
+              
+              const line = {
+                  x1: chart.scales.x.getPixelForValue(annotation.value),
+                  y1: 0,
+                  x2: chart.scales.x.getPixelForValue(annotation.value),
+                  y2: chart.scales.y.bottom
+              };
+              
+              // Calculate distance from mouse point to line segment
+              const distance = pointToLineDistance(mouseX, mouseY, line.x1, line.y1, line.x2, line.y2);
+              
+              const hoverThreshold = 6; // Hit-test sensitivity in pixels
+      
+              if (distance <= hoverThreshold) {
+                  chart.customTooltipData = {
+                      x: mouseX,
+                      y: mouseY,
+                      text: annotation.description
+                  };
+                  chart.canvas.style.cursor = 'pointer';
+                  args.changed = true; // Tell Chart.js to re-render
+                  anyMatch = true;
+              }
+          }
+      }
+      
+      
+      if (!anyMatch) {
+              // Mouse moved away -> Clear tooltip
+              chart.customTooltipData = null;
+              chart.canvas.style.cursor = 'default';
+              args.changed = true;
+      }
+}
+
 
 function createBubbleChart(url, title, chartOptions) {
     var canvas =document.createElement("canvas");
@@ -1130,17 +1404,13 @@ function createBubbleChart(url, title, chartOptions) {
             continousTooltipCagr: false
         },
         afterDatasetsDraw: (chart, args, opts) => {
-          const annotations = chart.config._config.chartAnnotations;
-          
-          if (annotations !== undefined && annotations.verticalLines.length > 0) {
-            for (i=0; i < annotations.verticalLines.length; ++i) {
-               var annotation = annotations.verticalLines[i];
-
-               drawVerticalLine(chart, opts, annotation.value, 'red', 1);
-            }
-          }
+          verticalLineafterDatasetsDraw(chart, args, opts);
+        },
+        
+        afterEvent(chart, args) {
+          verticalLineAfterEvent(chart, args);
         }
-      }
+    }
 
     fetch(urlToCall)
       .then(res => res.json())
