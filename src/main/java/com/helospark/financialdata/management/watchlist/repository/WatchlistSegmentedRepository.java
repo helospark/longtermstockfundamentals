@@ -5,29 +5,24 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class WatchlistSegmentedRepository {
-
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<WatchlistElement> table;
 
     public WatchlistSegmentedRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<WatchlistElement> getTable() {
-        return enhancedClient.table(
+        this.table = enhancedClient.table(
                 "WatchlistSegmented",
-                EnhancedSchemaCache.getSchema(WatchlistElement.class));
+                TableSchema.fromClass(WatchlistElement.class));
+        ;
     }
 
     public void save(WatchlistElement watchlist) {
-        getTable().putItem(watchlist);
+        table.putItem(watchlist);
     }
 
     public List<WatchlistElement> readWatchlistByEmail(String email) {
@@ -35,7 +30,7 @@ public class WatchlistSegmentedRepository {
                 .partitionValue(email)
                 .build();
 
-        return getTable().query(
+        return table.query(
                 r -> r.queryConditional(
                         software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional
                                 .keyEqualTo(key)))
@@ -43,7 +38,7 @@ public class WatchlistSegmentedRepository {
     }
 
     public List<WatchlistElement> readAllWatchlists() {
-        return getTable().scan()
+        return table.scan()
                 .items()
                 .stream()
                 .toList();
@@ -54,7 +49,7 @@ public class WatchlistSegmentedRepository {
                 .partitionValue(email)
                 .addSortValue(symbol)
                 .build();
-        getTable().deleteItem(key);
+        table.deleteItem(key);
     }
 
     public Optional<WatchlistElement> readWatchlistByEmailAndStock(String email, String symbol) {
@@ -63,6 +58,6 @@ public class WatchlistSegmentedRepository {
                 .addSortValue(symbol)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 }

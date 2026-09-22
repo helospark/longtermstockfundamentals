@@ -4,24 +4,19 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class UserLastPaymentRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<UserLastPayment> table;
 
     public UserLastPaymentRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<UserLastPayment> getTable() {
-        return enhancedClient.table(
+        table = enhancedClient.table(
                 "UserLastPayment",
-                EnhancedSchemaCache.getSchema(UserLastPayment.class));
+                TableSchema.fromClass(UserLastPayment.class));
     }
 
     public Optional<UserLastPayment> findByEmail(String email) {
@@ -29,10 +24,10 @@ public class UserLastPaymentRepository {
                 .partitionValue(email)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 
     public void save(UserLastPayment stripeUserMapping) {
-        getTable().putItem(stripeUserMapping);
+        table.putItem(stripeUserMapping);
     }
 }

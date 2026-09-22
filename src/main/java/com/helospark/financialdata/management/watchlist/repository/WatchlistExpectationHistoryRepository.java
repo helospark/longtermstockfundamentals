@@ -4,29 +4,24 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class WatchlistExpectationHistoryRepository {
     public static final String EMAIL_SYMBOL_SEPARATOR = " :: ";
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<WatchlistExpectationHistory> table;
 
     public WatchlistExpectationHistoryRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<WatchlistExpectationHistory> getTable() {
-        return enhancedClient.table(
+        this.table = enhancedClient.table(
                 "WatchlistExpectationHistory",
-                EnhancedSchemaCache.getSchema(WatchlistExpectationHistory.class));
+                TableSchema.fromClass(WatchlistExpectationHistory.class));
     }
 
     public void save(WatchlistExpectationHistory watchlist) {
-        getTable().putItem(watchlist);
+        table.putItem(watchlist);
     }
 
     public Optional<WatchlistExpectationHistory> readWatchlistByEmailAndSymbol(
@@ -36,6 +31,6 @@ public class WatchlistExpectationHistoryRepository {
                 .partitionValue(email + EMAIL_SYMBOL_SEPARATOR + symbol)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 }

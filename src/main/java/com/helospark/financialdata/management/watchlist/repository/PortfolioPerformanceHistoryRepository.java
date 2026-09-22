@@ -7,11 +7,11 @@ import org.springframework.stereotype.Repository;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
 
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class PortfolioPerformanceHistoryRepository {
@@ -19,21 +19,16 @@ public class PortfolioPerformanceHistoryRepository {
             .expireAfterWrite(1, TimeUnit.DAYS)
             .maximumSize(200)
             .build();
-
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<PortfolioPerformanceHistory> table;
 
     public PortfolioPerformanceHistoryRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<PortfolioPerformanceHistory> getTable() {
-        return enhancedClient.table(
+        this.table = enhancedClient.table(
                 "PortfolioPerformanceHistory",
-                EnhancedSchemaCache.getSchema(PortfolioPerformanceHistory.class));
+                TableSchema.fromClass(PortfolioPerformanceHistory.class));
     }
 
     public void save(PortfolioPerformanceHistory data) {
-        this.getTable().putItem(data);
+        this.table.putItem(data);
         this.cache.invalidate(data.getEmail());
     }
 
@@ -41,7 +36,7 @@ public class PortfolioPerformanceHistoryRepository {
         Key key = Key.builder()
                 .partitionValue(user)
                 .build();
-        this.getTable().deleteItem(key);
+        this.table.deleteItem(key);
         this.cache.invalidate(user);
     }
 
@@ -50,7 +45,7 @@ public class PortfolioPerformanceHistoryRepository {
             Key key = Key.builder()
                     .partitionValue(emailKey)
                     .build();
-            PortfolioPerformanceHistory item = this.getTable().getItem(key);
+            PortfolioPerformanceHistory item = this.table.getItem(key);
             return Optional.ofNullable(item);
         });
     }

@@ -5,30 +5,25 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 
 @Repository
 public class PortfolioTransactionRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<PortfolioTransaction> table;
 
     public PortfolioTransactionRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<PortfolioTransaction> getTable() {
-        return enhancedClient.table(
+        table = enhancedClient.table(
                 "PortfolioTransactionT",
-                EnhancedSchemaCache.getSchema(PortfolioTransaction.class));
+                TableSchema.fromClass(PortfolioTransaction.class));
     }
 
     public void saveTransaction(PortfolioTransaction transaction) {
-        getTable().putItem(transaction);
+        table.putItem(transaction);
     }
 
     public List<PortfolioTransaction> getTransactionsByUserEmail(String userEmail) {
@@ -41,7 +36,7 @@ public class PortfolioTransactionRepository {
                 .scanIndexForward(false)
                 .build();
 
-        return getTable().query(request)
+        return table.query(request)
                 .items()
                 .stream()
                 .collect(Collectors.toList());
@@ -60,7 +55,7 @@ public class PortfolioTransactionRepository {
                 .limit(limit)
                 .build();
 
-        return getTable().query(request)
+        return table.query(request)
                 .items()
                 .stream()
                 .limit(limit)

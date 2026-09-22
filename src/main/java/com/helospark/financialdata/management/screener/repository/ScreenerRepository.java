@@ -4,28 +4,23 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class ScreenerRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<Screener> table;
 
     public ScreenerRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<Screener> getTable() {
-        return enhancedClient.table(
+        table = enhancedClient.table(
                 "Screener",
-                EnhancedSchemaCache.getSchema(Screener.class));
+                TableSchema.fromClass(Screener.class));
     }
 
     public void save(Screener watchlist) {
-        getTable().putItem(watchlist);
+        table.putItem(watchlist);
     }
 
     public Optional<Screener> readScreenerByEmail(String email) {
@@ -33,6 +28,6 @@ public class ScreenerRepository {
                 .partitionValue(email)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 }

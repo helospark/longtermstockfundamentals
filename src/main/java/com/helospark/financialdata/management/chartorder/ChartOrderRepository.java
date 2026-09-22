@@ -4,30 +4,25 @@ import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 
 @Repository
 public class ChartOrderRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<ChartOrder> table;
 
     public ChartOrderRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<ChartOrder> getTable() {
-        return enhancedClient.table(
+        table = enhancedClient.table(
                 "ChartOrder",
-                EnhancedSchemaCache.getSchema(ChartOrder.class));
+                TableSchema.fromClass(ChartOrder.class));
     }
 
     public void save(ChartOrder chartOrder) {
-        getTable().putItem(chartOrder);
+        table.putItem(chartOrder);
     }
 
     public List<ChartOrder> getAll(String userEmail) {
@@ -42,7 +37,7 @@ public class ChartOrderRepository {
                 .scanIndexForward(false)
                 .build();
 
-        return getTable().query(request)
+        return table.query(request)
                 .items()
                 .stream()
                 .toList();
@@ -53,6 +48,6 @@ public class ChartOrderRepository {
         orderToDelete.setUserEmail(userEmail);
         orderToDelete.setName(name);
 
-        getTable().deleteItem(orderToDelete);
+        table.deleteItem(orderToDelete);
     }
 }

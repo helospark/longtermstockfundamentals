@@ -5,28 +5,23 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class WatchlistRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<Watchlist> table;
 
     public WatchlistRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<Watchlist> getTable() {
-        return enhancedClient.table(
+        this.table = enhancedClient.table(
                 "Watchlist",
-                EnhancedSchemaCache.getSchema(Watchlist.class));
+                TableSchema.fromClass(Watchlist.class));
     }
 
     public void save(Watchlist watchlist) {
-        getTable().putItem(watchlist);
+        table.putItem(watchlist);
     }
 
     public Optional<Watchlist> readWatchlistByEmail(String email) {
@@ -34,11 +29,11 @@ public class WatchlistRepository {
                 .partitionValue(email)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 
     public List<Watchlist> readAllWatchlists() {
-        return getTable().scan()
+        return table.scan()
                 .items()
                 .stream()
                 .toList();

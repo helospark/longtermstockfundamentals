@@ -6,26 +6,21 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 @Repository
 public class StripeUserMappingRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<StripeUserMapping> table;
 
     public StripeUserMappingRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<StripeUserMapping> getTable() {
-        return enhancedClient.table(
+        table = enhancedClient.table(
                 "StripeUserMapping",
-                EnhancedSchemaCache.getSchema(StripeUserMapping.class));
+                TableSchema.fromClass(StripeUserMapping.class));
     }
 
     public Optional<StripeUserMapping> getStripeUserMapping(String value) {
@@ -33,7 +28,7 @@ public class StripeUserMappingRepository {
                 .partitionValue(value)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 
     public Optional<StripeUserMapping> findStripeUserMappingByEmail(String email) {
@@ -43,7 +38,7 @@ public class StripeUserMappingRepository {
     }
 
     public List<StripeUserMapping> findAllStripeUsersWithEmail(String email) {
-        return getTable().scan(r -> r.filterExpression(
+        return table.scan(r -> r.filterExpression(
                 Expression.builder()
                         .expression("email = :val1")
                         .expressionValues(Map.of(
@@ -58,7 +53,7 @@ public class StripeUserMappingRepository {
 
     public void removeAllEntriesWithEmail(String email) {
         findAllStripeUsersWithEmail(email)
-                .forEach(getTable()::deleteItem);
+                .forEach(table::deleteItem);
     }
 
     public void removeConfirmationEmail(String value) {
@@ -66,10 +61,10 @@ public class StripeUserMappingRepository {
                 .partitionValue(value)
                 .build();
 
-        getTable().deleteItem(key);
+        table.deleteItem(key);
     }
 
     public void save(StripeUserMapping stripeUserMapping) {
-        getTable().putItem(stripeUserMapping);
+        table.putItem(stripeUserMapping);
     }
 }

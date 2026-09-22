@@ -6,25 +6,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Component
 public class ViewedStocksRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(ViewedStocksRepository.class);
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<ViewedStocks> table;
 
     public ViewedStocksRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<ViewedStocks> getTable() {
-        return enhancedClient.table(
+        this.table = enhancedClient.table(
                 "ViewedStocks",
-                EnhancedSchemaCache.getSchema(ViewedStocks.class));
+                TableSchema.fromClass(ViewedStocks.class));
     }
 
     public Optional<ViewedStocks> getViewedStocks(String value) {
@@ -32,7 +27,7 @@ public class ViewedStocksRepository {
                 .partitionValue(value)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 
     public void clearViewedStocks(String email) {
@@ -40,15 +35,15 @@ public class ViewedStocksRepository {
                 .partitionValue(email)
                 .build();
 
-        getTable().deleteItem(key);
+        table.deleteItem(key);
     }
 
     public void save(ViewedStocks viewedStocks) {
-        getTable().putItem(viewedStocks);
+        table.putItem(viewedStocks);
     }
 
     public void removeAll() {
-        getTable().scan()
+        table.scan()
                 .items()
                 .forEach(element -> {
                     LOGGER.debug(

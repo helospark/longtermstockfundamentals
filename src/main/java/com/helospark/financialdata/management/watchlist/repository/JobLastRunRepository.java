@@ -4,28 +4,24 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Repository
 public class JobLastRunRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<JobLastRunData> table;
 
     public JobLastRunRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<JobLastRunData> getTable() {
-        return enhancedClient.table(
+        this.table = enhancedClient.table(
                 "JobLastRunData",
-                EnhancedSchemaCache.getSchema(JobLastRunData.class));
+                TableSchema.fromClass(JobLastRunData.class));
+        ;
     }
 
     public void save(JobLastRunData data) {
-        getTable().putItem(data);
+        table.putItem(data);
     }
 
     public Optional<JobLastRunData> readJobLastRanByName(String jobName) {
@@ -33,7 +29,7 @@ public class JobLastRunRepository {
                 .partitionValue(jobName)
                 .build();
 
-        JobLastRunData result = this.getTable().getItem(key);
+        JobLastRunData result = this.table.getItem(key);
 
         return Optional.ofNullable(result);
     }

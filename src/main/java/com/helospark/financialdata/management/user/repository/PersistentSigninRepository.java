@@ -4,24 +4,19 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
-import com.helospark.financialdata.management.config.EnhancedSchemaCache;
-
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
 @Component
 public class PersistentSigninRepository {
-    DynamoDbEnhancedClient enhancedClient;
+    DynamoDbTable<PersistentSignin> table;
 
     public PersistentSigninRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.enhancedClient = enhancedClient;
-    }
-
-    public DynamoDbTable<PersistentSignin> getTable() {
-        return enhancedClient.table(
+        this.table = enhancedClient.table(
                 "PersistentSignin",
-                EnhancedSchemaCache.getSchema(PersistentSignin.class));
+                TableSchema.fromClass(PersistentSignin.class));
     }
 
     public Optional<PersistentSignin> getPersistentSignin(String value) {
@@ -29,7 +24,7 @@ public class PersistentSigninRepository {
                 .partitionValue(value)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return Optional.ofNullable(table.getItem(key));
     }
 
     public void removePersistentSigning(String value) {
@@ -37,10 +32,10 @@ public class PersistentSigninRepository {
                 .partitionValue(value)
                 .build();
 
-        getTable().deleteItem(key);
+        table.deleteItem(key);
     }
 
     public void save(PersistentSignin persistentSignin) {
-        getTable().putItem(persistentSignin);
+        table.putItem(persistentSignin);
     }
 }
