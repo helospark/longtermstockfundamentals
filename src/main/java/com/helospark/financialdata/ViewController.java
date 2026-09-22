@@ -99,7 +99,9 @@ public class ViewController {
             @RequestParam(name = "endYear", required = false, defaultValue = "2018") @Min(2011) int endYear,
             @RequestParam(name = "selection", required = false, defaultValue = "SP500") StockSourceSelection selection,
             @RequestParam(name = "minMarketCap", required = false, defaultValue = "0.0") double minMarketCap,
-            @RequestParam(name = "revenueGrowth", required = false, defaultValue = "0.0") double revenueGrowthFilter) {
+            @RequestParam(name = "revenueGrowth", required = false) Double revenueGrowthFilter,
+            @RequestParam(name = "minDrawdown", required = false) Double minDrawdown,
+            @RequestParam(name = "minInvestmentScore", required = false) Double minInvestmentScore) {
         LocalDate randomDate = getRandomDate(startYear, endYear);
         Set<String> symbolsRaw;
 
@@ -143,6 +145,7 @@ public class ViewController {
 
         String stock = null;
         CompanyFinancials companyDateLimited = null;
+        boolean found = false;
 
         for (int i = 0; i < 1000 && i < symbols.size(); ++i) {
             stock = symbols.get(i);
@@ -151,7 +154,9 @@ public class ViewController {
 
             if (atGlance != null &&
                     atGlance.marketCapUsd / 1000.0 > minMarketCap &&
-                    (revenueGrowthFilter == 0.0 || atGlance.revenueGrowth2yr > revenueGrowthFilter)) {
+                    minValue(revenueGrowthFilter, atGlance.revenueGrowth2yr) &&
+                    minValue(minDrawdown, atGlance.drawdown) &&
+                    minValue(minInvestmentScore, atGlance.investmentScore)) {
 
                 companyDateLimited = DataLoader.readFinancials(stock, randomDate);
 
@@ -171,16 +176,23 @@ public class ViewController {
                 }
 
                 if (companyDateLimited.financials.size() > 10) {
+                    found = true;
                     break;
                 }
             }
 
         }
 
-        if (companyDateLimited == null) {
+        if (companyDateLimited == null || !found) {
             System.out.println("EMPTY game filter");
-            stock = symbols.get(0);
-            companyDateLimited = DataLoader.readFinancials(stock, randomDate);
+            for (int i = 0; i < symbols.size(); ++i) {
+                stock = symbols.get(i);
+                CompanyFinancials company = DataLoader.readFinancials(stock);
+                companyDateLimited = DataLoader.readFinancials(stock, randomDate);
+                if (company.financials.size() > 10 && companyDateLimited.financials.size() > 10) {
+                    break;
+                }
+            }
         }
 
         fillModelWithCommonStockData(stock, model, request);
@@ -204,6 +216,10 @@ public class ViewController {
         model.addAttribute("stockGameData", stockGameData);
 
         return "stock";
+    }
+
+    private boolean minValue(Double filteredValue, float actualValue) {
+        return (filteredValue == null || actualValue > filteredValue);
     }
 
     private String orUnknown(String sector) {

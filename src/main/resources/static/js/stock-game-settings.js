@@ -35,7 +35,17 @@ function openConfigModal() {
                     </div>
                     <div class="col-6">
                         <label class="form-label">Revenue growth CAGR</label>
-                        <input type="number" step="0.1" class="form-control" id="revenueGrowth" value="${settings.revenueGrowth}" min="0" max="30" required>
+                        <input type="number" step="1" class="form-control" id="revenueGrowth" value="${settings.revenueGrowth}" min="-10" max="30">
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label">Min drawdown %</label>
+                        <input type="number" step="1" class="form-control" id="minDrawdown" value="${settings.minDrawdown}" min="0" max="100">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Min investment score</label>
+                        <input type="number" step="1" class="form-control" id="minInvestmentScore" value="${settings.minInvestmentScore}" min="0" max="10">
                     </div>
                 </div>
             </div>
@@ -60,12 +70,18 @@ function saveGameSettings(event) {
     const selection = document.getElementById("modalSelection").value;
     const minMarketCap = document.getElementById("modalMinCap").value;
     const revenueGrowth = document.getElementById("revenueGrowth").value;
+    const minInvestmentScore = document.getElementById("minInvestmentScore").value;
+    const minDrawdown = document.getElementById("minDrawdown").value;
+    
+    console.log("Saving: " + revenueGrowth);
 
     localStorage.setItem("sg_startYear", startYear);
     localStorage.setItem("sg_endYear", endYear);
     localStorage.setItem("sg_selection", selection);
     localStorage.setItem("sg_minMarketCap", minMarketCap);
     localStorage.setItem("sg_revenueGrowth", revenueGrowth);
+    localStorage.setItem("sg_minDrawdown", minDrawdown);
+    localStorage.setItem("sg_minInvestmentScore", minInvestmentScore);
 
     if (gameModal) {
         gameModal.hide();

@@ -155,12 +155,20 @@
             // Helper to get settings or reasonable defaults
             function getGameSettings() {
                 return {
-                    startYear: localStorage.getItem("sg_startYear") || "2016",
-                    endYear: localStorage.getItem("sg_endYear") || "2018",
+                    startYear: localStorage.getItem("sg_startYear") || "2014",
+                    endYear: localStorage.getItem("sg_endYear") || "2014",
                     selection: localStorage.getItem("sg_selection") || "SP500",
                     minMarketCap: localStorage.getItem("sg_minMarketCap") || "0",
-                    revenueGrowth: localStorage.getItem("sg_revenueGrowth") || "0"
+                    minDrawdown: localStorage.getItem("sg_minDrawdown"),
+                    minInvestmentScore: localStorage.getItem("sg_minInvestmentScore"),
                 };
+            }
+            
+            function appendSettingIfPresent(params, settings, key) {
+                const val = settings?.[key];
+                if (val !== undefined && val !== null && val !== '') {
+                    params.set(key, val);
+                }
             }
         
             // Appends the saved settings as query parameters to the "Next" button link
@@ -172,7 +180,9 @@
                 params.set("endYear", settings.endYear);
                 params.set("selection", settings.selection);
                 params.set("minMarketCap", settings.minMarketCap);
-                params.set("revenueGrowth", settings.revenueGrowth);
+                appendSettingIfPresent(params, settings, 'revenueGrowth');
+                appendSettingIfPresent(params, settings, 'minDrawdown');
+                appendSettingIfPresent(params, settings, 'minInvestmentScore');
         
                 const nextBtn = document.getElementById("next-game-btn");
                 if (nextBtn) {
