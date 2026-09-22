@@ -17,11 +17,15 @@ import com.helospark.financialdata.management.user.repository.User;
 import com.helospark.financialdata.management.user.repository.UserRepository;
 import com.helospark.financialdata.management.user.repository.ViewedStocks;
 import com.helospark.financialdata.management.watchlist.repository.JobLastRunData;
+import com.helospark.financialdata.management.watchlist.repository.PortfolioHistoryMigrationService;
 import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistory;
+import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistoryElement;
 import com.helospark.financialdata.management.watchlist.repository.PortfolioTransaction;
 import com.helospark.financialdata.management.watchlist.repository.Watchlist;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistExpectationHistory;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistExpectationHistoryElement;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistExpectationMigrationService;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistMigrationService;
 
 import jakarta.annotation.PostConstruct;
@@ -56,6 +60,10 @@ public class DynamoDbInitializer {
     WatchlistMigrationService watchlistMigrationService;
     @Autowired
     DynamoDbEnhancedClient dynamoDbEnhancedClient;
+    @Autowired
+    WatchlistExpectationMigrationService watchlistExpectationMigrationService;
+    @Autowired
+    PortfolioHistoryMigrationService portfolioHistoryMigrationService;
 
     @PostConstruct
     public void createTables() {
@@ -67,14 +75,26 @@ public class DynamoDbInitializer {
         createTable("UserLastPayment", UserLastPayment.class);
         createTable("JobLastRunData", JobLastRunData.class);
         createTable("PortfolioPerformanceHistory", PortfolioPerformanceHistory.class);
-        createTableWithProvisioning("Watchlist", Watchlist.class, 5L, 5L);
-        boolean wasSegmentedCreated = createTableWithProvisioning("WatchlistSegmented", WatchlistElement.class, 5L, 5L);
+        boolean wasSegmentedPerformanceHistoryCreated = createTable("PortfolioPerformanceHistorySegmented", PortfolioPerformanceHistoryElement.class);
 
-        if (wasSegmentedCreated) {
+        if (wasSegmentedPerformanceHistoryCreated) {
+            portfolioHistoryMigrationService.migrateAllHistory();
+        }
+
+        createTableWithProvisioning("Watchlist", Watchlist.class, 5L, 5L);
+        boolean wasSegmentedWatchlistCreated = createTableWithProvisioning("WatchlistSegmented", WatchlistElement.class, 5L, 5L);
+
+        if (wasSegmentedWatchlistCreated) {
             watchlistMigrationService.migrateAllWatchlists();
         }
 
         createTable("WatchlistExpectationHistory", WatchlistExpectationHistory.class);
+        boolean wasSegmentedExpectationCreated = createTable("WatchlistExpectationHistorySegmented", WatchlistExpectationHistoryElement.class);
+
+        if (wasSegmentedExpectationCreated) {
+            watchlistExpectationMigrationService.migrateAllExpectations();
+        }
+
         createTable("Screener", Screener.class);
         createTable("PortfolioTransactionT", PortfolioTransaction.class);
         createTable("ChartOrder", ChartOrder.class);

@@ -3,18 +3,21 @@ package com.helospark.financialdata.management.watchlist.repository;
 import java.time.LocalDate;
 import java.util.List;
 
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
+@DynamoDbBean
 public class PortfolioPerformanceHistoryElement {
-    private String email;
-    private LocalDate date;
+    public String email;
+    public LocalDate date;
 
-    private double total;
-    private double eps;
-    private double fcf;
-    private double totalEquity;
+    public double total;
+    public double eps;
+    public double fcf;
+    public double totalEquity;
 
-    private List<SimpleHolding> holdings;
+    public List<SimpleHolding> holdings;
 
     @DynamoDbPartitionKey
     public String getEmail() {
@@ -25,6 +28,7 @@ public class PortfolioPerformanceHistoryElement {
         this.email = key;
     }
 
+    @DynamoDbSortKey
     public LocalDate getDate() {
         return date;
     }

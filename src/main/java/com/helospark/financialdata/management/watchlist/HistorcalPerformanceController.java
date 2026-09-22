@@ -32,9 +32,8 @@ import com.helospark.financialdata.domain.SimpleDataElement;
 import com.helospark.financialdata.management.user.GenericResponseAccountResult;
 import com.helospark.financialdata.management.user.LoginController;
 import com.helospark.financialdata.management.watchlist.repository.MessageCompresser;
-import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistory;
 import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistoryElement;
-import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistoryRepository;
+import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistorySegmentedRepository;
 import com.helospark.financialdata.management.watchlist.repository.SimpleHolding;
 import com.helospark.financialdata.service.DataLoader;
 import com.helospark.financialdata.service.FinancialDataMerger;
@@ -56,7 +55,7 @@ public class HistorcalPerformanceController {
     private static final Logger LOGGER = LoggerFactory.getLogger(HistorcalPerformanceController.class);
 
     @Autowired
-    private PortfolioPerformanceHistoryRepository portfolioHistoricalRepository;
+    private PortfolioPerformanceHistorySegmentedRepository portfolioHistoricalRepository;
     @Autowired
     private LoginController loginController;
     @Autowired
@@ -509,13 +508,7 @@ public class HistorcalPerformanceController {
     }
 
     public List<PortfolioPerformanceHistoryElement> getHistoricalPerformance(Optional<DecodedJWT> user) {
-        Optional<PortfolioPerformanceHistory> historicalPerformance = portfolioHistoricalRepository.readHistoricalPortfolio(user.get().getSubject());
-
-        if (historicalPerformance.isEmpty()) {
-            return List.of();
-        }
-
-        ArrayList<PortfolioPerformanceHistoryElement> result = new ArrayList<>(messageCompresser.uncompressListOf(historicalPerformance.get().getHistory(), PortfolioPerformanceHistoryElement.class));
+        List<PortfolioPerformanceHistoryElement> result = new ArrayList<>(portfolioHistoricalRepository.readHistoricalPortfolio(user.get().getSubject()));
 
         Collections.sort(result, (a, b) -> a.getDate().compareTo(b.getDate()));
 

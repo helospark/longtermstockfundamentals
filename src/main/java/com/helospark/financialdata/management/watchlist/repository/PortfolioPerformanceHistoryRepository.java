@@ -1,5 +1,6 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -48,5 +49,12 @@ public class PortfolioPerformanceHistoryRepository {
             PortfolioPerformanceHistory item = this.table.getItem(key);
             return Optional.ofNullable(item);
         });
+    }
+
+    public List<PortfolioPerformanceHistory> readAllHistory() {
+        return table.scan()
+                .items()
+                .stream()
+                .toList();
     }
 }

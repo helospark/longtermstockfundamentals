@@ -1,5 +1,6 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
@@ -33,4 +34,12 @@ public class WatchlistExpectationHistoryRepository {
 
         return Optional.ofNullable(table.getItem(key));
     }
+
+    public List<WatchlistExpectationHistory> readAllExpectations() {
+        return table.scan()
+                .items()
+                .stream()
+                .toList();
+    }
+
 }

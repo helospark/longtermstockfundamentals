@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.helospark.financialdata.domain.CompanyFinancials;
@@ -57,15 +56,11 @@ public class WatchlistService {
     @Autowired
     private WatchlistSegmentedRepository watchlistSegmentedRepository;
     @Autowired
-    private WatchlistExpectationHistoryRepository watchlistExpectationHistoryRepository;
-    @Autowired
-    private ObjectMapper objectMapper;
+    private WatchlistExpectationSegmentedHistoryRepository watchlistExpectationHistoryRepository;
     @Autowired
     private SymbolAtGlanceProvider symbolIndexProvider;
     @Autowired
     private LatestPriceProvider latestPriceProvider;
-    @Autowired
-    private MessageCompresser messageCompresser;
     @Autowired
     private PortfolioTransactionRepository portfolioTransactionRepository;
 
@@ -355,15 +350,6 @@ public class WatchlistService {
         return StringEscapeUtils.escapeHtml4(text);
     }
 
-    private int findIndexFor(List<WatchlistElement> elements, String symbol) {
-        for (int i = 0; i < elements.size(); ++i) {
-            if (elements.get(i).symbol.equals(symbol)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     public void deleteFromWatchlist(String email, DeleteFromWatchlistRequest request) {
         watchlistSegmentedRepository.remove(email, request.symbol);
         watchlistCache.invalidate(email);
@@ -374,27 +360,10 @@ public class WatchlistService {
     }
 
     public void saveToWatchlistExpectationHistory(String email, @Valid AddToWatchlistExpectationHistoryRequest request, AccountType accountType) {
-        Optional<WatchlistExpectationHistory> optionalWatchlist = watchlistExpectationHistoryRepository.readWatchlistByEmailAndSymbol(email, request.symbol);
-
-        LocalDate today = LocalDate.now();
-
-        List<WatchlistExpectationHistoryElement> elements;
-
-        if (!optionalWatchlist.isPresent()) {
-            elements = new ArrayList<>();
-        } else {
-            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistExpectationListRaw(), WatchlistExpectationHistoryElement.class);
-        }
-
-        int index = findExpectationElementIndexByDay(elements, today.toString());
-
-        if (index != -1) {
-            elements.remove(index);
-        }
-
         WatchlistExpectationHistoryElement elementToUpdate = new WatchlistExpectationHistoryElement();
 
-        elementToUpdate.saveDate = today.toString();
+        elementToUpdate.emailSymbolKey = email + WatchlistExpectationHistoryRepository.EMAIL_SYMBOL_SEPARATOR + request.symbol;
+        elementToUpdate.saveDate = LocalDate.now().toString();
         elementToUpdate.symbol = request.symbol;
         elementToUpdate.dates = request.dates;
         elementToUpdate.eps = request.eps;
@@ -406,36 +375,11 @@ public class WatchlistService {
         elementToUpdate.value = request.value;
         elementToUpdate.multiple = request.multiple;
 
-        elements.add(elementToUpdate);
-
-        WatchlistExpectationHistory toInsert = new WatchlistExpectationHistory();
-        toInsert.setEmailSymbol(email + WatchlistExpectationHistoryRepository.EMAIL_SYMBOL_SEPARATOR + request.symbol);
-        toInsert.setWatchlistExpectationListRaw(messageCompresser.createCompressedValue(elements));
-
-        LOGGER.info("Inserting into watchlistExpectationRepository, size of compressed elements={}", toInsert.getWatchlistExpectationListRaw().capacity());
-
-        watchlistExpectationHistoryRepository.save(toInsert);
-    }
-
-    private int findExpectationElementIndexByDay(List<WatchlistExpectationHistoryElement> elements, String today) {
-        for (int i = 0; i < elements.size(); ++i) {
-            if (elements.get(i).saveDate.equals(today)) {
-                return i;
-            }
-        }
-        return -1;
+        watchlistExpectationHistoryRepository.save(elementToUpdate);
     }
 
     public List<WatchlistExpectationHistoryElement> getWatchlistExpectationHistory(String email, String stock) {
-        Optional<WatchlistExpectationHistory> optionalWatchlist = watchlistExpectationHistoryRepository.readWatchlistByEmailAndSymbol(email, stock);
-
-        List<WatchlistExpectationHistoryElement> elements;
-
-        if (!optionalWatchlist.isPresent()) {
-            elements = new ArrayList<>();
-        } else {
-            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistExpectationListRaw(), WatchlistExpectationHistoryElement.class);
-        }
+        List<WatchlistExpectationHistoryElement> elements = new ArrayList<>(watchlistExpectationHistoryRepository.readWatchlistByEmailAndSymbol(email, stock));
 
         Collections.sort(elements, (a, b) -> LocalDate.parse(a.saveDate).compareTo(LocalDate.parse(b.saveDate)));
 
@@ -443,30 +387,7 @@ public class WatchlistService {
     }
 
     public void deleteWatchlistExpectationHistory(String email, String stock, String date) {
-        Optional<WatchlistExpectationHistory> optionalWatchlist = watchlistExpectationHistoryRepository.readWatchlistByEmailAndSymbol(email, stock);
-
-        List<WatchlistExpectationHistoryElement> elements;
-
-        if (!optionalWatchlist.isPresent()) {
-            elements = new ArrayList<>();
-        } else {
-            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistExpectationListRaw(), WatchlistExpectationHistoryElement.class);
-        }
-
-        int index = findExpectationElementIndexByDay(elements, date);
-
-        if (index != -1) {
-            elements.remove(index);
-
-            WatchlistExpectationHistory toInsert = new WatchlistExpectationHistory();
-            toInsert.setEmailSymbol(email + WatchlistExpectationHistoryRepository.EMAIL_SYMBOL_SEPARATOR + stock);
-            toInsert.setWatchlistExpectationListRaw(messageCompresser.createCompressedValue(elements));
-
-            LOGGER.info("Inserting into watchlistExpectationRepository, size of compressed elements={}", toInsert.getWatchlistExpectationListRaw().capacity());
-
-            watchlistExpectationHistoryRepository.save(toInsert);
-        }
-
+        watchlistExpectationHistoryRepository.delete(email, stock, date);
     }
 
 }

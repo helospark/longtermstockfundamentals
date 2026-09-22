@@ -1,9 +1,7 @@
 package com.helospark.financialdata.management.watchlist;
 
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -20,10 +18,8 @@ import com.helospark.financialdata.management.user.repository.UserRepository;
 import com.helospark.financialdata.management.watchlist.domain.Portfolio;
 import com.helospark.financialdata.management.watchlist.repository.JobLastRunData;
 import com.helospark.financialdata.management.watchlist.repository.JobLastRunRepository;
-import com.helospark.financialdata.management.watchlist.repository.MessageCompresser;
-import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistory;
 import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistoryElement;
-import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistoryRepository;
+import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistorySegmentedRepository;
 import com.helospark.financialdata.management.watchlist.repository.SimpleHolding;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistService;
@@ -36,15 +32,13 @@ public class SavePortfolioHistoryJob {
     @Autowired
     private JobLastRunRepository jobLastRunRepository;
     @Autowired
-    private PortfolioPerformanceHistoryRepository portfolioPerformanceHistoryRepository;
+    private PortfolioPerformanceHistorySegmentedRepository portfolioPerformanceHistoryRepository;
     @Autowired
     private PortfolioController portfolioController;
     @Autowired
     private WatchlistService watchlistService;
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private MessageCompresser messageCompresser;
 
     @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.DAYS)
     public void savePortfolioHistory() {
@@ -74,32 +68,17 @@ public class SavePortfolioHistoryJob {
                     .filter(element -> element.ownedShares > 0)
                     .collect(Collectors.toList());
 
-            PortfolioPerformanceHistory data = portfolioPerformanceHistoryRepository.readHistoricalPortfolio(user.getEmail()).orElse(createNewPortfolioHistory(user));
-
-            List<PortfolioPerformanceHistoryElement> currentHistory = new ArrayList<>(messageCompresser.uncompressListOf(data.getHistory(), PortfolioPerformanceHistoryElement.class));
-
             if (watchlistElements.size() > 0) {
                 Portfolio result = portfolioController.createSummaryTable(true, watchlistElements, false);
 
                 PortfolioPerformanceHistoryElement toSave = convert(user, result, watchlistElements, currentDate);
 
-                currentHistory.add(toSave);
-
-                data.setHistory(messageCompresser.createCompressedValue(currentHistory));
-
-                portfolioPerformanceHistoryRepository.save(data);
+                portfolioPerformanceHistoryRepository.save(toSave);
                 LOGGER.info("Performance history data saved for {}", user.getEmail());
             }
         } catch (Exception e) {
             LOGGER.error("Unable to save portfolio performance for {}", user.getEmail(), e);
         }
-    }
-
-    public PortfolioPerformanceHistory createNewPortfolioHistory(User user) throws IOException {
-        PortfolioPerformanceHistory result = new PortfolioPerformanceHistory();
-        result.setEmail(user.getEmail());
-        result.setHistory(messageCompresser.compressString("[]".getBytes()));
-        return result;
     }
 
     private PortfolioPerformanceHistoryElement convert(User user, Portfolio portfolio, List<WatchlistElement> watchlistElements, LocalDate currentDate) {
