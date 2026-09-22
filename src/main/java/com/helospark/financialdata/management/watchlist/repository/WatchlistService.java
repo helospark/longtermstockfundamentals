@@ -27,7 +27,6 @@ import com.helospark.financialdata.domain.CompanyFinancials;
 import com.helospark.financialdata.domain.Profile;
 import com.helospark.financialdata.management.user.repository.AccountType;
 import com.helospark.financialdata.management.watchlist.DeleteFromWatchlistRequest;
-import com.helospark.financialdata.management.watchlist.WatchlistBadRequestException;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistExpectationHistoryRequest;
 import com.helospark.financialdata.management.watchlist.domain.AddToWatchlistRequest;
 import com.helospark.financialdata.management.watchlist.domain.CalculatorParameters;
@@ -56,7 +55,7 @@ public class WatchlistService {
             "darkred", "green", "blue", "purple", "grey", "coral", "deeppink", "maroon", "sienna", "darkgoldenrod", "darkcyan", "darkmagenta", "darkviolet");
 
     @Autowired
-    private WatchlistRepository watchlistRepository;
+    private WatchlistSegmentedRepository watchlistSegmentedRepository;
     @Autowired
     private WatchlistExpectationHistoryRepository watchlistExpectationHistoryRepository;
     @Autowired
@@ -213,14 +212,7 @@ public class WatchlistService {
     }
 
     public List<WatchlistElement> readWatchlistFromDb(String email) {
-        Optional<Watchlist> optionalWatchlist = loadWatchlist(email);
-        if (!optionalWatchlist.isPresent()) {
-            return List.of();
-        }
-
-        Watchlist watchlist = optionalWatchlist.get();
-
-        List<WatchlistElement> watchlistElements = messageCompresser.uncompressListOf(watchlist.getWatchlistRaw(), WatchlistElement.class);
+        List<WatchlistElement> watchlistElements = watchlistSegmentedRepository.readWatchlistByEmail(email);
         return new ArrayList<>(watchlistElements);
     }
 
@@ -237,10 +229,6 @@ public class WatchlistService {
         }
 
         return result;
-    }
-
-    public Optional<Watchlist> loadWatchlist(String email) {
-        return watchlistCache.get(email, email2 -> watchlistRepository.readWatchlistByEmail(email2));
     }
 
     public String buildCalculatorUri(CalculatorParameters calculatorParameters, String symbol) {
@@ -298,32 +286,7 @@ public class WatchlistService {
     }
 
     public void saveToWatchlist(String email, AddToWatchlistRequest request, AccountType accountType) {
-        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
-
-        List<WatchlistElement> elements;
-
-        if (!optionalWatchlist.isPresent()) {
-            elements = new ArrayList<>();
-        } else {
-            elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistRaw(), WatchlistElement.class);
-        }
-
-        int index = findIndexFor(elements, request.symbol);
-
-        WatchlistElement elementToUpdate;
-        if (index == -1) {
-            if (elements.size() > 500) {
-                throw new WatchlistBadRequestException("Maximum of 500 watchlist element supported");
-            }
-            if (elements.size() > 30 && accountType.equals(AccountType.FREE)) {
-                throw new WatchlistBadRequestException("Maximum of 30 watchlist element supported for free subscription");
-            }
-
-            elementToUpdate = new WatchlistElement();
-            elements.add(elementToUpdate);
-        } else {
-            elementToUpdate = elements.get(index);
-        }
+        var elementToUpdate = new WatchlistElement();
         int previouslyOwnedShares = elementToUpdate.ownedShares;
         elementToUpdate.notes = escapeSymbols(request.notes);
         elementToUpdate.symbol = request.symbol;
@@ -361,13 +324,7 @@ public class WatchlistService {
             portfolioTransactionRepository.saveTransaction(transaction);
         }
 
-        Watchlist toInsert = new Watchlist();
-        toInsert.setEmail(email);
-        toInsert.setWatchlistRaw(messageCompresser.createCompressedValue(elements));
-
-        LOGGER.info("Inserting into watchlist, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
-
-        watchlistRepository.save(toInsert);
+        watchlistSegmentedRepository.save(elementToUpdate);
         watchlistCache.invalidate(email);
     }
 
@@ -408,44 +365,12 @@ public class WatchlistService {
     }
 
     public void deleteFromWatchlist(String email, DeleteFromWatchlistRequest request) {
-        Optional<Watchlist> optionalWatchlist = watchlistRepository.readWatchlistByEmail(email);
-
-        if (!optionalWatchlist.isPresent()) {
-            return;
-        }
-        List<WatchlistElement> elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistRaw(), WatchlistElement.class);
-
-        int index = findIndexFor(elements, request.symbol);
-
-        if (index != -1) {
-            elements.remove(index);
-        }
-
-        Watchlist toInsert = new Watchlist();
-        toInsert.setEmail(email);
-        toInsert.setWatchlistRaw(messageCompresser.createCompressedValue(elements));
-
-        LOGGER.info("Remove successful, size of compressed elements={}", toInsert.getWatchlistRaw().capacity());
-
-        watchlistRepository.save(toInsert);
+        watchlistSegmentedRepository.remove(email, request.symbol);
         watchlistCache.invalidate(email);
     }
 
     public Optional<WatchlistElement> getWatchlistElement(String email, String stock) {
-        Optional<Watchlist> optionalWatchlist = loadWatchlist(email);
-
-        if (!optionalWatchlist.isPresent()) {
-            return Optional.empty();
-        }
-        List<WatchlistElement> elements = messageCompresser.uncompressListOf(optionalWatchlist.get().getWatchlistRaw(), WatchlistElement.class);
-
-        int index = findIndexFor(elements, stock);
-
-        if (index != -1) {
-            return Optional.of(elements.get(index));
-        } else {
-            return Optional.empty();
-        }
+        return watchlistSegmentedRepository.readWatchlistByEmailAndStock(email, stock);
     }
 
     public void saveToWatchlistExpectationHistory(String email, @Valid AddToWatchlistExpectationHistoryRequest request, AccountType accountType) {

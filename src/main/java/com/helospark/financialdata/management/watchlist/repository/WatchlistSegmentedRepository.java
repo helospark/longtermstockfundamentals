@@ -1,6 +1,7 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
@@ -21,7 +22,7 @@ public class WatchlistSegmentedRepository {
 
     public DynamoDbTable<WatchlistElement> getTable() {
         return enhancedClient.table(
-                "WatchlistElement",
+                "WatchlistSegmented",
                 EnhancedSchemaCache.getSchema(WatchlistElement.class));
     }
 
@@ -46,5 +47,22 @@ public class WatchlistSegmentedRepository {
                 .items()
                 .stream()
                 .toList();
+    }
+
+    public void remove(String email, String symbol) {
+        Key key = Key.builder()
+                .partitionValue(email)
+                .addSortValue(symbol)
+                .build();
+        getTable().deleteItem(key);
+    }
+
+    public Optional<WatchlistElement> readWatchlistByEmailAndStock(String email, String symbol) {
+        Key key = Key.builder()
+                .partitionValue(email)
+                .addSortValue(symbol)
+                .build();
+
+        return Optional.ofNullable(getTable().getItem(key));
     }
 }

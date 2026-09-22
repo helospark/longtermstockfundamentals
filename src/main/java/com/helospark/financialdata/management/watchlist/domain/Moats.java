@@ -25,4 +25,52 @@ public class Moats {
                 + ", costAdvantage=" + costAdvantage + "]";
     }
 
+    public int getNetworkEffect() {
+        return networkEffect;
+    }
+
+    public void setNetworkEffect(int networkEffect) {
+        this.networkEffect = networkEffect;
+    }
+
+    public int getSwitchingCost() {
+        return switchingCost;
+    }
+
+    public void setSwitchingCost(int switchingCost) {
+        this.switchingCost = switchingCost;
+    }
+
+    public int getEconomyOfScale() {
+        return economyOfScale;
+    }
+
+    public void setEconomyOfScale(int economyOfScale) {
+        this.economyOfScale = economyOfScale;
+    }
+
+    public int getBrand() {
+        return brand;
+    }
+
+    public void setBrand(int brand) {
+        this.brand = brand;
+    }
+
+    public int getIntangibles() {
+        return intangibles;
+    }
+
+    public void setIntangibles(int intangibles) {
+        this.intangibles = intangibles;
+    }
+
+    public int getCostAdvantage() {
+        return costAdvantage;
+    }
+
+    public void setCostAdvantage(int costAdvantage) {
+        this.costAdvantage = costAdvantage;
+    }
+
 }
