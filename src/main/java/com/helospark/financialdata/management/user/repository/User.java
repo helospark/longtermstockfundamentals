@@ -1,10 +1,9 @@
 package com.helospark.financialdata.management.user.repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConvertedEnum;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
-@DynamoDBTable(tableName = "User")
+@DynamoDbBean
 public class User {
     private String email;
     private String password;
@@ -15,7 +14,7 @@ public class User {
     private RegistrationSource registeredWith;
     private boolean hidePrice;
 
-    @DynamoDBHashKey
+    @DynamoDbPartitionKey
     public String getEmail() {
         return email;
     }
@@ -40,7 +39,6 @@ public class User {
         this.activated = activated;
     }
 
-    @DynamoDBTypeConvertedEnum
     public AccountType getAccountType() {
         return accountType;
     }
@@ -65,7 +63,6 @@ public class User {
         this.cancelling = cancelling;
     }
 
-    @DynamoDBTypeConvertedEnum
     public RegistrationSource getRegisteredWith() {
         return registeredWith;
     }

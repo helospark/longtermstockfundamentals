@@ -1,15 +1,15 @@
 package com.helospark.financialdata.management.user.repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
-@DynamoDBTable(tableName = "ConfirmationEmail")
+@DynamoDbBean
 public class ConfirmationEmail {
     private String confirmationId;
     private String email;
     private long expiration;
 
-    @DynamoDBHashKey
+    @DynamoDbPartitionKey
     public String getConfirmationId() {
         return confirmationId;
     }

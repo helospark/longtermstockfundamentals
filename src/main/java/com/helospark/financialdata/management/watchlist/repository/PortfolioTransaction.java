@@ -1,11 +1,11 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBAttribute;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
-@DynamoDBTable(tableName = "PortfolioTransactionT")
+@DynamoDbBean
 public class PortfolioTransaction {
 
     private String userEmail;
@@ -33,7 +33,8 @@ public class PortfolioTransaction {
     }
 
     // --- HASH KEY (Partition) ---
-    @DynamoDBHashKey(attributeName = "userEmail")
+    @DynamoDbPartitionKey
+    @DynamoDbAttribute("userEmail")
     public String getUserEmail() {
         return userEmail;
     }
@@ -42,7 +43,8 @@ public class PortfolioTransaction {
         this.userEmail = userEmail;
     }
 
-    @DynamoDBRangeKey(attributeName = "transactionDateTime")
+    @DynamoDbSortKey
+    @DynamoDbAttribute("transactionDateTime")
     public String getTransactionDateTime() {
         return transactionDateTime;
     }
@@ -51,7 +53,7 @@ public class PortfolioTransaction {
         this.transactionDateTime = transactionDateTime;
     }
 
-    @DynamoDBAttribute(attributeName = "symbol")
+    @DynamoDbAttribute("symbol")
     public String getSymbol() {
         return symbol;
     }
@@ -60,7 +62,7 @@ public class PortfolioTransaction {
         this.symbol = symbol;
     }
 
-    @DynamoDBAttribute(attributeName = "amountChange")
+    @DynamoDbAttribute("amountChange")
     public Double getAmountChange() {
         return amountChange;
     }
@@ -69,7 +71,7 @@ public class PortfolioTransaction {
         this.amountChange = amountChange;
     }
 
-    @DynamoDBAttribute(attributeName = "transactionValue")
+    @DynamoDbAttribute("transactionValue")
     public Double getTransactionValue() {
         return transactionValue;
     }
@@ -82,7 +84,7 @@ public class PortfolioTransaction {
         return transactionValueUsd;
     }
 
-    @DynamoDBAttribute(attributeName = "transactionValueUsd")
+    @DynamoDbAttribute("transactionValueUsd")
     public void setTransactionValueUsd(Double transactionValueUsd) {
         this.transactionValueUsd = transactionValueUsd;
     }
@@ -91,7 +93,7 @@ public class PortfolioTransaction {
         return currency;
     }
 
-    @DynamoDBAttribute(attributeName = "currency")
+    @DynamoDbAttribute("currency")
     public void setCurrency(String currency) {
         this.currency = currency;
     }
@@ -100,7 +102,7 @@ public class PortfolioTransaction {
         return sharePrice;
     }
 
-    @DynamoDBAttribute(attributeName = "sharePrice")
+    @DynamoDbAttribute("sharePrice")
     public void setSharePrice(Double sharePrice) {
         this.sharePrice = sharePrice;
     }

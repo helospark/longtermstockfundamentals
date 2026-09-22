@@ -3,34 +3,55 @@ package com.helospark.financialdata.management.watchlist.repository;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.helospark.financialdata.management.config.EnhancedSchemaCache;
+
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
 
 @Repository
 public class PortfolioPerformanceHistoryRepository {
-    @Autowired
-    DynamoDBMapper mapper;
-
     Cache<String, Optional<PortfolioPerformanceHistory>> cache = Caffeine.newBuilder()
             .expireAfterWrite(1, TimeUnit.DAYS)
             .maximumSize(200)
             .build();
 
+    DynamoDbEnhancedClient enhancedClient;
+
+    public PortfolioPerformanceHistoryRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.enhancedClient = enhancedClient;
+    }
+
+    public DynamoDbTable<PortfolioPerformanceHistory> getTable() {
+        return enhancedClient.table(
+                "PortfolioPerformanceHistory",
+                EnhancedSchemaCache.getSchema(PortfolioPerformanceHistory.class));
+    }
+
     public void save(PortfolioPerformanceHistory data) {
-        mapper.save(data);
-        cache.invalidate(data.getEmail());
+        this.getTable().putItem(data);
+        this.cache.invalidate(data.getEmail());
     }
 
     public void deleteForUser(String user) {
-        readHistoricalPortfolio(user).ifPresent(a -> mapper.delete(a));
-        cache.invalidate(user);
+        Key key = Key.builder()
+                .partitionValue(user)
+                .build();
+        this.getTable().deleteItem(key);
+        this.cache.invalidate(user);
     }
 
     public Optional<PortfolioPerformanceHistory> readHistoricalPortfolio(String email) {
-        return cache.get(email, email2 -> Optional.ofNullable(mapper.load(PortfolioPerformanceHistory.class, email2)));
+        return this.cache.get(email, emailKey -> {
+            Key key = Key.builder()
+                    .partitionValue(emailKey)
+                    .build();
+            PortfolioPerformanceHistory item = this.getTable().getItem(key);
+            return Optional.ofNullable(item);
+        });
     }
 }

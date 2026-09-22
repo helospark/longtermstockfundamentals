@@ -1,60 +1,75 @@
 package com.helospark.financialdata.management.payment.repository;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.helospark.financialdata.management.config.EnhancedSchemaCache;
+
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 @Repository
 public class StripeUserMappingRepository {
-    @Autowired
-    DynamoDBMapper mapper;
+    DynamoDbEnhancedClient enhancedClient;
+
+    public StripeUserMappingRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.enhancedClient = enhancedClient;
+    }
+
+    public DynamoDbTable<StripeUserMapping> getTable() {
+        return enhancedClient.table(
+                "StripeUserMapping",
+                EnhancedSchemaCache.getSchema(StripeUserMapping.class));
+    }
 
     public Optional<StripeUserMapping> getStripeUserMapping(String value) {
-        return Optional.ofNullable(mapper.load(StripeUserMapping.class, value));
+        Key key = Key.builder()
+                .partitionValue(value)
+                .build();
+
+        return Optional.ofNullable(getTable().getItem(key));
     }
 
     public Optional<StripeUserMapping> findStripeUserMappingByEmail(String email) {
-        PaginatedScanList<StripeUserMapping> result = findAllStripeUsersWithEmail(email);
-
-        if (result != null && result.size() > 0) {
-            return Optional.of(result.get(0));
-        } else {
-            return Optional.empty();
-        }
+        return findAllStripeUsersWithEmail(email)
+                .stream()
+                .findFirst();
     }
 
-    public PaginatedScanList<StripeUserMapping> findAllStripeUsersWithEmail(String email) {
-        Map<String, AttributeValue> eav = new HashMap<String, AttributeValue>();
-        eav.put(":val1", new AttributeValue().withS(email));
-
-        DynamoDBScanExpression scanExpression = new DynamoDBScanExpression()
-                .withFilterExpression("email = :val1")
-                .withExpressionAttributeValues(eav);
-
-        PaginatedScanList<StripeUserMapping> result = mapper.scan(StripeUserMapping.class, scanExpression);
-        return result;
+    public List<StripeUserMapping> findAllStripeUsersWithEmail(String email) {
+        return getTable().scan(r -> r.filterExpression(
+                Expression.builder()
+                        .expression("email = :val1")
+                        .expressionValues(Map.of(
+                                ":val1", AttributeValue.builder()
+                                        .s(email)
+                                        .build()))
+                        .build()))
+                .items()
+                .stream()
+                .toList();
     }
 
     public void removeAllEntriesWithEmail(String email) {
-        findAllStripeUsersWithEmail(email).forEach(entry -> mapper.delete(entry));
+        findAllStripeUsersWithEmail(email)
+                .forEach(getTable()::deleteItem);
     }
 
     public void removeConfirmationEmail(String value) {
-        StripeUserMapping toDelete = new StripeUserMapping();
-        toDelete.setStripeCustomerId(value);
-        mapper.delete(toDelete);
+        Key key = Key.builder()
+                .partitionValue(value)
+                .build();
+
+        getTable().deleteItem(key);
     }
 
     public void save(StripeUserMapping stripeUserMapping) {
-        mapper.save(stripeUserMapping);
+        getTable().putItem(stripeUserMapping);
     }
-
 }

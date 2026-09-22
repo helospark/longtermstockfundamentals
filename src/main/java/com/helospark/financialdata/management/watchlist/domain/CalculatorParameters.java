@@ -1,5 +1,8 @@
 package com.helospark.financialdata.management.watchlist.domain;
 
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+
+@DynamoDbBean
 public class CalculatorParameters {
     public Double startMargin;
     public Double endMargin;

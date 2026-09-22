@@ -1,9 +1,9 @@
 package com.helospark.financialdata.management.user;
 
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.util.Optional;
 
-import org.joda.time.LocalDate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -43,7 +43,7 @@ public class RegisterService {
         user.setActivated(false);
         user.setEmail(request.email);
         user.setPassword(encodedPassword);
-        user.setRegistered(new LocalDate().toString());
+        user.setRegistered(LocalDate.now().toString());
         user.setRegisteredWith(RegistrationSource.EMAIL);
 
         userRepository.save(user);
@@ -65,7 +65,7 @@ public class RegisterService {
         user.setActivated(false);
         user.setEmail(email);
         user.setPassword("****");
-        user.setRegistered(new LocalDate().toString());
+        user.setRegistered(LocalDate.now().toString());
         user.setRegisteredWith(RegistrationSource.GOOGLE);
 
         userRepository.save(user);

@@ -2,28 +2,45 @@ package com.helospark.financialdata.management.user.repository;
 
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.helospark.financialdata.management.config.EnhancedSchemaCache;
+
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
 
 @Component
 public class PersistentSigninRepository {
-    @Autowired
-    DynamoDBMapper mapper;
+    DynamoDbEnhancedClient enhancedClient;
+
+    public PersistentSigninRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.enhancedClient = enhancedClient;
+    }
+
+    public DynamoDbTable<PersistentSignin> getTable() {
+        return enhancedClient.table(
+                "PersistentSignin",
+                EnhancedSchemaCache.getSchema(PersistentSignin.class));
+    }
 
     public Optional<PersistentSignin> getPersistentSignin(String value) {
-        return Optional.ofNullable(mapper.load(PersistentSignin.class, value));
+        Key key = Key.builder()
+                .partitionValue(value)
+                .build();
+
+        return Optional.ofNullable(getTable().getItem(key));
     }
 
     public void removePersistentSigning(String value) {
-        PersistentSignin toDelete = new PersistentSignin();
-        toDelete.setKey(value);
-        mapper.delete(toDelete);
+        Key key = Key.builder()
+                .partitionValue(value)
+                .build();
+
+        getTable().deleteItem(key);
     }
 
     public void save(PersistentSignin persistentSignin) {
-        mapper.save(persistentSignin);
+        getTable().putItem(persistentSignin);
     }
-
 }

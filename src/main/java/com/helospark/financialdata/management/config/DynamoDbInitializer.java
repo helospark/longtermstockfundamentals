@@ -1,23 +1,11 @@
 package com.helospark.financialdata.management.config;
 
-import org.joda.time.LocalDate;
+import java.time.LocalDate;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
-import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
-import com.amazonaws.services.dynamodbv2.model.DescribeTimeToLiveRequest;
-import com.amazonaws.services.dynamodbv2.model.DescribeTimeToLiveResult;
-import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
-import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
-import com.amazonaws.services.dynamodbv2.model.TimeToLiveSpecification;
-import com.amazonaws.services.dynamodbv2.model.UpdateTableRequest;
-import com.amazonaws.services.dynamodbv2.model.UpdateTimeToLiveRequest;
-import com.amazonaws.services.dynamodbv2.util.TableUtils;
 import com.helospark.financialdata.management.chartorder.ChartOrder;
 import com.helospark.financialdata.management.payment.repository.StripeUserMapping;
 import com.helospark.financialdata.management.payment.repository.UserLastPayment;
@@ -32,22 +20,42 @@ import com.helospark.financialdata.management.watchlist.repository.JobLastRunDat
 import com.helospark.financialdata.management.watchlist.repository.PortfolioPerformanceHistory;
 import com.helospark.financialdata.management.watchlist.repository.PortfolioTransaction;
 import com.helospark.financialdata.management.watchlist.repository.Watchlist;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistElement;
 import com.helospark.financialdata.management.watchlist.repository.WatchlistExpectationHistory;
+import com.helospark.financialdata.management.watchlist.repository.WatchlistMigrationService;
 
 import jakarta.annotation.PostConstruct;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.BillingMode;
+import software.amazon.awssdk.services.dynamodb.model.DeleteTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTimeToLiveRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTimeToLiveResponse;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughput;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveSpecification;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveStatus;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 
 @Component
 public class DynamoDbInitializer {
     private static final String ADMIN_EMAIL = "admin@longtermstockfundamentals.com";
     private static final String ROOT_EMAIL = "root@longtermstockfundamentals.com";
     @Autowired
-    AmazonDynamoDB amazonDynamoDB;
-    @Autowired
-    DynamoDBMapper mapper;
+    DynamoDbClient dynamoDbClient;
     @Autowired
     UserRepository userRepository;
     @Autowired
     BCryptPasswordEncoder passwordEncoder;
+    @Autowired
+    WatchlistMigrationService watchlistMigrationService;
+    @Autowired
+    DynamoDbEnhancedClient dynamoDbEnhancedClient;
 
     @PostConstruct
     public void createTables() {
@@ -60,6 +68,12 @@ public class DynamoDbInitializer {
         createTable("JobLastRunData", JobLastRunData.class);
         createTable("PortfolioPerformanceHistory", PortfolioPerformanceHistory.class);
         createTableWithProvisioning("Watchlist", Watchlist.class, 5L, 5L);
+        boolean wasSegmentedCreated = createTableWithProvisioning("WatchlistSegmented", WatchlistElement.class, 5L, 5L);
+
+        if (wasSegmentedCreated) {
+            watchlistMigrationService.migrateAllWatchlists();
+        }
+
         createTable("WatchlistExpectationHistory", WatchlistExpectationHistory.class);
         createTable("Screener", Screener.class);
         createTable("PortfolioTransactionT", PortfolioTransaction.class);
@@ -84,61 +98,85 @@ public class DynamoDbInitializer {
             userRepository.save(user);
         }
         if (wasConfirmationEmailTableCreated) {
-            UpdateTimeToLiveRequest ttlRequest = new UpdateTimeToLiveRequest();
-            ttlRequest.setTableName("ConfirmationEmail");
-            ttlRequest.setTimeToLiveSpecification(new TimeToLiveSpecification().withEnabled(true).withAttributeName("expiration"));
-            amazonDynamoDB.updateTimeToLive(ttlRequest);
+            setExpirationToTable("ConfirmationEmail");
         }
         if (!isTimeToLiveEnabled("PersistentSignin")) {
-            UpdateTimeToLiveRequest ttlRequest = new UpdateTimeToLiveRequest();
-            ttlRequest.setTableName("PersistentSignin");
-            ttlRequest.setTimeToLiveSpecification(new TimeToLiveSpecification().withEnabled(true).withAttributeName("expiration"));
-            amazonDynamoDB.updateTimeToLive(ttlRequest);
+            setExpirationToTable("PersistentSignin");
         }
 
     }
 
-    private void migrateToProvisionedBillingMode(String string, long read, long write) {
-        UpdateTableRequest updateTableRequest = new UpdateTableRequest(string, new ProvisionedThroughput(read, write));
-        amazonDynamoDB.updateTable(updateTableRequest);
+    public void setExpirationToTable(String tableNameToSetExpirationTo) {
+        UpdateTimeToLiveRequest request = UpdateTimeToLiveRequest.builder()
+                .tableName(tableNameToSetExpirationTo)
+                .timeToLiveSpecification(
+                        TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("expiration")
+                                .build())
+                .build();
+
+        dynamoDbClient.updateTimeToLive(request);
     }
 
-    private boolean isProvisionedTable(String string) {
-        DescribeTableRequest describeRequest = new DescribeTableRequest(string);
-        DescribeTableResult describeTableResult = amazonDynamoDB.describeTable(describeRequest);
-        return describeTableResult.getTable().getBillingModeSummary().getBillingMode().equals("PROVISIONED");
+    private void migrateToProvisionedBillingMode(String tableName, long read, long write) {
+        UpdateTableRequest request = UpdateTableRequest.builder()
+                .tableName(tableName)
+                .billingMode(BillingMode.PROVISIONED)
+                .provisionedThroughput(
+                        ProvisionedThroughput.builder()
+                                .readCapacityUnits(read)
+                                .writeCapacityUnits(write)
+                                .build())
+                .build();
+
+        dynamoDbClient.updateTable(request);
+    }
+
+    private boolean isProvisionedTable(String tableName) {
+        DescribeTableResponse response = dynamoDbClient.describeTable(
+                DescribeTableRequest.builder()
+                        .tableName(tableName)
+                        .build());
+
+        return response.table()
+                .billingModeSummary()
+                .billingMode() == BillingMode.PROVISIONED;
     }
 
     public boolean isTimeToLiveEnabled(String tableName) {
-        DescribeTimeToLiveRequest ttlDescribeRequest = new DescribeTimeToLiveRequest().withTableName(tableName);
-        DescribeTimeToLiveResult hasTimeToLive = amazonDynamoDB.describeTimeToLive(ttlDescribeRequest);
-        return !hasTimeToLive.getTimeToLiveDescription().getTimeToLiveStatus().equals("DISABLED");
+        DescribeTimeToLiveResponse response = dynamoDbClient.describeTimeToLive(
+                DescribeTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .build());
+
+        return response.timeToLiveDescription()
+                .timeToLiveStatus() != TimeToLiveStatus.DISABLED;
     }
 
-    public boolean createTable(String tableName, Class<?> class1) {
+    public boolean createTable(String tableName, Class<?> clazz) {
         if (!doesTableExist(tableName)) {
-            CreateTableRequest tableRequest = mapper.generateCreateTableRequest(class1);
-            tableRequest.setBillingMode("PAY_PER_REQUEST");
-            amazonDynamoDB.createTable(tableRequest);
+            DynamoDbTable<?> table = dynamoDbEnhancedClient.table(
+                    tableName,
+                    TableSchema.fromBean(clazz));
 
-            try {
-                TableUtils.waitUntilExists(amazonDynamoDB, tableName);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            table.createTable();
+
             return true;
-        } else {
-            return false;
         }
+
+        return false;
     }
 
-    public boolean forceRecreateTable(String tableName, Class<?> class1) {
+    public boolean forceRecreateTable(String tableName, Class<?> clazz) {
         if (doesTableExist(tableName)) {
-            amazonDynamoDB.deleteTable(tableName);
+            dynamoDbClient.deleteTable(
+                    DeleteTableRequest.builder()
+                            .tableName(tableName)
+                            .build());
         }
-        CreateTableRequest tableRequest = mapper.generateCreateTableRequest(class1);
-        tableRequest.setBillingMode("PAY_PER_REQUEST");
-        amazonDynamoDB.createTable(tableRequest);
+
+        createTable(tableName, clazz);
 
         for (int i = 0; i < 10; ++i) {
             if (doesTableExist(tableName)) {
@@ -148,28 +186,12 @@ public class DynamoDbInitializer {
                 exceptionlessSleep(1);
             }
         }
+
         return true;
     }
 
     public boolean createTableWithProvisioning(String tableName, Class<?> class1, Long provisionedRead, Long provisionedWrite) {
-        if (!doesTableExist(tableName)) {
-            CreateTableRequest tableRequest = mapper.generateCreateTableRequest(class1);
-            tableRequest.setBillingMode("PROVISIONED");
-            tableRequest.setProvisionedThroughput(new ProvisionedThroughput(provisionedRead, provisionedWrite));
-            amazonDynamoDB.createTable(tableRequest);
-
-            for (int i = 0; i < 10; ++i) {
-                if (doesTableExist(tableName)) {
-                    break;
-                } else {
-                    System.out.println("Waiting for " + tableName + " table to be created");
-                    exceptionlessSleep(1);
-                }
-            }
-            return true;
-        } else {
-            return false;
-        }
+        return createTable(tableName, class1); // TODO: Temporary removed with v1
     }
 
     private void exceptionlessSleep(int i) {
@@ -182,7 +204,11 @@ public class DynamoDbInitializer {
 
     public boolean doesTableExist(String tableName) {
         try {
-            return amazonDynamoDB.describeTable(tableName) != null;
+            dynamoDbClient.describeTable(
+                    DescribeTableRequest.builder()
+                            .tableName(tableName)
+                            .build());
+            return true;
         } catch (ResourceNotFoundException e) {
             return false;
         }

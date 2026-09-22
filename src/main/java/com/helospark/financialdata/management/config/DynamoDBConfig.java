@@ -1,14 +1,17 @@
 package com.helospark.financialdata.management.config;
 
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
 @Configuration
 public class DynamoDBConfig {
@@ -22,25 +25,34 @@ public class DynamoDBConfig {
     @Value("${amazon.aws.secretkey}")
     private String amazonAWSSecretKey;
 
-    @Bean
-    public AmazonDynamoDB amazonDynamoDB() {
-        AmazonDynamoDB amazonDynamoDB = new AmazonDynamoDBClient(amazonAWSCredentials());
+    @Value("${amazon.aws.region:us-east-1}")
+    private String awsRegion;
 
-        if (amazonDynamoDBEndpoint != null && !amazonDynamoDBEndpoint.isBlank()) {
-            amazonDynamoDB.setEndpoint(amazonDynamoDBEndpoint);
+    @Bean
+    public DynamoDbClient dynamoDbClient() {
+        DynamoDbClientBuilder builder = DynamoDbClient.builder()
+                .region(Region.of(awsRegion));
+
+        if (amazonAWSAccessKey != null && !amazonAWSAccessKey.isBlank()
+                && amazonAWSSecretKey != null && !amazonAWSSecretKey.isBlank()) {
+
+            AwsBasicCredentials credentials = AwsBasicCredentials.create(
+                    amazonAWSAccessKey,
+                    amazonAWSSecretKey);
+            builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
         }
 
-        return amazonDynamoDB;
+        if (amazonDynamoDBEndpoint != null && !amazonDynamoDBEndpoint.isBlank()) {
+            builder.endpointOverride(URI.create(amazonDynamoDBEndpoint));
+        }
+
+        return builder.build();
     }
 
     @Bean
-    public DynamoDBMapper mapper(AmazonDynamoDB amazonDynamoDB) {
-        return new DynamoDBMapper(amazonDynamoDB);
-    }
-
-    @Bean
-    public AWSCredentials amazonAWSCredentials() {
-        return new BasicAWSCredentials(
-                amazonAWSAccessKey, amazonAWSSecretKey);
+    public DynamoDbEnhancedClient dynamoDbEnhancedClient(DynamoDbClient dynamoDbClient) {
+        return DynamoDbEnhancedClient.builder()
+                .dynamoDbClient(dynamoDbClient)
+                .build();
     }
 }

@@ -2,12 +2,11 @@ package com.helospark.financialdata.management.watchlist.repository;
 
 import java.time.LocalDate;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverted;
-import com.helospark.financialdata.management.helper.LocalDateConverter;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
-@DynamoDBTable(tableName = "JobLastRunData")
+@DynamoDbBean
 public class JobLastRunData {
     private String job;
     private LocalDate date;
@@ -20,7 +19,8 @@ public class JobLastRunData {
         this.date = date;
     }
 
-    @DynamoDBHashKey
+    @DynamoDbPartitionKey
+    @DynamoDbAttribute("job")
     public String getJob() {
         return job;
     }
@@ -29,7 +29,6 @@ public class JobLastRunData {
         this.job = job;
     }
 
-    @DynamoDBTypeConverted(converter = LocalDateConverter.class)
     public LocalDate getDate() {
         return date;
     }

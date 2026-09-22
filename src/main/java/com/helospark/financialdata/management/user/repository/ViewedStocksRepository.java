@@ -4,40 +4,59 @@ import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBScanExpression;
-import com.amazonaws.services.dynamodbv2.datamodeling.PaginatedScanList;
+import com.helospark.financialdata.management.config.EnhancedSchemaCache;
+
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
 
 @Component
 public class ViewedStocksRepository {
     private static final Logger LOGGER = LoggerFactory.getLogger(ViewedStocksRepository.class);
-    @Autowired
-    DynamoDBMapper mapper;
+    DynamoDbEnhancedClient enhancedClient;
+
+    public ViewedStocksRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.enhancedClient = enhancedClient;
+    }
+
+    public DynamoDbTable<ViewedStocks> getTable() {
+        return enhancedClient.table(
+                "ViewedStocks",
+                EnhancedSchemaCache.getSchema(ViewedStocks.class));
+    }
 
     public Optional<ViewedStocks> getViewedStocks(String value) {
-        return Optional.ofNullable(mapper.load(ViewedStocks.class, value));
+        Key key = Key.builder()
+                .partitionValue(value)
+                .build();
+
+        return Optional.ofNullable(getTable().getItem(key));
     }
 
     public void clearViewedStocks(String email) {
-        ViewedStocks toDelete = new ViewedStocks();
-        toDelete.setEmail(email);
-        mapper.delete(toDelete);
+        Key key = Key.builder()
+                .partitionValue(email)
+                .build();
+
+        getTable().deleteItem(key);
     }
 
     public void save(ViewedStocks viewedStocks) {
-        mapper.save(viewedStocks);
+        getTable().putItem(viewedStocks);
     }
 
     public void removeAll() {
-        PaginatedScanList<ViewedStocks> allElements = mapper.scan(ViewedStocks.class, new DynamoDBScanExpression());
+        getTable().scan()
+                .items()
+                .forEach(element -> {
+                    LOGGER.debug(
+                            "User '{}' had stocks '{}'",
+                            element.getEmail(),
+                            element.getStocks());
 
-        allElements.forEach(element -> {
-            LOGGER.debug("User '{}' had stocks '{}'", element.getEmail(), element.getStocks());
-            clearViewedStocks(element.getEmail());
-        });
+                    clearViewedStocks(element.getEmail());
+                });
     }
-
 }

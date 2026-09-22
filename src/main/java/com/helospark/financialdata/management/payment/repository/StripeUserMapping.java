@@ -1,18 +1,18 @@
 package com.helospark.financialdata.management.payment.repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConvertedEnum;
 import com.helospark.financialdata.management.user.repository.AccountType;
 
-@DynamoDBTable(tableName = "StripeUserMapping")
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+
+@DynamoDbBean
 public class StripeUserMapping {
     private String stripeCustomerId;
     private String email;
     private AccountType lastRequestedAccountType;
     private String currentSubscriptionId;
 
-    @DynamoDBHashKey
+    @DynamoDbPartitionKey
     public String getStripeCustomerId() {
         return stripeCustomerId;
     }
@@ -29,7 +29,6 @@ public class StripeUserMapping {
         this.email = email;
     }
 
-    @DynamoDBTypeConvertedEnum
     public AccountType getLastRequestedAccountType() {
         return lastRequestedAccountType;
     }

@@ -2,15 +2,15 @@ package com.helospark.financialdata.management.watchlist.repository;
 
 import java.nio.ByteBuffer;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
-@DynamoDBTable(tableName = "Watchlist")
+@DynamoDbBean
 public class Watchlist {
     private String email;
     private ByteBuffer watchlistRaw;
 
-    @DynamoDBHashKey
+    @DynamoDbPartitionKey
     public String getEmail() {
         return email;
     }

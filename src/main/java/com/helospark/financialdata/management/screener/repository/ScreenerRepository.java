@@ -2,21 +2,37 @@ package com.helospark.financialdata.management.screener.repository;
 
 import java.util.Optional;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.helospark.financialdata.management.config.EnhancedSchemaCache;
+
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
 
 @Repository
 public class ScreenerRepository {
-    @Autowired
-    DynamoDBMapper mapper;
+    DynamoDbEnhancedClient enhancedClient;
+
+    public ScreenerRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.enhancedClient = enhancedClient;
+    }
+
+    public DynamoDbTable<Screener> getTable() {
+        return enhancedClient.table(
+                "Screener",
+                EnhancedSchemaCache.getSchema(Screener.class));
+    }
 
     public void save(Screener watchlist) {
-        mapper.save(watchlist);
+        getTable().putItem(watchlist);
     }
 
     public Optional<Screener> readScreenerByEmail(String email) {
-        return Optional.ofNullable(mapper.load(Screener.class, email));
+        Key key = Key.builder()
+                .partitionValue(email)
+                .build();
+
+        return Optional.ofNullable(getTable().getItem(key));
     }
 }

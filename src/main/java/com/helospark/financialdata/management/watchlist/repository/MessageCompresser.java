@@ -59,7 +59,8 @@ public class MessageCompresser {
     }
 
     public String uncompressString(ByteBuffer input) throws IOException {
-        byte[] bytes = input.array();
+        byte[] bytes = new byte[input.remaining()];
+        input.duplicate().get(bytes);
         ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         GZIPInputStream is = new GZIPInputStream(bais);

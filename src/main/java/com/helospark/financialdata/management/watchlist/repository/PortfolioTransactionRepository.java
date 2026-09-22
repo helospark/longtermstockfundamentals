@@ -1,48 +1,69 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.helospark.financialdata.management.config.EnhancedSchemaCache;
+
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 
 @Repository
 public class PortfolioTransactionRepository {
+    DynamoDbEnhancedClient enhancedClient;
 
-    @Autowired
-    private DynamoDBMapper mapper;
+    public PortfolioTransactionRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.enhancedClient = enhancedClient;
+    }
+
+    public DynamoDbTable<PortfolioTransaction> getTable() {
+        return enhancedClient.table(
+                "PortfolioTransactionT",
+                EnhancedSchemaCache.getSchema(PortfolioTransaction.class));
+    }
 
     public void saveTransaction(PortfolioTransaction transaction) {
-        mapper.save(transaction);
+        getTable().putItem(transaction);
     }
 
     public List<PortfolioTransaction> getTransactionsByUserEmail(String userEmail) {
-        Map<String, AttributeValue> eav = new HashMap<>();
-        eav.put(":v1", new AttributeValue().withS(userEmail));
+        QueryEnhancedRequest request = QueryEnhancedRequest.builder()
+                .queryConditional(
+                        QueryConditional.keyEqualTo(
+                                Key.builder()
+                                        .partitionValue(userEmail)
+                                        .build()))
+                .scanIndexForward(false)
+                .build();
 
-        DynamoDBQueryExpression<PortfolioTransaction> queryExpression = new DynamoDBQueryExpression<PortfolioTransaction>()
-                .withKeyConditionExpression("userEmail = :v1")
-                .withExpressionAttributeValues(eav)
-                .withScanIndexForward(false); // Newest first based on ISO-8601 String Range Key
-
-        return mapper.query(PortfolioTransaction.class, queryExpression);
+        return getTable().query(request)
+                .items()
+                .stream()
+                .collect(Collectors.toList());
     }
 
-    public List<PortfolioTransaction> getLatestTransactionsByUserEmail(String userEmail, int limit) {
-        Map<String, AttributeValue> eav = new HashMap<>();
-        eav.put(":v1", new AttributeValue().withS(userEmail));
+    public List<PortfolioTransaction> getLatestTransactionsByUserEmail(
+            String userEmail,
+            int limit) {
+        QueryEnhancedRequest request = QueryEnhancedRequest.builder()
+                .queryConditional(
+                        QueryConditional.keyEqualTo(
+                                Key.builder()
+                                        .partitionValue(userEmail)
+                                        .build()))
+                .scanIndexForward(false)
+                .limit(limit)
+                .build();
 
-        DynamoDBQueryExpression<PortfolioTransaction> queryExpression = new DynamoDBQueryExpression<PortfolioTransaction>()
-                .withKeyConditionExpression("userEmail = :v1")
-                .withExpressionAttributeValues(eav)
-                .withScanIndexForward(false) // Newest first
-                .withLimit(limit); // Limit response count at DynamoDB engine level
-
-        return mapper.query(PortfolioTransaction.class, queryExpression);
+        return getTable().query(request)
+                .items()
+                .stream()
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 }

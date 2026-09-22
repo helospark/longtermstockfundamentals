@@ -1,10 +1,11 @@
 package com.helospark.financialdata.management.chartorder;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
-@DynamoDBTable(tableName = "ChartOrder")
+@DynamoDbBean
 public class ChartOrder {
     private String userEmail;
     private String name;
@@ -19,7 +20,8 @@ public class ChartOrder {
         this.formatJson = formatJson;
     }
 
-    @DynamoDBHashKey(attributeName = "userEmail")
+    @DynamoDbPartitionKey
+    @DynamoDbAttribute("userEmail")
     public String getUserEmail() {
         return userEmail;
     }
@@ -28,7 +30,8 @@ public class ChartOrder {
         this.userEmail = userEmail;
     }
 
-    @DynamoDBRangeKey(attributeName = "name")
+    @DynamoDbSortKey
+    @DynamoDbAttribute("name")
     public String getName() {
         return name;
     }

@@ -2,6 +2,9 @@ package com.helospark.financialdata.management.watchlist.domain;
 
 import org.hibernate.validator.constraints.Range;
 
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+
+@DynamoDbBean
 public class Moats {
     @Range(min = 0, max = 5)
     public int networkEffect;

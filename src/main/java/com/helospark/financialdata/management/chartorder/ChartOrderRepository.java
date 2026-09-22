@@ -1,35 +1,51 @@
 package com.helospark.financialdata.management.chartorder;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
+import com.helospark.financialdata.management.config.EnhancedSchemaCache;
+
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 
 @Repository
 public class ChartOrderRepository {
-    @Autowired
-    private DynamoDBMapper mapper;
+    DynamoDbEnhancedClient enhancedClient;
+
+    public ChartOrderRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.enhancedClient = enhancedClient;
+    }
+
+    public DynamoDbTable<ChartOrder> getTable() {
+        return enhancedClient.table(
+                "ChartOrder",
+                EnhancedSchemaCache.getSchema(ChartOrder.class));
+    }
 
     public void save(ChartOrder chartOrder) {
-        mapper.save(chartOrder);
+        getTable().putItem(chartOrder);
     }
 
     public List<ChartOrder> getAll(String userEmail) {
-        Map<String, AttributeValue> eav = new HashMap<>();
-        eav.put(":v1", new AttributeValue().withS(userEmail));
+        Key key = Key.builder()
+                .partitionValue(userEmail)
+                .build();
 
-        DynamoDBQueryExpression<ChartOrder> queryExpression = new DynamoDBQueryExpression<ChartOrder>()
-                .withKeyConditionExpression("userEmail = :v1")
-                .withExpressionAttributeValues(eav)
-                .withScanIndexForward(false);
+        QueryConditional queryConditional = QueryConditional.keyEqualTo(key);
 
-        return mapper.query(ChartOrder.class, queryExpression);
+        QueryEnhancedRequest request = QueryEnhancedRequest.builder()
+                .queryConditional(queryConditional)
+                .scanIndexForward(false)
+                .build();
+
+        return getTable().query(request)
+                .items()
+                .stream()
+                .toList();
     }
 
     public void delete(String userEmail, String name) {
@@ -37,6 +53,6 @@ public class ChartOrderRepository {
         orderToDelete.setUserEmail(userEmail);
         orderToDelete.setName(name);
 
-        mapper.delete(orderToDelete);
+        getTable().deleteItem(orderToDelete);
     }
 }

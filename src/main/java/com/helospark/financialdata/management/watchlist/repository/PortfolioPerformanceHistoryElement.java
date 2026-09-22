@@ -3,9 +3,7 @@ package com.helospark.financialdata.management.watchlist.repository;
 import java.time.LocalDate;
 import java.util.List;
 
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTypeConverted;
-import com.helospark.financialdata.management.helper.LocalDateConverter;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
 public class PortfolioPerformanceHistoryElement {
     private String email;
@@ -18,7 +16,7 @@ public class PortfolioPerformanceHistoryElement {
 
     private List<SimpleHolding> holdings;
 
-    @DynamoDBHashKey
+    @DynamoDbPartitionKey
     public String getEmail() {
         return email;
     }
@@ -27,7 +25,6 @@ public class PortfolioPerformanceHistoryElement {
         this.email = key;
     }
 
-    @DynamoDBTypeConverted(converter = LocalDateConverter.class)
     public LocalDate getDate() {
         return date;
     }

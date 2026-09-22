@@ -1,7 +1,6 @@
 package com.helospark.financialdata.management.watchlist.repository;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
@@ -12,32 +11,37 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 
 @Repository
-public class WatchlistRepository {
+public class WatchlistSegmentedRepository {
+
     DynamoDbEnhancedClient enhancedClient;
 
-    public WatchlistRepository(DynamoDbEnhancedClient enhancedClient) {
+    public WatchlistSegmentedRepository(DynamoDbEnhancedClient enhancedClient) {
         this.enhancedClient = enhancedClient;
     }
 
-    public DynamoDbTable<Watchlist> getTable() {
+    public DynamoDbTable<WatchlistElement> getTable() {
         return enhancedClient.table(
-                "Watchlist",
-                EnhancedSchemaCache.getSchema(Watchlist.class));
+                "WatchlistElement",
+                EnhancedSchemaCache.getSchema(WatchlistElement.class));
     }
 
-    public void save(Watchlist watchlist) {
+    public void save(WatchlistElement watchlist) {
         getTable().putItem(watchlist);
     }
 
-    public Optional<Watchlist> readWatchlistByEmail(String email) {
+    public List<WatchlistElement> readWatchlistByEmail(String email) {
         Key key = Key.builder()
                 .partitionValue(email)
                 .build();
 
-        return Optional.ofNullable(getTable().getItem(key));
+        return getTable().query(
+                r -> r.queryConditional(
+                        software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional
+                                .keyEqualTo(key)))
+                .items().stream().toList();
     }
 
-    public List<Watchlist> readAllWatchlists() {
+    public List<WatchlistElement> readAllWatchlists() {
         return getTable().scan()
                 .items()
                 .stream()
